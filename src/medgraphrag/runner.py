@@ -20,7 +20,7 @@ from medgraphrag.core.registry import build
 from medgraphrag.core.types import Prediction
 from medgraphrag.data.loaders import load_dataset
 from medgraphrag.eval.accuracy import accuracy
-from medgraphrag.eval.retrieval import recall_at_k, mrr
+from medgraphrag.eval.retrieval import retrieval_recall, mrr
 from medgraphrag.llm.mock import MockLLM
 
 DEFAULT_ARM_MODULES = ["medgraphrag.arms.standard"]
@@ -31,7 +31,7 @@ class RunResult:
     arm_name: str
     dataset: str
     accuracy: float
-    recall_at_k: float
+    retrieval_recall: float
     mrr: float
     predictions: list[Prediction]
 
@@ -61,7 +61,7 @@ def run_config(config: dict) -> RunResult:
         arm_name=config["arm"],
         dataset=config["dataset"],
         accuracy=accuracy(preds, questions),
-        recall_at_k=recall_at_k(preds, questions),
+        retrieval_recall=retrieval_recall(preds, questions),
         mrr=mrr(preds, questions),
         predictions=preds,
     )
@@ -87,7 +87,7 @@ def save_results(results: list[RunResult], path: str, config: dict | None = None
                 "arm": r.arm_name,
                 "dataset": r.dataset,
                 "accuracy": r.accuracy,
-                "recall_at_k": r.recall_at_k,
+                "retrieval_recall": r.retrieval_recall,
                 "mrr": r.mrr,
                 "n": len(r.predictions),
                 "predictions": [_pred_to_dict(p) for p in r.predictions],

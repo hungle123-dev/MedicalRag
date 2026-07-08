@@ -13,7 +13,10 @@ def _is_hit(content: str, gold_terms: tuple[str, ...]) -> bool:
     return any(g.lower() in c for g in gold_terms)
 
 
-def recall_at_k(preds: list[Prediction], questions: list[Question]) -> float:
+def retrieval_recall(preds: list[Prediction], questions: list[Question]) -> float:
+    """Fraction of scored questions whose retrieved evidence contains a gold
+    hit. Recall over whatever the retriever returned (its own top-k), so there
+    is no separate k parameter here — the arm's k governs evidence size."""
     gold = {q.qid: q.gold_terms for q in questions}
     scored = [p for p in preds if gold.get(p.qid)]
     if not scored:
