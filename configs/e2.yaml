@@ -1,0 +1,7 @@
+# E2 — KG triple in-context (triples over shared source, entity normalized)
+arm: E2
+dataset: fixture
+k: 3
+llm:
+  default: A
+  rules: {}

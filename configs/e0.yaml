@@ -1,0 +1,7 @@
+# E0 — LLM-only baseline (no retrieval, outside RAG rule by design)
+arm: E0
+dataset: fixture
+k: 3
+llm:
+  default: A
+  rules: {}

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thiết kế thực nghiệm — Medical Graph RAG</title>
+<style>
+:root{
+  --bg:#0f1419; --panel:#1a2029; --panel2:#232b36; --ink:#e6edf3; --mut:#9fb0c0;
+  --acc:#4ea1ff; --acc2:#38d39f; --warn:#ffb454; --bad:#ff6b6b; --line:#2d3542;
+  --code:#141a21;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+.wrap{max-width:960px;margin:0 auto;padding:40px 24px 120px}
+h1{font-size:30px;line-height:1.25;margin:0 0 6px;letter-spacing:-.4px}
+h2{font-size:22px;margin:44px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--line);color:var(--acc)}
+h3{font-size:17px;margin:28px 0 10px;color:var(--acc2)}
+.sub{color:var(--mut);font-size:14px;margin:0 0 28px}
+p{margin:10px 0}
+code{background:var(--code);padding:2px 6px;border-radius:4px;font-family:"SF Mono",Consolas,monospace;font-size:13px;color:#c9d7e6}
+pre{background:var(--code);padding:14px 16px;border-radius:8px;overflow:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+th,td{text-align:left;padding:9px 11px;border:1px solid var(--line);vertical-align:top}
+th{background:var(--panel2);color:var(--acc);font-weight:600}
+tr:nth-child(even) td{background:var(--panel)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:16px 0}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;margin-right:6px}
+.t-hi{background:rgba(56,211,159,.15);color:var(--acc2);border:1px solid var(--acc2)}
+.t-mid{background:rgba(255,180,84,.15);color:var(--warn);border:1px solid var(--warn)}
+.t-lo{background:rgba(255,107,107,.13);color:var(--bad);border:1px solid var(--bad)}
+.callout{border-left:4px solid var(--warn);background:rgba(255,180,84,.08);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0}
+.callout.bad{border-color:var(--bad);background:rgba(255,107,107,.08)}
+.callout.good{border-color:var(--acc2);background:rgba(56,211,159,.08)}
+ul,ol{margin:10px 0;padding-left:24px}
+li{margin:5px 0}
+.toc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 22px;margin:24px 0}
+.toc a{color:var(--acc);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+.muted{color:var(--mut)}
+.kbd{font-size:12px;color:var(--mut)}
+hr{border:none;border-top:1px solid var(--line);margin:36px 0}
+.src{font-size:12px;color:var(--mut);word-break:break-all}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Thiết kế thực nghiệm: So sánh chiến lược Medical Graph RAG</h1>
+<p class="sub">Đồ án RAG y khoa &middot; Knowledge-Graph-based RAG &middot; Bản v1 &middot; 2026-07-07 &middot; Dựa trên khảo sát 20 nguồn (2023–2025), 24 claim đã xác minh đối kháng</p>
+
+<div class="toc">
+<strong>Mục lục</strong>
+<ol>
+<li><a href="#s1">1. Mục tiêu &amp; câu hỏi nghiên cứu</a></li>
+<li><a href="#s2">2. Bối cảnh: 4 họ chiến lược</a></li>
+<li><a href="#s3">3. Insight cốt lõi (làm nền cho luận điểm)</a></li>
+<li><a href="#s4">4. Dataset &amp; benchmark (không cào dữ liệu)</a></li>
+<li><a href="#s5">5. Knowledge graph &amp; ontology</a></li>
+<li><a href="#s6">6. Thiết kế thực nghiệm SMART</a></li>
+<li><a href="#s7">7. Metric &amp; giao thức đánh giá</a></li>
+<li><a href="#s8">8. Ablation (phần "thông minh")</a></li>
+<li><a href="#s9">9. Đóng góp &amp; khoảng trống lấp được</a></li>
+<li><a href="#s10">10. Phạm vi: làm gì / KHÔNG làm gì</a></li>
+<li><a href="#s11">11. Lộ trình &amp; ngân sách tính toán</a></li>
+<li><a href="#s12">12. Rủi ro &amp; caveat trung thực</a></li>
+<li><a href="#s13">13. Nguồn tham khảo đã xác minh</a></li>
+</ol>
+</div>
+
+<h2 id="s1">1. Mục tiêu &amp; câu hỏi nghiên cứu</h2>
+<p><strong>Mục tiêu.</strong> So sánh có hệ thống các chiến lược KG-based RAG cho hỏi-đáp y khoa (medical QA), theo hướng <em>thông minh &amp; có kế hoạch</em> — cô lập từng yếu tố, không brute-force mọi tổ hợp.</p>
+<p><strong>Luận điểm trung tâm (thesis statement).</strong> Không phải "graph tốt hơn", mà: <em>graph thắng Ở ĐÂU, với CHI PHÍ bao nhiêu, và có đánh đổi giữa độ chính xác với khả năng truy vết (traceability) hay không.</em></p>
+<div class="card">
+<strong>Câu hỏi nghiên cứu (RQ)</strong>
+<ul>
+<li><strong>RQ1</strong> — Trên cùng backbone + cùng benchmark, các họ chiến lược xếp hạng thế nào về accuracy? (chưa paper nào so apples-to-apples)</li>
+<li><strong>RQ2</strong> — Cấu trúc graph (phẳng → phân tầng) đóng góp bao nhiêu vào accuracy, và bắt đầu "hoàn vốn" ở độ sâu nào?</li>
+<li><strong>RQ3</strong> — KG-RAG cải thiện accuracy hay chỉ cải thiện grounding/citation? Đo tách bạch 2 metric.</li>
+<li><strong>RQ4</strong> — Lợi thế multi-hop 1-bước của HippoRAG (chứng minh ở general-domain) có <em>chuyển giao</em> sang tri thức y khoa (KG trích từ MedCorp, entity chuẩn hóa UMLS) không? <span class="tag t-hi">novel</span></li>
+<li><strong>RQ5</strong> — Chi phí/độ chính xác đánh đổi ra sao theo loại câu hỏi (single-hop vs multi-hop)?</li>
+</ul>
+</div>
+
+<h2 id="s2">2. Bối cảnh: 4 họ chiến lược</h2>
+<p class="muted">Field không nhiều chiến lược. 4 họ + 1 baseline rẻ bao phủ toàn bộ. Mỗi họ = một điểm đánh đổi khác nhau.</p>
+
+<table>
+<tr><th>Họ</th><th>Đại diện</th><th>Cơ chế</th><th>Thắng khi</th><th>Chi phí</th></tr>
+<tr>
+<td><strong>Graph phân tầng + hybrid retrieval</strong></td>
+<td>MedGraphRAG <span class="kbd">(ACL 2025)</span></td>
+<td>3 tầng: user docs → y văn (MedC-K) → grounding UMLS bằng cosine embedding. "U-Retrieve" = top-down truy hồi + bottom-up tinh chỉnh</td>
+<td>Accuracy MCQA cao nhất. Zero-shot GPT-4: MedQA 81.7→91.3, MedMCQA 72.4→81.5, PubMedQA 75.2→83.3</td>
+<td><span class="tag t-lo">cao</span> build graph + embedding offline nặng</td>
+</tr>
+<tr>
+<td><strong>Agentic dynamic-KG</strong></td>
+<td>AMG-RAG <span class="kbd">(preprint 02/2025)</span></td>
+<td>Tự dựng + cập nhật KG liên tục (Neo4j), CoT reasoning, live PubMed/WikiSearch. Backbone nhỏ</td>
+<td>Model nhỏ (GPT-4o-mini) beat 70B Meditron, không fine-tune. MedQA 74.1 F1, MedMCQA 66.34. Cả live-search + CoT đều then chốt</td>
+<td><span class="tag t-mid">trung bình</span> gọi API live mỗi query</td>
+</tr>
+<tr>
+<td><strong>Graph reasoning 1-bước</strong></td>
+<td>HippoRAG <span class="kbd">(NeurIPS 2024)</span></td>
+<td>Personalized PageRank trên KG do LM trích, seed từ entity câu hỏi. Multi-hop trong MỘT bước truy hồi</td>
+<td>Multi-hop rẻ. Rẻ hơn 10–30×, nhanh hơn 6–13× so với IRCoT lặp</td>
+<td><span class="tag t-mid">online rẻ</span> index offline đắt. <strong>Chỉ test general-domain — chưa test y khoa</strong></td>
+</tr>
+<tr>
+<td><strong>Community phân cấp</strong></td>
+<td>Microsoft GraphRAG</td>
+<td>Cụm graph thành community, LLM tóm tắt mỗi cụm thành "community report", global search map-reduce</td>
+<td>Query global/tóm tắt. Level-1 = chất lượng static với chi phí thấp hơn 77%; level-3 thắng 59–60% nhưng +34% chi phí</td>
+<td><span class="tag t-mid">tùy độ sâu</span> <strong>General-domain (AP News), không y khoa</strong></td>
+</tr>
+<tr>
+<td><strong>Baseline rẻ: inject triple in-context</strong></td>
+<td>MKRAG <span class="kbd">(PMC)</span></td>
+<td>Truy hồi triple (head,rel,tail) từ KG cố định, chèn vào prompt. Lọc 2 bước</td>
+<td>Rẻ nhất. Vicuna-7B 44.46→48.54 trên MedQA</td>
+<td><span class="tag t-hi">rất rẻ</span></td>
+</tr>
+</table>
+<p class="muted">Số liệu MedGraphRAG/AMG-RAG là <em>tác giả tự báo cáo</em>, chưa được tái lập độc lập — xem mục 12.</p>
+
+<h2 id="s3">3. Insight cốt lõi (làm nền cho luận điểm)</h2>
+
+<div class="callout bad">
+<strong>KG-RAG KHÔNG tự động tăng accuracy.</strong> Đã xác minh: pipeline Neo4j-UMLS + Pinecone trên câu hỏi USMLE cho accuracy <em>ngang bằng</em> LLM-only — lợi ích duy nhất là citation traceability (truy vết nguồn), không phải độ đúng.
+<br><br><strong>Hệ quả thiết kế:</strong> phải đo <em>accuracy</em> và <em>grounding/traceability</em> như HAI metric tách biệt. Hệ thống có thể thắng cái này mà thua cái kia.
+</div>
+
+<div class="callout">
+<strong>"Accuracy Fallacy" (nguồn yếu — dùng thận trọng).</strong> Theo một preprint (03/2026, chưa peer-review, chưa kiểm chứng độc lập): ~33% câu trả lời đúng có thể là "đoán may không có căn cứ", khoảng cách ~14% giữa accuracy cảm nhận và accuracy có grounding. <em>Không trích con số cụ thể như sự thật;</em> dùng như động lực định tính cho việc đo grounding tách biệt.
+</div>
+
+<div class="callout">
+<strong>Graph thêm NHIỄU trên câu hỏi đơn giản.</strong> Đã xác minh (contrarian): với query fact đơn giản 1-hop, vector RAG phẳng bằng hoặc hơn GraphRAG vì xử lý graph đưa thêm thông tin dư/nhiễu. Graph chỉ thắng ở <em>multi-hop + summarization</em>.
+</div>
+
+<div class="callout good">
+<strong>Backbone: dùng model đa dụng làm biến kiểm soát.</strong> Một số nghiên cứu thấy PMC-LLaMA-13B / Meditron-70B <em>không vượt</em> GPT-4o / Gemma-2-27B / Llama-3-70B trên medical RAG QA. Vì backbone KHÔNG phải biến chính của đồ án (biến chính là chiến lược retrieval), ta cố định 1 backbone đa dụng và để backbone y khoa ngoài phạm vi — không kết luận "chúng luôn thua".
+</div>
+
+<p><strong>Vì sao đây là "vàng" cho luận án:</strong> ba insight trên chuyển đồ án từ "chạy nhiều pipeline" (brute-force) thành một <em>câu hỏi có định hướng</em>: khi nào graph đáng dùng, đo bằng metric kép, và chứng minh trên dữ liệu y khoa những điều mới chỉ được chứng minh ở general-domain.</p>
+
+<h2 id="s4">4. Dataset &amp; benchmark (không cào dữ liệu)</h2>
+<p class="muted">Toàn bộ công khai, chuẩn, tải được từ HuggingFace. Không cần crawl.</p>
+<table>
+<tr><th>Dataset</th><th>Loại</th><th>Kích thước</th><th>Vai trò</th></tr>
+<tr><td><strong>MedQA-US</strong> (USMLE)</td><td>MCQA 4 lựa chọn</td><td>1,273 (subset MIRAGE)</td><td>Metric accuracy chính</td></tr>
+<tr><td><strong>MedMCQA</strong></td><td>MCQA 4 lựa chọn</td><td>4,183 (subset MIRAGE)</td><td>Độ phủ rộng</td></tr>
+<tr><td><strong>PubMedQA*</strong></td><td>yes/no/maybe</td><td>500 (subset MIRAGE, bỏ context)</td><td>Suy luận trên abstract</td></tr>
+<tr><td><strong>BioASQ-Y/N</strong></td><td>yes/no</td><td>618 (subset MIRAGE)</td><td>Sinh y học</td></tr>
+<tr><td><strong>MMLU-Med</strong></td><td>MCQA 4 lựa chọn</td><td>1,089 (subset MIRAGE)</td><td>Y khoa tổng quát</td></tr>
+<tr><td><strong>MIRAGE</strong></td><td>benchmark + giao thức (KHÔNG gộp data)</td><td>7,663 câu</td><td><strong>Dùng cái này</strong> làm harness accuracy</td></tr>
+</table>
+
+<div class="callout good">
+<strong>MIRAGE là gì (đã xác minh từ paper arXiv 2402.13178).</strong> KHÔNG phải gộp 5 dataset thành một pool. Là <em>bộ đóng gói + giao thức chuẩn hóa</em>: 5 dataset giữ nguyên bản sắc, nhưng mọi hệ thống chạy qua <strong>4 luật cố định</strong> nên số liệu so được với nhau ("quy về chuẩn"):
+<table style="margin-top:10px">
+<tr><th>Luật</th><th>Ràng buộc</th></tr>
+<tr><td><strong>ZSL</strong> — Zero-Shot Learning</td><td>Cấm few-shot in-context</td></tr>
+<tr><td><strong>MCE</strong> — Multi-Choice Evaluation</td><td>Chấm dạng trắc nghiệm</td></tr>
+<tr><td><strong>RAG</strong></td><td>Bắt buộc dùng retrieval lấy thông tin ngoài</td></tr>
+<tr><td><strong>QOR</strong> — Question-Only Retrieval</td><td>Retrieval CHỈ dùng câu hỏi, không cho thấy đáp án (điểm mới của MIRAGE)</td></tr>
+</table>
+5 dataset: MMLU-Med, MedQA-US, MedMCQA, <strong>PubMedQA*</strong> (bỏ context gốc, chỉ giữ câu hỏi), BioASQ-Y/N.
+</div>
+<div class="callout good">
+<strong>Toolkit MedRAG</strong> (đi kèm, đã xác minh) ship sẵn:
+<ul style="margin:6px 0">
+<li><strong>Retriever:</strong> BM25 (lexical), Contriever, SPECTER (khoa học), MedCPT (y sinh) + fusion RRF-2 (BM25+MedCPT), RRF-4 (cả 4)</li>
+<li><strong>Corpus:</strong> PubMed, StatPearls, Textbooks, Wikipedia, MedCorp (gộp cả 4)</li>
+</ul>
+Đây là bộ khung "không cào dữ liệu" thầy yêu cầu. Paper gốc chạy 41 tổ hợp corpus×retriever×LM trên nó → chuẩn de-facto, đủ tin dùng.
+<br><br><strong>Lưu ý phạm vi:</strong> MIRAGE chỉ lo <em>accuracy</em>. Metric grounding (mục 7) phải TỰ viết một evaluator nhỏ — không có sẵn trong MIRAGE.
+</div>
+
+<h2 id="s5">5. Knowledge graph &amp; ontology</h2>
+<p><strong>Đã xác minh là thực sự được dùng</strong> (không chỉ nhắc tên):</p>
+<ul>
+<li><strong>UMLS</strong> — dùng làm <strong>từ điển chuẩn hóa entity</strong> (via scispaCy linker) cho E2, E3, E4 — KHÔNG phải nguồn tri thức riêng (mọi tri thức đến từ MedCorp, mục 6). Chuẩn hóa tên entity về CUI để triple/graph nhất quán. Miễn phí (cần license UMLS).</li>
+<li><strong>MedC-K</strong> — 4.8M papers + 30k textbooks (~75B token), tầng giữa của MedGraphRAG.</li>
+<li><strong>MIMIC-IV</strong> — dữ liệu riêng mô phỏng (cần quyền truy cập credentialed).</li>
+</ul>
+<div class="callout">
+<strong>SNOMED CT / DrugBank / Hetionet / PrimeKG</strong> được nhắc trong field nhưng <em>chưa được chứng cứ hóa cụ thể</em> trong các paper đã xác minh. Nếu dùng phải biện minh; đừng giả định drop-in. → giữ UMLS (làm từ điển chuẩn hóa) là story chính.
+</div>
+
+<h2 id="s6">6. Thiết kế thực nghiệm SMART</h2>
+<p><strong>Nguyên tắc.</strong> Hai loại thực nghiệm KHÁC NHAU, đừng lẫn:</p>
+<ul>
+<li><strong>Ladder (E0–E4)</strong> — so <em>họ chiến lược</em> với nhau. Ở đây mỗi arm đổi nhiều thứ (đó là bản chất của "so pipeline"). Để công bằng, ta CỐ ĐỊNH những gì có thể: cùng backbone, cùng corpus text, cùng top-k, cùng prompt, cùng giao thức MIRAGE. Ghi rõ mỗi arm khác nhau ở CƠ CHẾ nào.</li>
+<li><strong>Ablation (mục 8)</strong> — đây MỚI là chỗ "cố định mọi thứ, đổi đúng một trục", để cô lập yếu tố tạo ra lợi ích.</li>
+</ul>
+<p class="muted">Sửa mâu thuẫn Codex nêu: nguyên tắc "một trục" áp cho ablation, KHÔNG áp cho ladder.</p>
+
+<h3>6.1 Bộ khung cố định (fixed rig) — dùng chung cho MỌI arm</h3>
+<table>
+<tr><th>Thành phần</th><th>Lựa chọn</th><th>Lý do</th></tr>
+<tr><td>Backbone</td><td><strong>1 open model duy nhất</strong> (Qwen2.5-7B-Instruct hoặc Llama-3.1-8B) cho TẤT CẢ arm + ablation. API model (GPT-4o) chỉ chạy thêm cho E0/E1/E3/E4 trên 1 subset để có trần accuracy</td><td>GPT-4o top nhưng đắt; model y khoa fine-tune ngoài phạm vi (mục 10)</td></tr>
+<tr><td>Nguồn tri thức</td><td><strong>MedCorp (MedRAG)</strong> là nguồn GỐC cho E1, E2, E3, E4. Graph/triple của E2–E4 đều DỰNG TỪ MedCorp (không lấy tri thức từ nguồn khác)</td><td>Cùng nguồn → khác biệt do CƠ CHẾ (phẳng/triple/tầng/PPR), không do data</td></tr>
+<tr><td>Vocab grounding</td><td>UMLS chỉ dùng làm <em>từ điển chuẩn hóa entity</em> (via scispaCy linker) cho E2, E3, E4 — KHÔNG phải nguồn tri thức riêng</td><td>Chuẩn hóa tên entity, không thêm data ngoài MedCorp</td></tr>
+<tr><td>Retrieval budget</td><td>top-k cố định (VD k=8), cùng embedding retriever (MedCPT) cho arm text</td><td>Không cho arm nào "ăn gian" bằng lấy nhiều context hơn</td></tr>
+<tr><td>Giao thức</td><td>MIRAGE — <strong>MCE + ZSL + QOR</strong> cho mọi arm. Luật <strong>RAG</strong> chỉ áp cho E1–E4; E0 là baseline no-retrieval (nằm NGOÀI luật RAG, cố ý)</td><td>E0 đo tri thức thuần của LM; E1–E4 mới bật retrieval</td></tr>
+<tr><td>Metric</td><td>(1) accuracy + (2) grounding — mục 7</td><td>đo tách biệt</td></tr>
+<tr><td>Seed</td><td>3 seed cho arm chính; ablation 1 seed trên 1–2 dataset</td><td>giữ chi phí khả thi (mục 11)</td></tr>
+</table>
+
+<h3>6.2 Thang bậc (ladder) — mỗi arm khác đúng 1 CƠ CHẾ so với arm dưới</h3>
+<table>
+<tr><th>Exp</th><th>Nhánh (arm)</th><th>Khác gì so với arm trước</th><th>Trả lời</th><th>Chi phí</th></tr>
+<tr><td><strong>E0</strong></td><td>LLM-only (no retrieval, ngoài luật RAG)</td><td>—</td><td>Baseline phải vượt</td><td><span class="tag t-hi">~0</span></td></tr>
+<tr><td><strong>E1</strong></td><td>Text RAG (MedCPT trên MedCorp, chunk phẳng)</td><td>+ retrieval text phẳng</td><td>Retrieval có giúp không?</td><td><span class="tag t-hi">thấp</span></td></tr>
+<tr><td><strong>E2</strong></td><td>KG triple in-context (kiểu MKRAG): trích triple TỪ MedCorp, entity chuẩn hóa qua UMLS</td><td>text phẳng → triple có cấu trúc (cùng nguồn MedCorp)</td><td>Cấu trúc graph hơn text?</td><td><span class="tag t-hi">thấp</span></td></tr>
+<tr><td><strong>E3</strong></td><td>Graph phân tầng + U-Retrieve (MedGraphRAG rút gọn, dựng từ MedCorp)</td><td>triple phẳng → phân tầng + grounding</td><td>Phân tầng có hoàn vốn?</td><td><span class="tag t-lo">cao</span></td></tr>
+<tr><td><strong>E4</strong></td><td>PageRank 1-bước (HippoRAG): LM trích KG TỪ MedCorp, entity chuẩn hóa qua UMLS, PPR trên KG đó</td><td>truy hồi tầng → PPR multi-hop 1 bước (cùng nguồn MedCorp)</td><td><strong>Novel:</strong> PPR có chuyển giao sang tri thức y khoa?</td><td><span class="tag t-mid">offline vừa</span></td></tr>
+</table>
+
+<div class="callout">
+<strong>E3 — recipe cụ thể (không dựng full MedGraphRAG).</strong> Full MedGraphRAG cần 3 tầng user-docs → MedC-K (75B token) → UMLS, quá nặng cho đồ án. Làm <strong>bản rút gọn "MedGraphRAG-inspired"</strong>, khai báo rõ trong luận án:
+<ul style="margin:6px 0">
+<li>Tầng trên: chunk từ MedCorp/Textbooks (thay cho user-docs riêng tư)</li>
+<li>Tầng dưới: entity link sang UMLS bằng embedding cosine (giữ đúng cơ chế grounding)</li>
+<li>Bỏ tầng MedC-K 75B token; nêu là giới hạn phạm vi</li>
+<li>Giữ U-Retrieve (top-down + bottom-up) vì đó là đóng góp cốt lõi</li>
+</ul>
+<p style="margin:8px 0 4px"><strong>U-Retrieve — pseudo-procedure tối thiểu (schema + luồng):</strong></p>
+<pre><code>Node: entity (đã link UMLS CUI) | chunk | community(summary)
+Edge: entity-in-chunk | entity-entity(cùng chunk) | chunk-in-community
+
+TOP-DOWN (truy hồi):
+  1. Trích entity từ câu hỏi -> link UMLS CUI
+  2. Match CUI vào node graph -> lấy chunk + community chứa nó
+  3. Chấm điểm chunk = sim(câu hỏi, chunk) + bonus nếu chứa nhiều query-entity
+  4. Lấy top-k chunk làm context
+
+BOTTOM-UP (tinh chỉnh):
+  5. LM sinh đáp án nháp từ context
+  6. Với mỗi câu, truy ngược chunk/entity đã dùng -> đính kèm làm evidence
+  7. LM tinh chỉnh đáp án dựa trên evidence đã neo</code></pre>
+Entity linking: dùng <code>scispaCy</code> + UMLS linker (công khai, không cào).
+</div>
+<p class="muted">Nhánh community-GraphRAG (MS) KHÔNG nằm trong ladder — task chính là MCQA, community-report là thừa. Xem mục 9 (Gap B) về xử lý.</p>
+
+<h2 id="s7">7. Metric &amp; giao thức đánh giá</h2>
+<div class="grid2">
+<div class="card">
+<strong>Trục 1 — Accuracy</strong>
+<ul>
+<li>MCQA (MedQA/MedMCQA/MMLU-Med): accuracy exact-match lựa chọn</li>
+<li>PubMedQA/BioASQ: accuracy yes/no/maybe + macro-F1</li>
+<li>Giao thức: zero-shot theo MIRAGE (so sánh công bằng)</li>
+</ul>
+</div>
+<div class="card">
+<strong>Trục 2 — Grounding / Traceability</strong> (tự viết evaluator, MIRAGE không có sẵn)
+<p style="margin:6px 0"><em>Định nghĩa đo được:</em></p>
+<ul>
+<li><strong>Groundedness</strong> — mỗi câu trả lời chấm rubric <strong>0/1/2</strong>: 0 = không passage/triple nào retrieval được hỗ trợ đáp án; 1 = hỗ trợ một phần; 2 = hỗ trợ đầy đủ. "Evidence hợp lệ" = passage/triple nằm trong top-k đã retrieval của chính arm đó.</li>
+<li><strong>Grounded accuracy</strong> = % câu <em>vừa đúng VỪA đạt điểm 2</em>. Chênh lệch với accuracy thô = "lucky-guess gap".</li>
+<li><em>Chấm:</em> LLM-judge (prompt cố định, in kèm phụ lục) chấm rubric trên; <strong>audit thủ công 100 câu/dataset</strong> để đo agreement (Cohen's κ) giữa judge và người. Chỉ tin judge nếu κ ≥ 0.6. <strong>Fallback nếu κ &lt; 0.6:</strong> báo cáo grounding chỉ trên mẫu manual (không extrapolate bằng judge) + tinh chỉnh prompt judge 1 vòng rồi đo lại κ trên mẫu mới.</li>
+</ul>
+</div>
+</div>
+<div class="card">
+<strong>Trục 3 — Chi phí (báo cáo kèm mọi arm)</strong>
+<ul>
+<li>Offline: thời gian + token dựng graph/index (1 lần)</li>
+<li>Online: token/query, số lần gọi LLM, latency</li>
+<li>Vẽ đồ thị <em>accuracy vs $/query</em> — đây là hình trung tâm của luận án</li>
+</ul>
+</div>
+<p class="muted">Kiểm định ý nghĩa: arm chính 3 seed (mean ± std); ablation 1 seed trên 1–2 dataset (đủ để thấy xu hướng). McNemar cho khác biệt accuracy giữa 2 arm trên cùng bộ câu.</p>
+
+<h2 id="s8">8. Ablation (phần "thông minh")</h2>
+<p>Đây là chỗ "cố định mọi thứ, đổi đúng 1 trục" — cô lập <em>YẾU TỐ NÀO</em> tạo lợi ích. Chỉ chạy ablation cho yếu tố mà ladder cho thấy có tác động.</p>
+<ol>
+<li><strong>Độ sâu graph (RQ2):</strong> triple phẳng (E2) → phân tầng 2 → phân tầng đầy đủ + U-Retrieve (E3). Phân tầng bắt đầu hoàn vốn ở đâu?</li>
+<li><strong>CoT × KG (2×2) (RQ3):</strong> {CoT bật/tắt} × {KG bật/tắt}. Tách lợi ích reasoning khỏi lợi ích retrieval — đây là ablation trả lời "KG-RAG tăng accuracy hay chỉ tăng grounding".</li>
+<li><strong>Chia loại query (RQ5):</strong> single-hop vs multi-hop, để chứng minh "graph thêm nhiễu ở câu đơn giản" trên dữ liệu y khoa.
+<br><span class="kbd">Cách gán nhãn:</span> heuristic — đếm số entity UMLS distinct trong câu hỏi (1 entity ≈ single-hop; ≥2 entity cần nối ≈ multi-hop) + <strong>audit thủ công 100 mẫu</strong> để kiểm heuristic. Không có nhãn hop sẵn cho dataset y khoa nên phải tự gán và khai báo rõ.</li>
+</ol>
+<div class="callout">
+<strong>Đã BỎ 2 ablation (Codex nêu — tránh vẽ việc thừa):</strong>
+<ul style="margin:6px 0">
+<li><s>Live retrieval on/off</s> — treo, vì AMG-RAG (nguồn của ý này) KHÔNG nằm trong ladder E0–E4. Chỉ thêm lại nếu quyết định implement 1 arm agentic có live PubMed.</li>
+<li><s>Knob độ sâu community</s> — treo, vì MS-GraphRAG không nằm trong ladder (task là MCQA, không phải long-form).</li>
+</ul>
+</div>
+<p class="muted">3 ablation, mỗi cái trả lời đúng 1 RQ. Không tổ hợp thừa.</p>
+
+<h2 id="s9">9. Đóng góp &amp; khoảng trống lấp được</h2>
+<div class="card">
+<strong>Gap A</strong> — Chưa có so sánh apples-to-apples giữa các họ chiến lược trên cùng benchmark y khoa + cùng backbone. → Bảng so sánh của bạn lấp trực tiếp.
+</div>
+<div class="card">
+<strong>Gap B</strong> <span class="tag t-hi">novel</span> — Lợi thế PPR multi-hop 1-bước của <strong>HippoRAG</strong> chỉ được chứng minh ở general-domain. → Arm E4 test xem có chuyển giao sang tri thức y khoa (KG dựng từ MedCorp) không. Đây là đóng góp mới, nằm TRONG scope.
+</div>
+<div class="card">
+<strong>Gap C</strong> — Điều kiện nào KG-RAG tăng accuracy chứ không chỉ tăng traceability? Ablation cô lập (độ sâu graph, CoT×KG) tách được yếu tố.
+</div>
+<div class="callout">
+<strong>Gap B — làm rõ phạm vi (Codex nêu lệch scope).</strong> "Chuyển giao sang y khoa" của <em>HippoRAG</em> = arm E4, nằm TRONG ladder, làm được. Còn <em>MS-GraphRAG</em> không nằm trong ladder → chỉ giữ trong Gap B như <em>hướng mở rộng tương lai</em>, KHÔNG cam kết chạy, trừ khi thêm một task long-form nhỏ (out of scope bản v1).
+</div>
+
+<h2 id="s10">10. Phạm vi: làm gì / KHÔNG làm gì</h2>
+<div class="grid2">
+<div class="card">
+<strong>LÀM</strong>
+<ul>
+<li>5 arm E0–E4 trên MIRAGE (1 backbone chung)</li>
+<li>3 ablation cô lập</li>
+<li>Metric kép accuracy + grounding (grounding tự viết)</li>
+<li>Đồ thị accuracy vs chi phí</li>
+<li>UMLS làm từ điển chuẩn hóa entity (E2, E3, E4)</li>
+</ul>
+</div>
+<div class="card">
+<strong>KHÔNG làm (tránh brute-force)</strong>
+<ul>
+<li>Không test nhiều ontology chuẩn hóa (UMLS đủ cho story chính)</li>
+<li>Backbone y khoa fine-tune (PMC-LLaMA, Meditron): OUT OF SCOPE vì không phải biến chính — KHÔNG kết luận "chúng luôn thua", chỉ là không ưu tiên trong ngân sách</li>
+<li>Không chạy community-summarization làm arm chính (task là MCQA)</li>
+<li>Không tự viết eval ACCURACY (dùng MIRAGE); grounding thì PHẢI tự viết evaluator nhỏ</li>
+</ul>
+</div>
+</div>
+
+<h2 id="s11">11. Lộ trình &amp; ngân sách tính toán</h2>
+<table>
+<tr><th>Giai đoạn</th><th>Việc</th><th>Đầu ra</th></tr>
+<tr><td>P1 — Setup</td><td>Cài MedRAG/MIRAGE, tải 5 dataset, dựng graph/triple TỪ MedCorp + gắn UMLS linker (scispaCy) để chuẩn hóa entity</td><td>Rig chạy được E0, E1</td></tr>
+<tr><td>P2 — Baseline</td><td>E0, E1, E2 + evaluator grounding</td><td>Đường cơ sở + số của retrieval &amp; triple</td></tr>
+<tr><td>P3 — Graph nặng</td><td>E3 (MedGraphRAG rút gọn), E4 (HippoRAG)</td><td>Trả lời RQ1, RQ4</td></tr>
+<tr><td>P4 — Ablation</td><td>3 ablation cô lập</td><td>Trả lời RQ2, RQ3, RQ5</td></tr>
+<tr><td>P5 — Viết</td><td>Bảng so sánh, đồ thị accuracy-vs-cost, phân tích</td><td>Chương thực nghiệm</td></tr>
+</table>
+<p class="muted">Ngân sách: ưu tiên open model 7-8B cho toàn bộ ablation (rẻ), chỉ chạy API model cho arm chính để có trần accuracy. Cache offline graph/index để không dựng lại.</p>
+
+<h2 id="s12">12. Rủi ro &amp; caveat trung thực</h2>
+<div class="callout bad">
+<ul>
+<li><strong>Số tự báo cáo:</strong> MedGraphRAG/AMG-RAG chưa được tái lập độc lập — trong luận án ghi là "author-reported delta", không khẳng định như sự thật.</li>
+<li><strong>Claim bị BÁC BỎ:</strong> AMG-RAG "beat model lớn hơn 10–100×" bị bác (vote 1-2). Chỉ beat model cùng cỡ + Meditron-70B. GPT-4/Med-PaLM 2 vẫn cao hơn về accuracy tuyệt đối. → không trích claim mạnh này.</li>
+<li><strong>Chuyển giao domain:</strong> số hiệu quả HippoRAG là general-domain; chuyển sang y khoa chưa được chứng minh — chính là cơ hội (arm E4 / Gap B) chứ không phải giả định. (MS-GraphRAG cũng general-domain nhưng nằm ngoài scope — chỉ là future work.)</li>
+<li><strong>Nguồn không đồng đều:</strong> MedGraphRAG (ACL 2025) + MKRAG (PMC) là peer-reviewed; AMG-RAG + pipeline USMLE là preprint chưa review; số MS GraphRAG từ blog vendor trên dữ liệu general.</li>
+<li><strong>"~8B" của GPT-4o-mini</strong> là ước lượng của tác giả, OpenAI không công bố.</li>
+</ul>
+</div>
+
+<h2 id="s13">13. Nguồn tham khảo đã xác minh</h2>
+<div class="card">
+<p class="src">MedGraphRAG — arXiv 2408.04187 &middot; https://arxiv.org/abs/2408.04187 &middot; ACL 2025: https://acl.ldc.upenn.edu/2025.acl-long.1381/ &middot; repo: https://github.com/ImprintLab/Medical-Graph-RAG</p>
+<p class="src">AMG-RAG — arXiv 2502.13010 &middot; https://arxiv.org/abs/2502.13010</p>
+<p class="src">HippoRAG — arXiv 2405.14831 (NeurIPS 2024) &middot; https://arxiv.org/html/2405.14831v1</p>
+<p class="src">Microsoft GraphRAG (dynamic community selection) &middot; https://www.microsoft.com/en-us/research/blog/graphrag-improving-global-search-via-dynamic-community-selection/</p>
+<p class="src">Hybrid UMLS+Pinecone USMLE (accuracy parity, chỉ tăng citation) — medRxiv 2025.05.03.25325604 &middot; https://www.medrxiv.org/content/10.1101/2025.05.03.25325604v1.full-text</p>
+<p class="src">MKRAG — PMC12099378 &middot; arXiv 2309.16035</p>
+<p class="src">MIRAGE / MedRAG benchmark — Xiong et al., ACL Findings 2024 &middot; https://aclanthology.org/2024.findings-acl.372 &middot; arXiv 2402.13178 &middot; repo: https://github.com/gzxiong/MIRAGE (peer-reviewed; số subset đã xác minh: MMLU-Med 1089 / MedQA-US 1273 / MedMCQA 4183 / PubMedQA* 500 / BioASQ-Y/N 618 = 7663)</p>
+<p class="src">RAG healthcare survey (taxonomy Naive/Advanced/Modular) — Springer s00521-025-11666-9 &middot; PLOS pdig.0000877 &middot; Gao et al. arXiv 2312.10997</p>
+<p class="src">GraphRAG vs vanilla RAG tradeoff (graph thêm nhiễu ở câu đơn giản) — arXiv 2502.11371 &middot; 2506.05690</p>
+<p class="src">Accuracy Fallacy (lucky guesses) — nguồn limitations/tradeoffs 2026-03</p>
+</div>
+
+<hr>
+<p class="muted">Bản v1. Bước tiếp theo đề xuất: (a) scaffold code harness MIRAGE + arm E0–E2, hoặc (b) deep-review đối kháng bản thiết kế này với Codex trước khi code. Chọn hướng nào?</p>
+</div>
+</body>
+</html>
