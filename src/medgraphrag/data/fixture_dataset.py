@@ -1,40 +1,60 @@
 """Synthetic MIRAGE-shaped demo dataset (NOT real MIRAGE data).
 
-Lives in src so both the runner and tests import from one place. A real
-MIRAGE loader is added alongside this later under the same load_dataset seam.
-Each gold answer's option-text appears in exactly one corpus doc and one triple.
+Design goals (per adversarial review):
+- Questions PARAPHRASE the corpus, they do not copy its wording, so BM25 must
+  do real lexical work rather than exact-substring matching.
+- The corpus contains DISTRACTOR docs that mention wrong options, so a naive
+  retriever can be fooled.
+- Each question carries gold_terms identifying the correct evidence, so
+  retrieval quality is scored independently of answer accuracy.
+Still synthetic — a real MIRAGE loader replaces this behind load_dataset.
 """
 from medgraphrag.core.types import Question
 
 QUESTIONS = [
-    Question("q1", "First-line antibiotic for strep throat?",
-             {"A": "penicillin", "B": "insulin", "C": "warfarin", "D": "aspirin"}, "A"),
-    Question("q2", "Hormone that lowers blood glucose?",
-             {"A": "glucagon", "B": "insulin", "C": "cortisol", "D": "thyroxine"}, "B"),
-    Question("q3", "Anticoagulant that inhibits vitamin K?",
-             {"A": "aspirin", "B": "heparin", "C": "warfarin", "D": "penicillin"}, "C"),
-    Question("q4", "Drug that irreversibly inhibits COX to reduce platelet aggregation?",
-             {"A": "aspirin", "B": "insulin", "C": "glucagon", "D": "heparin"}, "A"),
-    Question("q5", "Hormone that raises blood glucose?",
-             {"A": "insulin", "B": "glucagon", "C": "warfarin", "D": "penicillin"}, "B"),
-    Question("q6", "Parenteral anticoagulant potentiating antithrombin III?",
-             {"A": "warfarin", "B": "aspirin", "C": "heparin", "D": "insulin"}, "C"),
+    Question("q1", "Which agent is preferred to treat streptococcal pharyngitis?",
+             {"A": "penicillin", "B": "insulin", "C": "warfarin", "D": "aspirin"}, "A",
+             gold_terms=("penicillin",)),
+    Question("q2", "Which pancreatic hormone reduces serum glucose?",
+             {"A": "glucagon", "B": "insulin", "C": "cortisol", "D": "thyroxine"}, "B",
+             gold_terms=("insulin",)),
+    Question("q3", "Which oral agent antagonizes vitamin K to prevent clots?",
+             {"A": "aspirin", "B": "heparin", "C": "warfarin", "D": "penicillin"}, "C",
+             gold_terms=("warfarin",)),
+    Question("q4", "Which drug blocks cyclooxygenase to impair platelet function?",
+             {"A": "aspirin", "B": "insulin", "C": "glucagon", "D": "heparin"}, "A",
+             gold_terms=("aspirin",)),
+    Question("q5", "Which pancreatic hormone elevates serum glucose during fasting?",
+             {"A": "insulin", "B": "glucagon", "C": "warfarin", "D": "penicillin"}, "B",
+             gold_terms=("glucagon",)),
+    Question("q6", "Which injectable agent boosts antithrombin activity?",
+             {"A": "warfarin", "B": "aspirin", "C": "heparin", "D": "insulin"}, "C",
+             gold_terms=("heparin",)),
 ]
 
+# Docs paraphrase questions; several mention MULTIPLE drugs (distractors).
 CORPUS = {
-    "d1": "Penicillin is the first-line antibiotic for streptococcal pharyngitis.",
-    "d2": "Insulin is the hormone that lowers blood glucose after meals.",
-    "d3": "Warfarin is an oral anticoagulant that inhibits vitamin K epoxide reductase.",
-    "d4": "Aspirin irreversibly inhibits COX and reduces platelet aggregation.",
-    "d5": "Glucagon is the hormone that raises blood glucose during fasting.",
-    "d6": "Heparin is a parenteral anticoagulant that potentiates antithrombin III.",
+    "d1": "For sore throat caused by group A streptococcus, penicillin remains "
+          "the recommended treatment; aspirin only relieves the pain.",
+    "d2": "After a carbohydrate meal, insulin secreted by the pancreas drives "
+          "glucose into cells and lowers blood sugar, opposing glucagon.",
+    "d3": "Warfarin blocks the vitamin K dependent clotting factors, whereas "
+          "heparin acts through a different, faster pathway.",
+    "d4": "Aspirin acetylates cyclooxygenase irreversibly, reducing thromboxane "
+          "and thereby platelet activation; penicillin has no such effect.",
+    "d5": "During fasting the pancreas releases glucagon, which raises blood "
+          "sugar by promoting hepatic glycogen breakdown, unlike insulin.",
+    "d6": "Heparin, an injectable anticoagulant, accelerates antithrombin and is "
+          "used when rapid effect is needed, in contrast to oral warfarin.",
 }
 
+# Triples carry a RELATION that matches the question's intent; several share a
+# head ("blood glucose") so relation must disambiguate lowered vs raised.
 TRIPLES = [
-    ("strep throat", "first_line_treatment", "penicillin"),
-    ("blood glucose", "lowered_by", "insulin"),
-    ("vitamin K", "inhibited_by", "warfarin"),
-    ("platelet aggregation", "reduced_by", "aspirin"),
-    ("blood glucose", "raised_by", "glucagon"),
-    ("antithrombin III", "potentiated_by", "heparin"),
+    ("streptococcal pharyngitis", "treated_with", "penicillin"),
+    ("serum glucose", "reduced_by", "insulin"),
+    ("vitamin K", "antagonized_by", "warfarin"),
+    ("cyclooxygenase", "blocked_by", "aspirin"),
+    ("serum glucose", "elevated_by", "glucagon"),
+    ("antithrombin", "activated_by", "heparin"),
 ]

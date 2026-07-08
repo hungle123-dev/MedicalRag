@@ -1,7 +1,9 @@
-# E2 — KG triple in-context (triples over shared source, entity normalized)
+# E2 — KG triple in-context (triples over shared source, relation-aware)
 arm: E2
 dataset: fixture
 k: 3
 llm:
   default: A
   rules: {}
+arm_modules:
+  - medgraphrag.arms.standard

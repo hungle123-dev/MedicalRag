@@ -5,3 +5,5 @@ k: 3
 llm:
   default: A
   rules: {}
+arm_modules:
+  - medgraphrag.arms.standard
