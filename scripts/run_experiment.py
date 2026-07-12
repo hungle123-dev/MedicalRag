@@ -69,12 +69,11 @@ def run_cell(model: str, arm: str, questions: list, retriever, limit: int | None
     llm = OpenAICompatLLM(model)
     with out_path.open("a", encoding="utf-8") as fh:
         for i, q in enumerate(todo, 1):
-            if arm == "E1":
-                evidence = retriever.retrieve(q["question"], K)
-            else:
-                evidence = []
+            # bm25s query is ~150ms, so live retrieval is fine (no cache needed)
+            evidence = retriever.retrieve(q["question"], K) if arm == "E1" else []
             context = "\n".join(e.content for e in evidence)
             choice = _call_with_retry(llm, q, context)
+            answer_text = q["options"][q["answer"]].lower()
             row = {
                 "qid": q["qid"],
                 "subtask": q["subtask"],
@@ -83,11 +82,11 @@ def run_cell(model: str, arm: str, questions: list, retriever, limit: int | None
                 "correct": choice == q["answer"],
                 "n_evidence": len(evidence),
                 "evidence_sources": [e.source for e in evidence],
-                "answer_in_context": _answer_in_context(q["options"][q["answer"]], evidence),
+                "answer_in_context": any(answer_text in e.content.lower() for e in evidence),
             }
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
             fh.flush()
-            if i % 25 == 0:
+            if i % 50 == 0:
                 print(f"  {model}|{arm}: {i}/{len(todo)}")
     print(f"  done -> {out_path}")
 
@@ -101,8 +100,10 @@ def main():
 
     load_env()
     questions = json.loads(Path(SUBSET).read_text(encoding="utf-8"))
-    with open(INDEX, "rb") as f:
-        retriever = pickle.load(f)
+    retriever = None
+    if "E1" in args.arms:
+        with open(INDEX, "rb") as f:
+            retriever = pickle.load(f)
 
     for model in args.models:
         for arm in args.arms:
