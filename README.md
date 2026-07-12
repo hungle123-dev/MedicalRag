@@ -68,4 +68,4 @@ npm run build
 
 ## Status
 
-Architecture scaffold. Real BioASQ/MedCPT/PrimeKG adapters are implemented only after the protocol values marked `MUST_FREEZE_W1` are verified and frozen.
+Architecture scaffold. The core experiment fixes Gemini `gemini-3.5-flash` as generator and Groq `openai/gpt-oss-120b` as an independent judge; exact API availability/quota is verified in W1. GPT-4o is optional paid robustness, never a dependency of the $0 core protocol. Real BioASQ/MedCPT/PrimeKG adapters are implemented after data revisions marked `MUST_VERIFY_W1` are verified and frozen.

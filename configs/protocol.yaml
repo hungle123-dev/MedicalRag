@@ -21,18 +21,18 @@ knowledge_graph:
   redistribute: false
 
 generator:
-  provider: MUST_FREEZE_W1
-  model: MUST_FREEZE_W1
-  snapshot: MUST_FREEZE_W1
+  provider: google
+  model: gemini-3.5-flash
+  snapshot: VERIFY_EXACT_API_ID_W1
   temperature: 0
   top_p: 1
   max_output_tokens: 512
   retries: 3
 
 judge:
-  provider: MUST_FREEZE_W1
-  model: MUST_FREEZE_W1
-  snapshot: MUST_FREEZE_W1
+  provider: groq
+  model: openai/gpt-oss-120b
+  snapshot: VERIFY_EXACT_API_ID_W1
   must_differ_from_generator: true
   validity_kappa_minimum: 0.60
 
@@ -54,6 +54,15 @@ locked_test:
   retune_after_access: false
 
 budget:
-  api_cost_cap_usd: MUST_FREEZE_W1
+  core_api_cost_cap_usd: 0
+  optional_paid_models_require_explicit_budget: true
   max_core_configs: 6
   max_graph_ablations: 4
+
+generator_robustness:
+  role: exploratory_dev_only
+  reuse_cached_evidence: true
+  models:
+    - google/gemini-3.5-flash
+    - groq/openai-gpt-oss-20b
+  optional_paid_model: openai/gpt-4o
