@@ -4,8 +4,9 @@ from medgraphrag.core.types import RetrievedItem
 from medgraphrag.retrieval.tokenize import tokenize
 
 
-class TextRetriever:
-    """E1: BM25 over a flat document corpus."""
+class BM25Retriever:
+    """E1: BM25 over a flat document corpus (real MedRAG textbook chunks or
+    any {id: text} dict)."""
 
     def __init__(self, corpus: dict[str, str]):
         self._ids = list(corpus.keys())
@@ -20,7 +21,7 @@ class TextRetriever:
         out = []
         for i in ranked[:k]:
             if scores[i] <= 0.0:
-                break  # don't return zero-relevance docs as if they were hits
+                break
             out.append(RetrievedItem(content=self._docs[i], score=float(scores[i]),
                                      source=f"corpus:{self._ids[i]}"))
         return out

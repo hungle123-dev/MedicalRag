@@ -1,9 +1,0 @@
-# E1 — Text RAG (BM25 over shared corpus)
-arm: E1
-dataset: fixture
-k: 3
-llm:
-  default: A
-  rules: {}
-arm_modules:
-  - medgraphrag.arms.standard

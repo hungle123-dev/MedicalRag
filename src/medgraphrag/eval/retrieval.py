@@ -1,10 +1,7 @@
-"""Retrieval quality, scored INDEPENDENTLY of answer accuracy.
-
-A question's gold_terms identify the correct evidence. An evidence item is a
-"hit" if any gold term appears in its content. This separates "did the
-retriever find the right thing" from "did the LLM answer correctly" — a
-retriever can win one and lose the other (design doc mục 3).
-"""
+"""Retrieval quality, scored INDEPENDENTLY of answer accuracy — a question's
+gold_terms identify correct evidence; an item is a hit if any gold term
+appears in its content. This separates "found the right thing" from
+"answered correctly" (design doc: they can diverge)."""
 from medgraphrag.core.types import Question, Prediction
 
 
@@ -14,17 +11,11 @@ def _is_hit(content: str, gold_terms: tuple[str, ...]) -> bool:
 
 
 def retrieval_recall(preds: list[Prediction], questions: list[Question]) -> float:
-    """Fraction of scored questions whose retrieved evidence contains a gold
-    hit. Recall over whatever the retriever returned (its own top-k), so there
-    is no separate k parameter here — the arm's k governs evidence size."""
     gold = {q.qid: q.gold_terms for q in questions}
     scored = [p for p in preds if gold.get(p.qid)]
     if not scored:
         return 0.0
-    hits = 0
-    for p in scored:
-        if any(_is_hit(e.content, gold[p.qid]) for e in p.evidence):
-            hits += 1
+    hits = sum(1 for p in scored if any(_is_hit(e.content, gold[p.qid]) for e in p.evidence))
     return hits / len(scored)
 
 

@@ -1,0 +1,167 @@
+{
+  "mirage": {
+    "medqa": {
+      "n": 1273,
+      "n_options_typical": 4,
+      "question_words_mean": 119.6,
+      "question_words_median": 114,
+      "question_words_max": 526,
+      "option_words_mean": 3.5,
+      "answer_key_distribution": {
+        "A": 353,
+        "B": 309,
+        "C": 346,
+        "D": 265
+      }
+    },
+    "medmcqa": {
+      "n": 4183,
+      "n_options_typical": 4,
+      "question_words_mean": 14.1,
+      "question_words_median": 11,
+      "question_words_max": 88,
+      "option_words_mean": 3.0,
+      "answer_key_distribution": {
+        "A": 1348,
+        "B": 1085,
+        "C": 925,
+        "D": 825
+      }
+    },
+    "pubmedqa": {
+      "n": 500,
+      "n_options_typical": 3,
+      "question_words_mean": 13.1,
+      "question_words_median": 13.0,
+      "question_words_max": 26,
+      "option_words_mean": 1,
+      "answer_key_distribution": {
+        "A": 276,
+        "B": 169,
+        "C": 55
+      }
+    },
+    "bioasq": {
+      "n": 618,
+      "n_options_typical": 2,
+      "question_words_mean": 8.4,
+      "question_words_median": 8.0,
+      "question_words_max": 27,
+      "option_words_mean": 1,
+      "answer_key_distribution": {
+        "A": 395,
+        "B": 223
+      }
+    },
+    "mmlu": {
+      "n": 1089,
+      "n_options_typical": 4,
+      "question_words_mean": 42.7,
+      "question_words_median": 16,
+      "question_words_max": 728,
+      "option_words_mean": 4.9,
+      "answer_key_distribution": {
+        "A": 235,
+        "B": 254,
+        "C": 248,
+        "D": 352
+      }
+    }
+  },
+  "corpus": {
+    "books": {
+      "Anatomy_Gray": {
+        "n_chunks": 3017,
+        "chunk_words_mean": 125.7,
+        "chunk_words_median": 131
+      },
+      "Biochemistry_Lippincott": {
+        "n_chunks": 1973,
+        "chunk_words_mean": 112.1,
+        "chunk_words_median": 122
+      },
+      "Cell_Biology_Alberts": {
+        "n_chunks": 7070,
+        "chunk_words_mean": 113.9,
+        "chunk_words_median": 123.0
+      },
+      "First_Aid_Step1": {
+        "n_chunks": 850,
+        "chunk_words_mean": 117.2,
+        "chunk_words_median": 120.0
+      },
+      "First_Aid_Step2": {
+        "n_chunks": 1369,
+        "chunk_words_mean": 120.7,
+        "chunk_words_median": 128
+      },
+      "Gynecology_Novak": {
+        "n_chunks": 7947,
+        "chunk_words_mean": 112.4,
+        "chunk_words_median": 123
+      },
+      "Histology_Ross": {
+        "n_chunks": 4411,
+        "chunk_words_mean": 112.9,
+        "chunk_words_median": 122
+      },
+      "Immunology_Janeway": {
+        "n_chunks": 4852,
+        "chunk_words_mean": 112.5,
+        "chunk_words_median": 125.0
+      },
+      "InternalMed_Harrison": {
+        "n_chunks": 32628,
+        "chunk_words_mean": 106.6,
+        "chunk_words_median": 114.5
+      },
+      "Neurology_Adams": {
+        "n_chunks": 12370,
+        "chunk_words_mean": 110.8,
+        "chunk_words_median": 121.0
+      },
+      "Obstentrics_Williams": {
+        "n_chunks": 9166,
+        "chunk_words_mean": 112.5,
+        "chunk_words_median": 121.0
+      },
+      "Pathology_Robbins": {
+        "n_chunks": 5297,
+        "chunk_words_mean": 90.7,
+        "chunk_words_median": 100
+      },
+      "Pathoma_Husain": {
+        "n_chunks": 505,
+        "chunk_words_mean": 134.3,
+        "chunk_words_median": 135
+      },
+      "Pediatrics_Nelson": {
+        "n_chunks": 4260,
+        "chunk_words_mean": 105.5,
+        "chunk_words_median": 111.0
+      },
+      "Pharmacology_Katzung": {
+        "n_chunks": 7356,
+        "chunk_words_mean": 106.3,
+        "chunk_words_median": 113.0
+      },
+      "Physiology_Levy": {
+        "n_chunks": 4370,
+        "chunk_words_mean": 99.7,
+        "chunk_words_median": 110.0
+      },
+      "Psichiatry_DSM-5": {
+        "n_chunks": 4057,
+        "chunk_words_mean": 111.5,
+        "chunk_words_median": 119
+      },
+      "Surgery_Schwartz": {
+        "n_chunks": 14349,
+        "chunk_words_mean": 139.1,
+        "chunk_words_median": 141
+      }
+    },
+    "total_chunks": 125847,
+    "total_words": 14152091
+  }
+}

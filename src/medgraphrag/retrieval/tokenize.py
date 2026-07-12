@@ -4,9 +4,8 @@ _SUFFIXES = ("ing", "ed", "es", "s")
 
 
 def _stem(tok: str) -> str:
-    # Light suffix strip so "reduces"/"reduced"/"reducing" collapse to one
-    # stem. Crude by design (ponytail: swap for a real stemmer if E3/E4 need
-    # recall) — enough to stop trivial surface-form mismatches.
+    # Light suffix strip so "lowers"/"lowered"/"lowering" collapse.
+    # ponytail: crude by design; swap for a real stemmer if recall needs it.
     for suf in _SUFFIXES:
         if len(tok) > len(suf) + 2 and tok.endswith(suf):
             return tok[: -len(suf)]

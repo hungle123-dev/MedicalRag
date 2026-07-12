@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thiết kế Pipeline — Medical Graph RAG (v2)</title>
+<style>
+:root{
+  --bg:#0f1419; --panel:#1a2029; --panel2:#232b36; --ink:#e6edf3; --mut:#9fb0c0;
+  --acc:#4ea1ff; --acc2:#38d39f; --warn:#ffb454; --bad:#ff6b6b; --line:#2d3542;
+  --code:#141a21; --novel:#c98bff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+.wrap{max-width:1000px;margin:0 auto;padding:40px 24px 120px}
+h1{font-size:30px;line-height:1.25;margin:0 0 6px;letter-spacing:-.4px}
+h2{font-size:22px;margin:46px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--line);color:var(--acc)}
+h3{font-size:17px;margin:26px 0 10px;color:var(--acc2)}
+.sub{color:var(--mut);font-size:14px;margin:0 0 28px}
+p{margin:10px 0}
+code{background:var(--code);padding:2px 6px;border-radius:4px;font-family:"SF Mono",Consolas,monospace;font-size:13px;color:#c9d7e6}
+pre{background:var(--code);padding:14px 16px;border-radius:8px;overflow:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+th,td{text-align:left;padding:9px 11px;border:1px solid var(--line);vertical-align:top}
+th{background:var(--panel2);color:var(--acc);font-weight:600}
+tr:nth-child(even) td{background:var(--panel)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:16px 0}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;margin-right:6px}
+.t-proven{background:rgba(56,211,159,.15);color:var(--acc2);border:1px solid var(--acc2)}
+.t-marginal{background:rgba(255,180,84,.15);color:var(--warn);border:1px solid var(--warn)}
+.t-unproven{background:rgba(201,139,255,.15);color:var(--novel);border:1px solid var(--novel)}
+.t-refuted{background:rgba(255,107,107,.13);color:var(--bad);border:1px solid var(--bad)}
+.callout{border-left:4px solid var(--warn);background:rgba(255,180,84,.08);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0}
+.callout.bad{border-color:var(--bad);background:rgba(255,107,107,.08)}
+.callout.good{border-color:var(--acc2);background:rgba(56,211,159,.08)}
+.callout.novel{border-color:var(--novel);background:rgba(201,139,255,.08)}
+ul,ol{margin:10px 0;padding-left:24px}
+li{margin:5px 0}
+.toc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 22px;margin:24px 0}
+.toc a{color:var(--acc);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+.muted{color:var(--mut)}
+.kbd{font-size:12px;color:var(--mut)}
+hr{border:none;border-top:1px solid var(--line);margin:36px 0}
+.src{font-size:12px;color:var(--mut);word-break:break-all}
+.flow{font-family:"SF Mono",Consolas,monospace;font-size:12.5px;line-height:1.5}
+.pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin:2px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Thiết kế Pipeline: Medical Graph RAG (v2)</h1>
+<p class="sub">Đồ án QA y khoa &middot; Pipeline module hóa + ablation &middot; 2026-07-09 &middot; Dựa trên deep-research (16 claim đã xác minh, 9 claim bị bác bỏ) + co-design đối kháng với Codex</p>
+
+<div class="callout novel">
+<strong>Vì sao viết lại (v2).</strong> Bản v1 chỉ so 4 "họ chiến lược" graph (E0–E4) — sâu 1 trục nhưng ÍT bề rộng thực nghiệm. Nhóm đối chứng (đồ án luật) test theo <em>pipeline module hóa</em> + ablation từng module → nhiều bảng, có kế hoạch. v2 hợp nhất: giữ trục graph làm đóng góp lõi, THÊM tầng pipeline module ablatable — <strong>test nhiều mà không brute-force</strong>.
+</div>
+
+<div class="toc">
+<strong>Mục lục</strong>
+<ol>
+<li><a href="#s1">1. Mục tiêu &amp; câu hỏi nghiên cứu</a></li>
+<li><a href="#s2">2. Bằng chứng: proven / marginal / refuted (bắt buộc đọc)</a></li>
+<li><a href="#s3">3. Kiến trúc pipeline 10 giai đoạn</a> &middot; <a href="#s3b">3.5 Nguồn graph &amp; khác biệt domain</a></li>
+<li><a href="#s4">4. Các module &amp; biến thể ablatable</a></li>
+<li><a href="#s5">5. Trục chính vs phụ (đóng góp)</a></li>
+<li><a href="#s6">6. Ma trận thực nghiệm 76 run (chống brute-force)</a></li>
+<li><a href="#s7">7. Metric đa trục</a></li>
+<li><a href="#s8">8. Phòng ngừa kết luận sai</a></li>
+<li><a href="#s9">9. Dataset, KG, model cố định</a></li>
+<li><a href="#s10">10. Chống overfit theo nhóm khác</a> &middot; <a href="#s10b">10.5 Kế hoạch dự phòng</a></li>
+<li><a href="#s11">11. Caveat trung thực &amp; nguồn</a></li>
+</ol>
+</div>
+
+<h2 id="s1">1. Mục tiêu &amp; câu hỏi nghiên cứu</h2>
+<p><strong>Mục tiêu.</strong> Xây pipeline Medical Graph RAG <em>module hóa</em>, mỗi module bật/tắt/đổi-biến-thể được, để chứng minh <em>từng thành phần đóng góp bao nhiêu</em> — không chạy mù mọi tổ hợp.</p>
+<p><strong>Luận điểm trung tâm.</strong> Lợi thế retrieval đa-bước 1-bước của graph (Personalized PageRank, HippoRAG) đã được chứng minh trên QA thường NHƯNG <em>chưa ai chứng minh nó chuyển giao sang tri thức y khoa</em> (KG do LM trích từ corpus y khoa, UMLS chuẩn hóa node — mục 3.5). Đây là đóng góp lõi.</p>
+<div class="card">
+<strong>Câu hỏi nghiên cứu (xếp theo ưu tiên — Codex chốt)</strong>
+<ul>
+<li><strong>RQ1 (LÕI)</strong> <span class="tag t-unproven">novel</span> — PPR-over-KG (HippoRAG, KG do LM trích từ MedCorp — mục 3.5) có chuyển giao sang tri thức y khoa không? Recall/accuracy so với dense/hybrid?</li>
+<li><strong>RQ2 (phụ)</strong> — Fusion nào (RRF vs weighted vs max) tốt cho medical? (rẻ, tín hiệu sạch, chưa ai giải quyết)</li>
+<li><strong>RQ3 (hẹp)</strong> — Query transform (rewrite/HyDE/decompose) có giúp medical QA, hay bóp méo thuật ngữ lâm sàng?</li>
+<li><strong>RQ4 (phụ lục)</strong> — Fine-tune model nhỏ vs zero/few/CoT trên cùng benchmark — fine-tune có overfit không?</li>
+<li><strong>RQ-xuyên suốt</strong> — Accuracy và grounding/faithfulness có phân kỳ không? (đo tách biệt)</li>
+</ul>
+</div>
+
+<h2 id="s2">2. Bằng chứng: proven / marginal / refuted</h2>
+<p class="muted">Deep-research xác minh đối kháng 25 claim: 16 sống, 9 bị giết. Đây là nền để chọn module — KHÔNG tin "win hiển nhiên" chưa qua kiểm chứng.</p>
+
+<table>
+<tr><th>Thành phần</th><th>Trạng thái</th><th>Bằng chứng (số cụ thể)</th></tr>
+<tr><td>PPR-over-KG (HippoRAG)</td><td><span class="tag t-proven">proven*</span></td><td>R@2 +11%, R@5 +20% vs ColBERTv2 (2Wiki); rẻ hơn 10–30×, nhanh 6–13× vs iterative. <strong>*Chỉ general QA — medical CHƯA chứng minh</strong></td></tr>
+<tr><td>Modular ablation hợp lệ</td><td><span class="tag t-proven">proven</span></td><td>HippoRAG2: bỏ passage-node 87.1→81.0; bỏ triple-filter →86.4; query-to-triple linking +12.5%. Mỗi module drop tách biệt → ablation có căn cứ</td></tr>
+<tr><td>MedRAG pipeline (MIRAGE)</td><td><span class="tag t-proven">proven</span></td><td>+18% over CoT (ceiling, không phải trung bình); "kết hợp nhiều corpus+retriever tốt nhất"</td></tr>
+<tr><td>Hybrid BM25+MedCPT (2-stage)</td><td><span class="tag t-marginal">marginal</span></td><td>Recall win NHỎ (+3pt: .567 vs .537) nhưng accuracy win LỚN (.86 vs .72). Depth diminishing: retrieve-50→rerank-10 tối ưu (acc .90); 100 docs tụt .87</td></tr>
+<tr><td>Cross-encoder rerank</td><td><span class="tag t-marginal">marginal + RỦI RO</span></td><td>Win nhỏ (+1–4 recall pt), bị CHẶN bởi recall tầng-1, <strong>CÓ THỂ làm TỆ hơn nếu retriever+reranker không align</strong>. "Even a perfect re-ranker cannot recover" evidence vắng ở tầng-1</td></tr>
+<tr><td>Self-reflective RAG</td><td><span class="tag t-marginal">medium</span></td><td>Giảm hallucination còn 5.8% (thấp nhất). Nhưng nguồn yếu (250 vignette custom, MDPI). Dùng làm guardrail cuối, không module chính</td></tr>
+</table>
+
+<div class="callout bad">
+<strong>BỊ BÁC BỎ — KHÔNG được dùng làm căn cứ (9 claim bị giết):</strong>
+<ul style="margin:6px 0">
+<li><s>MedGraphRAG U-retrieve đẩy MedQA lên 91.3, vượt bác sĩ</s> (vote 1-2) — <em>chính con số bản v1 từng tin</em></li>
+<li><s>Hybrid +15% precision/recall</s>; <s>hybrid 92% recall</s> (0-3)</li>
+<li><s>Cross-encoder là "top strategy"</s> (0-3)</li>
+<li><s>Multi-query expansion "làm hại" precision</s> (0-3) — nên KHÔNG loại query transform vội</li>
+<li><s>Fine-tune làm hại model nhỏ</s> — không claim nào sống sót xác nhận → phải TỰ đo</li>
+<li><s>Hybrid-semantic chunking là jump lớn nhất</s> (1-2)</li>
+</ul>
+</div>
+
+<div class="callout novel">
+<strong>4 OPEN QUESTIONS = cơ hội đóng góp</strong> (research không tìm thấy bằng chứng — nghĩa là chưa ai làm sạch):
+PPR transfer sang tri thức y khoa · RRF vs weighted vs max cho medical · query transform cho medical · fine-tune vs prompting cùng benchmark. Đồ án tấn công đúng các khoảng trống này.
+</div>
+
+<h2 id="s3">3. Kiến trúc pipeline 10 giai đoạn</h2>
+<p class="muted">Thứ tự đã được Codex sửa: entity-linking là nhánh song song của query understanding (không phải phụ sau retriever); dedup+normalize TRƯỚC fusion; answer-gen tách khỏi retrieval ablation; context packer BẮT BUỘC (không có "assembly = none").</p>
+
+<div class="card flow">
+<strong>Câu hỏi MCQA y khoa</strong><br>
+│<br>
+├─ <span class="pill">G1</span> Question parser + <b>option-aware query builder</b> {stem-only · stem+choices · per-choice}<br>
+│&nbsp;&nbsp;&nbsp;<span class="kbd">MCQA: đáp án là tín hiệu mạnh — khác legal QA</span><br>
+├─ <span class="pill">G2</span> Query transform {none · rewrite · decompose · HyDE}<br>
+│<br>
+├─ <span class="pill">G3</span> <b>Parallel candidate generation</b> (chạy song song):<br>
+│&nbsp;&nbsp;&nbsp;├─ BM25 (sparse)<br>
+│&nbsp;&nbsp;&nbsp;├─ MedCPT (dense)<br>
+│&nbsp;&nbsp;&nbsp;└─ <b>graph retrieval</b> {triple · PPR} trên KG do LM trích từ MedCorp; UMLS chuẩn hóa node (scispaCy)<br>
+├─ <span class="pill">G4</span> Entity-linking diagnostics (CUI matched / unmapped / ambiguous)<br>
+├─ <span class="pill">G5</span> <b>Normalize + dedup</b> candidate (theo chunk/doc ID + CUI) &nbsp;<span class="kbd">← thiếu bước này thì fusion nhiễu vì trùng</span><br>
+├─ <span class="pill">G6</span> Fusion {RRF · weighted · max}<br>
+├─ <span class="pill">G7</span> Rerank {none · cross-encoder} <span class="kbd">(heuristic + LLM-rerank bỏ — mục 10)</span><br>
+├─ <span class="pill">G8</span> <b>Context packer</b> (token budget cố định, giữ citation) {plain · graph-aware}<br>
+│<br>
+╞══ <span class="pill">G9</span> <b>Answer generation</b> {zero-shot · few-shot · CoT · fine-tune} &nbsp;<span class="kbd">← ARM RIÊNG, retrieval cố định</span><br>
+│<br>
+└─ <span class="pill">G10</span> Evaluation: retrieval (Recall@k/MRR/nDCG) ‖ answer (accuracy) ‖ faithfulness ‖ cost/latency
+</div>
+
+<div class="callout">
+<strong>Seam quan trọng (Codex chốt):</strong> G1–G8 = <em>retrieval ablation</em> (cố định answer LLM+prompt). G9 = <em>generation ablation riêng</em> (cố định retrieval tốt nhất). Trộn 2 tầng = nổ tổ hợp + không cô lập được nguyên nhân.
+</div>
+
+<h3 id="s3b">3.5 Nguồn graph &amp; khác biệt domain (medical + KHÔNG crawl)</h3>
+<div class="callout bad">
+<strong>Đây là điểm quan trọng nhất — dễ bắt chước mù nhóm luật.</strong> Domain medical + no-crawl khác căn bản domain legal (có crawl). 3 khác biệt phải xử lý rõ, nếu không cả RQ1 sai nền.
+</div>
+
+<p><strong>(1) Graph dựng TỪ ĐÂU khi không crawl?</strong> Nhóm luật CRAWL văn bản → regex parse → KG hierarchy Neo4j. Mình KHÔNG crawl. Có 3 cách dựng graph từ tài nguyên CÓ SẴN (đều không cần crawl):</p>
+<table>
+<tr><th>Cách</th><th>Graph đến từ</th><th>Giống paper nào</th><th>Chọn?</th></tr>
+<tr><td><b>A. LM tự trích triple</b></td><td>Chạy LM trên passage MedCorp → (head,rel,tail) → nối graph</td><td>HippoRAG gốc</td><td><b>✅ ARM CHÍNH (mọi run 76)</b></td></tr>
+<tr><td>B. UMLS-as-graph</td><td>Lấy quan hệ UMLS có sẵn làm cạnh graph</td><td>MedGraphRAG grounding</td><td>❌ NGOÀI scope v1 (future)</td></tr>
+<tr><td>C. Lai A+B</td><td>Triple từ passage + entity link UMLS chuẩn hóa node</td><td>gần MedGraphRAG đầy đủ</td><td>❌ NGOÀI scope v1 (future)</td></tr>
+</table>
+<p class="muted">Chỉ <b>cách A</b> đi vào 76 run. B/C là hướng mở rộng tương lai, KHÔNG chạy trong đồ án v1 — tránh nổ scope.</p>
+<div class="callout good">
+<strong>CHỐT (sửa mập mờ Codex/bạn nêu):</strong> Arm PPR (RQ1 lõi) dùng <b>cách A</b> — LM trích triple từ passage MedCorp, HippoRAG-style; UMLS CHỈ để <em>chuẩn hóa node entity</em> (gộp "MI" = "myocardial infarction"), KHÔNG phải nguồn cạnh. Như vậy RQ1 = "HippoRAG cơ chế A có transfer sang tri thức y khoa không". Rõ ràng, không cần crawl, mọi arm cùng nguồn MedCorp.
+</div>
+
+<p><strong>(2) Hierarchical retrieval — legal có, medical KHÔNG.</strong> Legal có cây Phần→Chương→Điều→Khoản→Điểm tự nhiên. PubMed abstract / textbook chunk KHÔNG có. → <b>BỎ biến thể "hierarchical" khỏi G3b</b> (nó là bắt chước mù legal). G3b còn lại: <code>{none · triple · PPR}</code>. Nếu muốn giữ 1 biến thể phân cấp, định nghĩa lại cho medical = "section→passage→sentence" của textbook, nhưng đó là phụ, không lõi.</p>
+
+<p><strong>(3) Medical KHÔNG có amendment/cross-ref.</strong> Ở legal, phần lớn giá trị graph đến từ quan hệ "sửa đổi/bãi bỏ/hiệu lực" (điều X bãi bỏ điều Y) — lý do lớn khiến graph thắng. Medical MCQA KHÔNG có tương đương. → <b>Kỳ vọng RQ1 phải hạ:</b> nếu graph giúp ở medical, nó giúp qua <em>multi-hop concept linking</em> (nối bệnh→triệu chứng→thuốc across passages), KHÔNG phải qua amendment. Đây cũng là lý do <b>kết quả âm rất có thể xảy ra</b> — và vẫn là đóng góp: "PPR không transfer vì medical thiếu cấu trúc quan-hệ-thời-gian mà general/legal QA có".</p>
+
+<h2 id="s4">4. Các module &amp; biến thể ablatable</h2>
+<table>
+<tr><th>Module</th><th>Biến thể</th><th>Trả lời RQ</th><th>Ghi chú evidence</th></tr>
+<tr><td>G1 Query builder</td><td>stem-only / stem+choices / per-choice</td><td>—</td><td>Đặc thù MCQA, không copy từ legal QA</td></tr>
+<tr><td>G2 Query transform</td><td>none / rewrite / decompose / HyDE</td><td>RQ3</td><td>Unproven medical; decompose rủi ro với câu MCQA ngắn</td></tr>
+<tr><td>G3 Retriever</td><td>BM25 / MedCPT / hybrid 2-stage</td><td>RQ1,2</td><td>Hybrid = 2-stage cascade (đã xác minh), không phải score-fusion</td></tr>
+<tr><td>G3b Graph retrieval</td><td>none / triple / <b>PPR</b> <span class="kbd">(bỏ hierarchical — xem 3.5)</span></td><td><b>RQ1 LÕI</b></td><td>Graph = LM-trích-triple từ MedCorp (cách A); PPR transfer = đóng góp mới</td></tr>
+<tr><td>G6 Fusion</td><td>RRF / weighted / max</td><td>RQ2</td><td>Chưa ai giải quyết cho medical</td></tr>
+<tr><td>G7 Rerank</td><td>none / cross-encoder</td><td>—</td><td><b>CÓ THỂ làm tệ hơn</b> — phải đo recall tầng-1 trước. Heuristic-rerank ĐÃ BỎ (mục 10)</td></tr>
+<tr><td>G8 Context packer</td><td>plain / graph-aware</td><td>—</td><td>Luôn bật; UMLS là concept-graph, expand cẩn thận kẻo lạc đề</td></tr>
+<tr><td>G9 Answer gen</td><td>zero / few / CoT / fine-tune</td><td>RQ4</td><td>Arm riêng; tự đo fine-tune có overfit không</td></tr>
+</table>
+
+<h2 id="s5">5. Trục chính vs phụ (đóng góp)</h2>
+<table>
+<tr><th>Ưu tiên</th><th>Open question</th><th>Vì sao</th></tr>
+<tr><td><span class="tag t-unproven">LÕI</span></td><td>PPR transfer → tri thức y khoa (KG cách A)</td><td>Novelty cao nhất, đúng trọng tâm "Medical GRAPH RAG"</td></tr>
+<tr><td><span class="tag t-proven">phụ</span></td><td>Fusion RRF vs weighted vs max</td><td>Rẻ, tín hiệu sạch, dễ đo, chưa ai giải quyết cho medical</td></tr>
+<tr><td><span class="tag t-marginal">hẹp</span></td><td>Query transform medical</td><td>Rủi ro bóp méo thuật ngữ lâm sàng; test hẹp, không làm claim lõi trừ khi thắng rõ</td></tr>
+<tr><td><span class="tag t-marginal">phụ lục</span></td><td>Fine-tune vs prompting</td><td>Chỉ giá trị khi cô lập; đừng để nuốt đồ án</td></tr>
+</table>
+<div class="callout good">
+<strong>Câu chuyện luận án:</strong> "Graph PPR thắng ở general QA — nó có thắng ở y khoa không, và với chi phí nào?" Trả lời bằng RQ1 (lõi) + RQ2 (fusion) làm bề rộng, RQ3/RQ4 làm phụ lục. Đủ nhiều bảng như nhóm khác, nhưng mỗi bảng trả lời 1 câu hỏi có định hướng.
+</div>
+
+<h2 id="s6">6. Ma trận thực nghiệm 76 run (chống brute-force)</h2>
+<div class="callout">
+<strong>Nguyên tắc "chọn winner mỗi block rồi freeze".</strong> KHÔNG chạy tích Descartes mọi module (nổ hàng nghìn run). Thay vào: mỗi block ablate quanh 1 strong baseline, chọn winner, cố định, sang block sau. Leave-one-out thuần vẫn nổ — đây là greedy theo block.
+</div>
+
+<h3>6.1 Selection vs Confirmation split</h3>
+<p><strong>Dev/selection:</strong> chọn cấu hình CHỈ trên <b>dev-split</b> của 2 subtask (MedQA + PubMedQA). <strong>Final confirm:</strong> chạy top cấu hình trên <b>test-split held-out của cả 5 subtask</b> MIRAGE, báo per-subtask + trung bình, MỘT lần.</p>
+<div class="callout bad">
+<strong>Chống rò rỉ (Codex bắt):</strong> vì final confirm gồm cả MedQA/PubMedQA đã dùng để chọn, PHẢI tách split rõ: dùng dev-split để tune/chọn, test-split để báo cáo cuối. KHÔNG bao giờ chọn cấu hình dựa trên test-split. Nếu subtask không có dev/test tách sẵn → tự chia cố định theo seed, khai báo trong luận án.
+</div>
+<p class="muted"><b>Lưu ý:</b> MIRAGE là bộ CHỨA 5 subtask (MMLU-Med, MedQA, MedMCQA, PubMedQA*, BioASQ), KHÔNG phải benchmark thứ 5 song song — nên chỉ nói "5 subtask MIRAGE", tránh đếm trùng.</p>
+
+<h3>6.2 Ba khối, 76 run</h3>
+<table>
+<tr><th>Khối</th><th>Block</th><th>Run</th><th>Ablate gì</th></tr>
+<tr><td rowspan="6"><b>Retrieval dev</b><br>(42 run)</td><td>Stage-1 ceiling</td><td>8</td><td>{BM25, MedCPT, hybrid, +1} × 2 query-builder (stem-only vs stem+choices) — đo Recall@50/100 TRẦN trước rerank <span class="kbd">(4×2=8)</span></td></tr>
+<tr><td>Graph (RQ1 lõi)</td><td>8</td><td>{none, triple, PPR} × {UMLS-norm on/off} = 6, + 2 biến thể PPR (damping, #seed) <span class="kbd">(3×2+2=8)</span></td></tr>
+<tr><td>Fusion (RQ2)</td><td>6</td><td>{RRF, weighted, max} × 2 nguồn kết hợp (dense+sparse, dense+graph) <span class="kbd">(3×2=6)</span></td></tr>
+<tr><td>Query transform (RQ3)</td><td>8</td><td>{none, rewrite, decompose, HyDE} × 2 dev-set <span class="kbd">(4×2=8)</span></td></tr>
+<tr><td>Rerank</td><td>6</td><td>{none, cross-encoder} × 3 depth (rerank-10/20/50) <span class="kbd">(2×3=6)</span> — heuristic ĐÃ BỎ (mục 10), không chạy</td></tr>
+<tr><td>Context</td><td>6</td><td>{plain, graph-aware} × 3 token-budget (1k/2k/4k) <span class="kbd">(2×3=6)</span></td></tr>
+<tr><td rowspan="2"><b>Answer dev</b><br>(14 run)</td><td>Prompting</td><td>12</td><td>top-2 retrieval × {zero/few/CoT} × 2 dataset</td></tr>
+<tr><td>Fine-tune (RQ4)</td><td>2</td><td>best-retrieval + fine-tuned model × 2 dataset</td></tr>
+<tr><td><b>Final confirm</b><br>(20 run)</td><td>Top systems</td><td>20</td><td>top-4 cấu hình × 5 subtask MIRAGE (chạy 1 lần) <span class="kbd">(4×5=20)</span></td></tr>
+</table>
+<p class="muted"><b>Tổng: 42 + 14 + 20 = 76 run.</b> Retrieval-dev: 8+8+6+8+6+6=42. Answer-dev: 12+2=14. Final: 20. Mỗi ô ghi rõ phép nhân. Cốt lõi: <em>greedy theo block</em> — chọn winner mỗi block, freeze, sang block sau; KHÔNG tích Descartes toàn pipeline.</p>
+
+<h2 id="s7">7. Metric đa trục</h2>
+<p class="muted">MCQA accuracy đơn thuần GIẤU reasoning không căn cứ; BLEU/ROUGE/BERTScore yếu cho MCQA; LLM-judge dễ vòng tròn. Phải đo nhiều trục tách biệt.</p>
+<table>
+<tr><th>Trục</th><th>Metric</th><th>Bắt gì</th></tr>
+<tr><td>Retrieval</td><td>Recall@k, MRR, nDCG + <b>Recall@50/100 tầng-1</b></td><td>Retriever tìm đúng evidence không; trần trước rerank</td></tr>
+<tr><td>Answer</td><td>MCQA accuracy (exact-match option)</td><td>Trả lời đúng không</td></tr>
+<tr><td>Grounding</td><td>Faithfulness / citation-support rate; <b>unsupported-rationale rate</b></td><td>Đúng vì có căn cứ hay đoán may</td></tr>
+<tr><td>Evidence</td><td>Evidence sufficiency, context-noise rate</td><td>Context đủ &amp; sạch không</td></tr>
+<tr><td>Chi phí</td><td>token/query, số LLM call, latency</td><td>Đánh đổi hiệu suất/giá</td></tr>
+</table>
+<p class="muted">BỎ BLEU/ROUGE/BERTScore cho arm MCQA (không phù hợp). Giữ chúng nếu có thêm arm long-form. Self-reflective/citation-verify = guardrail cuối, không phải module chính.</p>
+
+<h2 id="s8">8. Phòng ngừa kết luận sai</h2>
+<div class="callout bad">
+Research cho thấy nhiều "win" bị bác bỏ + rerank có thể làm TỆ hơn. Thiết kế phải phòng ngừa, nếu không sẽ ra kết luận sai:
+</div>
+<ul>
+<li><strong>Đo trần recall tầng-1 TRƯỚC rerank.</strong> Nếu tầng-1 thấp thì "rerank tệ" là do candidate pool, không phải rerank vô dụng. "Even a perfect re-ranker cannot recover" evidence vắng.</li>
+<li><strong>Freeze mọi thứ khác trong retrieval ablation:</strong> cùng answer LLM, prompt, context budget, K, seed.</li>
+<li><strong>Không tune trên test.</strong> Dev (MedQA+PubMedQA) chọn; final split chạy 1 lần.</li>
+<li><strong>Report per-benchmark, không chỉ trung bình</strong> — không config nào thắng cả 5 subtask MIRAGE.</li>
+<li><strong>Tách option-accuracy khỏi rationale-faithfulness</strong> — model đoán đúng với evidence sai là dấu hiệu tautology.</li>
+<li><strong>Significance test</strong> (bootstrap/paired/McNemar); delta +1–2 điểm coi như nhiễu, KHÔNG kết luận.</li>
+<li><strong>Log failure buckets:</strong> entity-link miss / graph noise / retrieved-correct-LM-wrong / answer-unsupported.</li>
+</ul>
+
+<h2 id="s9">9. Dataset, KG, model cố định</h2>
+<table>
+<tr><th>Thành phần</th><th>Chọn</th><th>Lý do</th></tr>
+<tr><td>Benchmark</td><td>MIRAGE — 5 subtask (MedQA/PubMedQA*/MedMCQA/MMLU-Med/BioASQ), 4 setting chuẩn (ZSL/MCE/RAG/QOR)</td><td>Chuẩn de-facto, apples-to-apples (đã verify session trước)</td></tr>
+<tr><td>Corpus tri thức</td><td>MedCorp (MedRAG): PubMed/StatPearls/Textbooks/Wikipedia</td><td>Nguồn GỐC chung cho mọi arm</td></tr>
+<tr><td>Dense retriever</td><td>MedCPT (y sinh)</td><td>Evidence: hybrid BM25+MedCPT tốt nhất medical</td></tr>
+<tr><td>Graph &amp; entity link</td><td>KG = LM-trích-triple từ MedCorp (cách A, mục 3.5); UMLS via scispaCy CHỈ chuẩn hóa node</td><td>Không crawl, cùng nguồn MedCorp; UMLS KHÔNG phải nguồn cạnh/tri thức riêng</td></tr>
+<tr><td>Answer backbone</td><td>1 open (Qwen2.5-7B / Llama-3.1-8B) cho toàn bộ 76 run. GPT-4o CHỈ chạy sanity-check top-config trên 1 subset nhỏ (NGOÀI 76 run, để có trần accuracy)</td><td>Model y khoa fine-tune ngoài phạm vi (không phải biến chính)</td></tr>
+<tr><td>Rerank</td><td>cross-encoder (bge-reranker-v2-m3 hoặc MedCPT cross-enc)</td><td>Phải align với retriever, đo trước/sau</td></tr>
+</table>
+
+<h2 id="s10">10. Chống overfit theo nhóm khác</h2>
+<div class="callout">
+Codex cảnh báo: nhiều phần dễ "bắt chước mù" pipeline legal của nhóm bạn mà không hợp domain medical/MCQA. Loại bỏ hoặc hạ cấp:
+</div>
+<table>
+<tr><th>Thành phần nhóm bạn có</th><th>Quyết định</th><th>Lý do</th></tr>
+<tr><td>Router (reject/retrieve/direct/cypher)</td><td>BỎ khỏi core</td><td>Benchmark MCQA không có query-class thật → thừa</td></tr>
+<tr><td>Query decomposer</td><td>HẠ xuống 1 biến thể test hẹp</td><td>Câu MCQA ngắn, decompose thêm noise</td></tr>
+<tr><td>Heuristic rerank (điểm cộng/trừ)</td><td>BỎ trừ khi có căn cứ y khoa rõ</td><td>Legal dùng ngày-hiệu-lực; medical không có tương đương → thành scoring tùy tiện</td></tr>
+<tr><td>LLM rerank</td><td>Chỉ khi dư budget</td><td>Đắt, dễ leak answer-preference</td></tr>
+<tr><td>BLEU/ROUGE/BERTScore</td><td>BỎ cho MCQA</td><td>Không hợp trắc nghiệm</td></tr>
+<tr><td>Graph-neighbor expansion vô tội vạ</td><td>Cẩn thận + đo noise</td><td>UMLS là concept-graph, không phải evidence-graph → dễ chèn concept đúng-nhưng-lạc-đề</td></tr>
+<tr><td>Fine-tune như module thường</td><td>Tách study riêng (RQ4)</td><td>Sai seam nếu trộn vào retrieval ablation</td></tr>
+</table>
+
+<h2 id="s10b">10.5 Kế hoạch dự phòng (fallback)</h2>
+<div class="callout good">
+Thầy chấp nhận kết quả tốt/tệ miễn thử nghiệm CÓ NÃO. Fallback = kế hoạch viết-sẵn cho 2 rủi ro THỰC THI (không phải rủi ro điểm số). Bản thân việc có fallback + báo cáo lý do lùi = bằng chứng "có não".
+</div>
+<table>
+<tr><th>Rủi ro</th><th>Dấu hiệu kích hoạt</th><th>Fallback</th><th>Vì sao vẫn có não</th></tr>
+<tr><td><b>KG-LM-trích-triple hỏng</b> (điểm-chết kỹ thuật của RQ1)</td><td>Kiểm tay 100 triple mẫu: % hợp lệ &lt; 70%</td><td>Lùi arm graph về <b>triple-lookup đơn giản</b> (match entity câu hỏi ↔ triple, không cần LM trích chất lượng cao); nếu vẫn kém → dùng KG con của UMLS quanh entity câu hỏi</td><td>Báo cáo "%triple hợp lệ = X, dưới ngưỡng" là PHÁT HIỆN (LM-trích-triple y khoa khó), không phải lỗi giấu đi</td></tr>
+<tr><td><b>Hết thời gian</b> (76 run quá tải)</td><td>Qua mốc giữa kỳ chưa xong retrieval-dev</td><td>Cắt theo thứ tự ĐỊNH SẴN: bỏ RQ4 (fine-tune) → RQ3 chỉ giữ {none, HyDE} → final chỉ top-2 config. GIỮ BẰNG MỌI GIÁ: RQ1 (PPR) + RQ2 (fusion)</td><td>Ưu tiên có chủ đích từ đầu (RQ1/RQ2 = lõi, RQ3/RQ4 = mở rộng), khai báo rõ đã cắt gì + vì sao = quản lý scope</td></tr>
+</table>
+<p class="muted"><b>Ngưỡng 70% triple hợp lệ</b> là mốc khởi điểm — hiệu chỉnh sau khi thấy dữ liệu thật. Điểm cốt lõi: có tiêu chí SỐ để quyết lùi, không quyết cảm tính.</p>
+
+<h2 id="s11">11. Caveat trung thực &amp; nguồn</h2>
+<div class="callout bad">
+<ul>
+<li><strong>PPR medical = GIẢ THUYẾT, khả năng cao ra kết quả ÂM.</strong> Bằng chứng PPR chỉ trên general/multi-hop QA (2Wiki/MuSiQue) — nơi có chuỗi quan-hệ rõ để nhảy nhiều bước. Medical MCQA thiếu cấu trúc đó (không có amendment/cross-ref như legal, mục 3.5). Nếu PPR KHÔNG transfer, kết luận "PPR cần cấu-trúc-quan-hệ mà medical MCQA thiếu" VẪN là đóng góp hợp lệ. Đừng viết doc như thể PPR chắc chắn thắng.</li>
+<li><strong>Nhiều nguồn medical là preprint 2025 chưa peer-review</strong> (2505.07917, 2510.04757) hoặc MDPI review nhẹ. Faithfulness/relevancy phần lớn là RAGAS LLM-judge (soft), không phải gold.</li>
+<li><strong>Fusion RRF vs weighted vs max cho medical CHƯA có bằng chứng</strong> — "hybrid" trong evidence là 2-stage cascade, không phải score-fusion. RQ2 lấp đúng chỗ này.</li>
+<li><strong>Fine-tune-hurts KHÔNG được xác nhận</strong> — không copy kết luận nhóm bạn; phải tự đo.</li>
+</ul>
+</div>
+<div class="card">
+<p class="src">HippoRAG — arXiv 2405.14831 · HippoRAG 2 — arXiv 2502.14802</p>
+<p class="src">MedRAG / MIRAGE — arXiv 2402.13178 (ACL Findings 2024)</p>
+<p class="src">Hybrid BM25+MedCPT medical — arXiv 2505.07917 (preprint) · MDPI Information 17(2):133</p>
+<p class="src">Two-stage rerank ModernBERT+ColBERT — arXiv 2510.04757 (preprint)</p>
+<p class="src">Self-reflective RAG — MDPI Electronics 14(21):4227</p>
+<p class="src">MedGraphRAG (U-retrieve 91.3 — BỊ BÁC BỎ, chỉ dùng làm mô tả kiến trúc) — arXiv 2408.04187</p>
+<p class="src">HyDE — arXiv 2212.10496</p>
+</div>
+
+<hr>
+<p class="muted">v2. Thiết kế qua: deep-research (16 claim verified / 9 refuted) → co-design đối kháng Codex → doc này. Bước tiếp: Codex phản biện bản doc, sửa tới green-light, rồi mới scaffold code theo pipeline 10 giai đoạn.</p>
+</div>
+</body>
+</html>
