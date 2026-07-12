@@ -36,7 +36,10 @@ class OpenAICompatLLM:
         if not key:
             raise RuntimeError("OPENAI_API_KEY not set")
         url = base_url or os.environ.get("OPENAI_BASE_URL")  # None -> real OpenAI
-        self._client = OpenAI(api_key=key, base_url=url)
+        # hard 30s timeout + no SDK-level retry: a hung call fails fast so our
+        # own retry loop (run_experiment) controls backoff instead of the SDK
+        # silently blocking for its 600s default.
+        self._client = OpenAI(api_key=key, base_url=url, timeout=30.0, max_retries=0)
         self._model = model
         # reasoning models (gemini) return empty with a tiny budget; give headroom
         self._max_tokens = max_tokens

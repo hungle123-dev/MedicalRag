@@ -14,6 +14,7 @@ import argparse
 import json
 import pickle
 import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from pathlib import Path
 
 from medgraphrag.config import load_env
@@ -47,14 +48,32 @@ def _answer_in_context(option_text: str, evidence) -> bool:
     return any(t in e.content.lower() for e in evidence)
 
 
-def _call_with_retry(llm, q, context, retries=3):
+def _call_with_retry(llm_box, q, context, retries=6, wall_timeout=25):
+    """Wall-clock timeout via a worker thread: the SDK's own timeout doesn't
+    reliably cut a socket that wedges through the Cloudflare proxy, so we
+    abandon the future and retry with a FRESH client. A ONE-SHOT executor per
+    call (not a shared pool) — a shared pool's workers get permanently consumed
+    by abandoned/hung threads until it's exhausted and every future queues
+    forever. A throwaway 1-worker pool costs a bit of overhead but never clogs.
+    llm_box is a 1-element list so we can swap the client on timeout."""
     for attempt in range(retries):
+        llm = llm_box[0]
+        exec_ = ThreadPoolExecutor(max_workers=1)
+        fut = exec_.submit(llm.choose, q["question"], q["options"], context)
         try:
-            return llm.choose(q["question"], q["options"], context)
-        except Exception as e:
+            result = fut.result(timeout=wall_timeout)
+            exec_.shutdown(wait=False)  # non-blocking: don't wait on a done thread
+            return result
+        except FutureTimeout:
+            exec_.shutdown(wait=False)  # abandon the hung thread, don't block on it
+            if attempt == retries - 1:
+                raise RuntimeError(f"wall-timeout after {retries} tries")
+            llm_box[0] = OpenAICompatLLM(llm._model)  # fresh connection pool
+        except Exception:
+            exec_.shutdown(wait=False)
             if attempt == retries - 1:
                 raise
-            time.sleep(2 * (attempt + 1))
+            time.sleep(min(15, 2 * (attempt + 1)))
     return None
 
 
@@ -66,13 +85,21 @@ def run_cell(model: str, arm: str, questions: list, retriever, limit: int | None
     todo = [q for q in qs if q["qid"] not in done]
     print(f"[{model} | {arm}] {len(done)} done, {len(todo)} to run")
 
-    llm = OpenAICompatLLM(model)
+    llm_box = [OpenAICompatLLM(model)]
+    n_fail = 0
     with out_path.open("a", encoding="utf-8") as fh:
         for i, q in enumerate(todo, 1):
             # bm25s query is ~150ms, so live retrieval is fine (no cache needed)
             evidence = retriever.retrieve(q["question"], K) if arm == "E1" else []
             context = "\n".join(e.content for e in evidence)
-            choice = _call_with_retry(llm, q, context)
+            try:
+                choice = _call_with_retry(llm_box, q, context, retries=6)
+            except Exception as e:
+                # log & skip one bad question rather than kill an 1800-call run;
+                # a rerun (resume) will retry skipped qids since they're not written
+                n_fail += 1
+                print(f"  SKIP {q['qid']}: {str(e)[:80]}")
+                continue
             answer_text = q["options"][q["answer"]].lower()
             row = {
                 "qid": q["qid"],
@@ -88,7 +115,7 @@ def run_cell(model: str, arm: str, questions: list, retriever, limit: int | None
             fh.flush()
             if i % 50 == 0:
                 print(f"  {model}|{arm}: {i}/{len(todo)}")
-    print(f"  done -> {out_path}")
+    print(f"  done -> {out_path}" + (f"  ({n_fail} skipped)" if n_fail else ""))
 
 
 def main():

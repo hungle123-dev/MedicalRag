@@ -8,4 +8,4 @@ data/demo_run_result.json
 .env
 data/bm25_index.pkl
 data/midterm_subset.json
-results/
+results/*.log
