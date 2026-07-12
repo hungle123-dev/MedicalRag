@@ -1,0 +1,59 @@
+version: "1.0-draft"
+seed: 20260712
+
+tracks:
+  primary:
+    dataset: mattmorgis/bioasq-12b-rag
+    revision: MUST_VERIFY_W1
+    question_config: MUST_VERIFY_W1
+    corpus_config: MUST_VERIFY_W1
+    role: confirmatory
+  secondary:
+    dataset: mkieffer/MedQA-USMLE
+    revision: MUST_VERIFY_W1
+    role: supportive_answer_only
+    retriever_input: question_stem_only
+
+knowledge_graph:
+  dataset: PrimeKG
+  doi: MUST_VERIFY_W1
+  sha256: MUST_VERIFY_W1
+  redistribute: false
+
+generator:
+  provider: MUST_FREEZE_W1
+  model: MUST_FREEZE_W1
+  snapshot: MUST_FREEZE_W1
+  temperature: 0
+  top_p: 1
+  max_output_tokens: 512
+  retries: 3
+
+judge:
+  provider: MUST_FREEZE_W1
+  model: MUST_FREEZE_W1
+  snapshot: MUST_FREEZE_W1
+  must_differ_from_generator: true
+  validity_kappa_minimum: 0.60
+
+evidence_budget:
+  total_tokens: 1800
+  max_items: 8
+  graph_max_tokens: 540
+  graph_shortfall: backfill_ranked_text
+
+sampling:
+  smoke: 50
+  dev_cap: 300
+  manual_random: 100
+  graph_oversample: 50
+
+locked_test:
+  pipelines: [B3, G2]
+  executions: 1
+  retune_after_access: false
+
+budget:
+  api_cost_cap_usd: MUST_FREEZE_W1
+  max_core_configs: 6
+  max_graph_ablations: 4

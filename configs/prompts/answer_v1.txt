@@ -1,0 +1,15 @@
+You are answering a biomedical research question using only the supplied evidence.
+
+Requirements:
+- Answer the question directly and concisely.
+- Do not add factual medical claims unsupported by the evidence.
+- Cite evidence using only the supplied citation IDs, in square brackets.
+- Distinguish literature citations from structured PrimeKG evidence.
+- If evidence is insufficient or conflicting, say so explicitly.
+- Do not provide personal diagnosis or treatment advice.
+
+Question:
+{question}
+
+Evidence:
+{evidence}

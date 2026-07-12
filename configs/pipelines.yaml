@@ -1,0 +1,39 @@
+pipelines:
+  B0:
+    name: Closed-book
+    text_retrieval: false
+    graph_retrieval: false
+  B1:
+    name: BM25 RAG
+    text_retrieval: bm25
+    graph_retrieval: false
+  B2:
+    name: MedCPT dense RAG
+    text_retrieval: medcpt
+    graph_retrieval: false
+  B3:
+    name: Strong Text-RAG
+    text_retrieval: bm25_medcpt_rrf
+    reranker: medcpt_cross_encoder
+    graph_retrieval: false
+  G1:
+    name: PrimeKG-only
+    text_retrieval: false
+    graph_retrieval: primekg_paths
+  G2:
+    name: Text + PrimeKG
+    text_retrieval: bm25_medcpt_rrf
+    reranker: medcpt_cross_encoder
+    graph_retrieval: primekg_paths
+
+defaults:
+  bm25_fetch_k: 50
+  medcpt_fetch_k: 50
+  rrf_k: 60
+  rerank_pool_k: 30
+  final_k: 8
+  entity_confidence_threshold: 0.80
+  max_seed_entities: 5
+  graph_hops: 2
+  max_candidates_per_seed: 200
+  final_paths: 5

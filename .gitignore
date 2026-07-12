@@ -1,11 +1,36 @@
 __pycache__/
 *.pyc
 *.egg-info/
-experiments/
 .pytest_cache/
-data/raw/
-data/demo_run_result.json
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
 .env
-data/bm25_index.pkl
-data/midterm_subset.json
-results/*.log
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# Data, indexes, models and generated artifacts
+data/
+indexes/
+models/
+artifacts/
+results/
+*.faiss
+*.pkl
+*.sqlite3
+*.db
+
+# Local tooling
+.DS_Store
+.idea/
+.vscode/
+.env

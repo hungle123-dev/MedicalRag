@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kế hoạch nghiên cứu — Medical Text + Graph RAG</title>
+  <script>
+    (()=>{const saved=localStorage.getItem('medical-rag-theme');const dark=saved?saved==='dark':matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.classList.toggle('dark',dark)})();
+  </script>
+  <style>
+    :root{--ivory:#faf9f5;--paper:#fff;--slate:#171715;--muted:#6f706b;--line:#dedbd1;--soft:#f0eee6;--clay:#d97757;--olive:#788c5d;--sky:#668aa9;--rust:#b04a3f;--shadow:0 18px 50px rgba(25,25,20,.08);color-scheme:light}
+    html.dark{--ivory:#171816;--paper:#20211f;--slate:#f2f0e8;--muted:#aaa99f;--line:#3b3c37;--soft:#292a27;--clay:#ec8e6d;--olive:#99ad7a;--sky:#8cafd0;--rust:#e27c71;--shadow:0 18px 50px rgba(0,0,0,.25);color-scheme:dark}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--ivory);color:var(--slate);font:15px/1.62 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}a{color:inherit}button{font:inherit}a:focus-visible,button:focus-visible{outline:3px solid var(--sky);outline-offset:3px}.skip{position:fixed;left:12px;top:-60px;z-index:99;background:var(--slate);color:var(--paper);padding:10px 14px;border-radius:8px}.skip:focus{top:12px}
+    .shell{width:min(1180px,calc(100% - 32px));margin:auto}.top{position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--ivory) 90%,transparent);backdrop-filter:blur(14px)}
+    .top-inner{height:58px;display:flex;align-items:center;gap:18px}.brand{font-weight:760;letter-spacing:-.02em}.brand i{display:inline-block;width:9px;height:9px;margin-right:9px;border-radius:50%;background:var(--clay)}
+    nav{display:flex;gap:4px;margin-left:auto;overflow:auto}nav a,.theme{white-space:nowrap;text-decoration:none;border:0;border-radius:8px;background:transparent;color:var(--muted);padding:7px 10px;cursor:pointer}nav a:hover,.theme:hover{background:var(--soft);color:var(--slate)}
+    header{padding:74px 0 42px}.eyebrow{display:flex;align-items:center;gap:9px;color:var(--clay);font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.eyebrow:before{content:"";width:28px;height:2px;background:currentColor}
+    h1,h2,h3{font-family:ui-serif,Georgia,"Times New Roman",serif;letter-spacing:-.025em;line-height:1.12}h1{font-size:clamp(42px,7vw,78px);max-width:950px;margin:18px 0 20px}h2{font-size:32px;margin:0 0 10px}h3{font-size:20px;margin:0 0 8px}.lede{font-size:19px;color:var(--muted);max-width:860px}.lede strong{color:var(--slate)}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}.chip{padding:7px 11px;border:1px solid var(--line);border-radius:999px;background:var(--paper);font-size:13px}.chip.good{border-color:color-mix(in srgb,var(--olive) 45%,var(--line));color:var(--olive)}.chip.no{color:var(--rust)}
+    section{scroll-margin-top:78px;padding:44px 0;border-top:1px solid var(--line)}.section-head{display:grid;grid-template-columns:120px 1fr;gap:24px;margin-bottom:26px}.num{font:700 12px/1 ui-monospace,monospace;color:var(--clay);letter-spacing:.14em}.section-head p{color:var(--muted);max-width:780px;margin:0}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}.card{grid-column:span 4;border:1px solid var(--line);border-radius:14px;background:var(--paper);padding:20px;box-shadow:var(--shadow)}.card.wide{grid-column:span 6}.card.full{grid-column:1/-1}.card p{margin:7px 0 0;color:var(--muted)}.card ul{padding-left:18px;margin:10px 0 0}.card li+li{margin-top:5px}.kicker{font:750 11px/1.2 ui-monospace,monospace;color:var(--clay);text-transform:uppercase;letter-spacing:.1em}
+    .problem{display:grid;grid-template-columns:1fr auto 1fr;align-items:stretch;gap:13px}.io{border:1px solid var(--line);border-radius:14px;background:var(--paper);padding:22px}.arrow{display:grid;place-items:center;color:var(--clay);font-size:26px}.sample{margin-top:12px;padding:13px;border-radius:9px;background:var(--soft);font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap}
+    .architecture{overflow:auto;border:1px solid var(--line);border-radius:16px;background:var(--paper);padding:18px}.architecture svg{display:block;min-width:900px;width:100%;height:auto}.node{fill:var(--paper);stroke:var(--line);stroke-width:1.5}.node.text{stroke:var(--sky)}.node.graph{stroke:var(--olive)}.node.core{stroke:var(--clay);stroke-width:2}.edge{fill:none;stroke:var(--line);stroke-width:2;marker-end:url(#arrow)}.label{fill:var(--slate);font:700 14px system-ui}.sub{fill:var(--muted);font:12px system-ui}.lane{fill:var(--soft);stroke:none}.lane-title{fill:var(--muted);font:800 11px system-ui;letter-spacing:.1em}
+    .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px}table{width:100%;min-width:680px;border-collapse:collapse;background:var(--paper)}caption{text-align:left;padding:10px 14px;background:var(--soft);font-weight:750}th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--soft)}tr:last-child td{border-bottom:0}.id{font:800 12px ui-monospace,monospace;color:var(--clay)}
+    .contract{margin-top:14px;border:1px solid var(--line);border-radius:14px;background:var(--paper);padding:18px}.contract h3{font-family:inherit;font-size:16px;letter-spacing:0}.contract pre,.schema{overflow:auto;margin:10px 0 0;padding:14px;border-radius:10px;background:var(--soft);font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre}.status{display:inline-block;padding:3px 7px;border-radius:6px;background:color-mix(in srgb,var(--clay) 16%,var(--paper));color:var(--clay);font:750 11px ui-monospace,monospace}.status.locked{background:color-mix(in srgb,var(--olive) 18%,var(--paper));color:var(--olive)}
+    .week{display:grid;grid-template-columns:130px 1fr auto;gap:18px;align-items:start;padding:20px 0;border-bottom:1px solid var(--line)}.week:last-child{border-bottom:0}.week-no{font:800 12px ui-monospace,monospace;color:var(--clay)}.week h3{font-family:inherit;font-size:17px;letter-spacing:0}.week ul{margin:7px 0 0;padding-left:18px;color:var(--muted)}.gate{max-width:250px;border-left:3px solid var(--olive);padding-left:12px;color:var(--muted);font-size:13px}.gate strong{display:block;color:var(--olive)}
+    .roles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.role{border-top:3px solid var(--line);padding:15px 4px}.role:nth-child(3n+1){border-color:var(--clay)}.role:nth-child(3n+2){border-color:var(--sky)}.role:nth-child(3n){border-color:var(--olive)}.role b{display:block}.role span{color:var(--muted);font-size:13px}
+    .callout{border-left:4px solid var(--clay);background:var(--soft);padding:20px 22px;border-radius:0 12px 12px 0;font-size:18px}.sources{columns:2;column-gap:32px}.sources li{break-inside:avoid;margin-bottom:8px}.sources a{text-decoration-color:var(--line);text-underline-offset:3px}.small{font-size:13px;color:var(--muted)}footer{padding:35px 0 55px;color:var(--muted);border-top:1px solid var(--line)}
+    @media(max-width:820px){.top-inner{height:auto;min-height:58px;flex-wrap:wrap;padding:8px 0}nav{order:3;width:100%;margin:0;padding-bottom:6px}.card,.card.wide{grid-column:1/-1}.section-head{grid-template-columns:1fr;gap:8px}.problem{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}.week{grid-template-columns:1fr}.gate{max-width:none}.roles{grid-template-columns:1fr}.sources{columns:1}header{padding-top:48px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+    @media print{.top,.theme,.skip{display:none}body{background:#fff}.card{box-shadow:none}section{break-inside:auto}.sources a[href^="http"]:after{content:" (" attr(href) ")";font-size:10px}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Bỏ qua điều hướng</a>
+  <div class="top"><div class="shell top-inner"><div class="brand"><i></i>Medical RAG · Execution Spec</div><nav aria-label="Điều hướng tài liệu"><a href="#scope">Scope</a><a href="#protocol">Protocol</a><a href="#architecture">RAG</a><a href="#experiments">Thực nghiệm</a><a href="#evaluation">Đánh giá</a><a href="#fullstack">Full-stack</a><a href="#roadmap">5 tuần</a><a href="#roles">Vai trò</a></nav><button class="theme" id="theme" aria-label="Bật giao diện tối" aria-pressed="false">◐</button></div></div>
+
+  <main class="shell" id="main">
+    <header>
+      <div class="eyebrow">Research brief · 12/07/2026</div>
+      <h1>Medical QA, grounded in text <em>and</em> graph.</h1>
+      <p class="lede"><strong>Input là câu hỏi text. Output là câu trả lời text có dẫn chứng.</strong> Nghiên cứu không cố chứng minh Graph-RAG luôn tốt hơn; nó đo chính xác graph giúp loại câu hỏi nào khi so với một Text-RAG đủ mạnh.</p>
+      <div class="chips"><span class="chip good">BioASQ + MedQA</span><span class="chip good">MedCPT + PrimeKG</span><span class="chip">1 GPU + API</span><span class="chip no">Không crawl</span><span class="chip no">Không fine-tune</span><span class="chip no">Không clinical deployment</span></div>
+    </header>
+
+    <section id="scope">
+      <div class="section-head"><div class="num">01 · SCOPE</div><div><h2>Bài toán và ranh giới</h2><p>Report pháp luật chỉ cung cấp tư duy baseline → module → ablation. Domain, schema, dữ liệu và metric được thiết kế lại cho medical.</p></div></div>
+      <div class="problem">
+        <div class="io"><div class="kicker">Input</div><h3>Medical question</h3><div class="sample">Why should propranolol generally be avoided in patients with asthma?</div></div>
+        <div class="arrow">→</div>
+        <div class="io"><div class="kicker">Output</div><h3>Evidence-grounded answer</h3><div class="sample">Propranolol blocks β2 receptors and may cause bronchoconstriction…
+
+Sources: PMID… · PrimeKG path…</div></div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <article class="card wide"><div class="kicker">Primary track</div><h3>BioASQ long-form QA</h3><p>Đánh giá chatbot text-to-text và retrieval nhờ ideal answer, PubMed document IDs và gold snippets.</p></article>
+        <article class="card wide"><div class="kicker">Secondary track</div><h3>MedQA clinical reasoning</h3><p>Chatbot vẫn giải thích bằng text; lựa chọn A/B/C/D chỉ dùng để tính exact accuracy tự động.</p></article>
+        <article class="card"><h3>Research question</h3><p>PrimeKG có thêm giá trị ngoài BM25 + MedCPT + reranker không?</p></article>
+        <article class="card"><h3>Expected nuance</h3><p>Graph có thể giúp drug–disease, contraindication và multi-hop; không chắc giúp literature-specific QA.</p></article>
+        <article class="card"><h3>Responsible boundary</h3><p>Prototype nghiên cứu, không thay bác sĩ, không dùng để đưa quyết định điều trị.</p></article>
+      </div>
+    </section>
+
+    <section id="resources">
+      <div class="section-head"><div class="num">02 · ASSETS</div><div><h2>Cái gì đã có, cái gì phải xây</h2><p>Building blocks phần lớn đã public. Contribution nằm ở lớp nối, protocol và phân tích — không phải crawl hay train lại mọi model.</p></div></div>
+      <div class="grid">
+        <article class="card wide"><div class="kicker">Ready</div><h3>Có sẵn</h3><ul><li>BioASQ corpus, QA, ideal answers và gold text evidence</li><li>MIRAGE/MedQA benchmark</li><li>BM25, MedCPT encoders và cross-encoder</li><li>PrimeKG edge list và clinical descriptions</li><li>MedRAG baseline code và metric libraries</li></ul></article>
+        <article class="card wide"><div class="kicker">Build</div><h3>Team phải tích hợp</h3><ul><li>Question → PrimeKG entity linking</li><li>Constrained graph path retrieval và ranking</li><li>Text–graph evidence fusion</li><li>Citation/provenance schema</li><li>Evaluation harness, labels hỗ trợ và error analysis</li></ul></article>
+      </div>
+      <div class="callout" style="margin-top:14px"><strong>Chốt:</strong> không phải “chỉ bấm test”. Cần khoảng 1–2 tuần dựng integration/evaluator; sau đó phần lớn thời gian là thí nghiệm có kiểm soát.</div>
+    </section>
+
+    <section id="protocol">
+      <div class="section-head"><div class="num">03 · PROTOCOL</div><div><h2>Frozen research protocol</h2><p>Năm contract này phải được điền, hash và ký freeze trước locked test. Giá trị TBD là blocker được quản lý, không phải quyền tự chọn của agent.</p></div></div>
+      <div class="grid">
+        <article class="card"><span class="status locked">DEFAULT LOCKED</span><h3>Primary track</h3><p>BioASQ 12B RAG trên Hugging Face; long-form QA và gold textual evidence.</p></article>
+        <article class="card"><span class="status locked">DEFAULT LOCKED</span><h3>Secondary track</h3><p>MedQA-USMLE chỉ đánh giá final answer; retriever chỉ thấy question stem, không thấy options.</p></article>
+        <article class="card"><span class="status">MUST FREEZE W1</span><h3>Runtime</h3><p>Exact generator snapshot, GPU/VRAM/RAM/disk, API quota và USD cost cap.</p></article>
+      </div>
+      <div class="contract"><h3>DATA_MANIFEST · nguồn và integrity</h3><pre>BioASQ HF repo   mattmorgis/bioasq-12b-rag @ TBD_COMMIT_SHA
+Question config  MUST_VERIFY_W1 (expected: question-answer-passages)
+Question splits  MUST_VERIFY_W1; dev ≤ 300 · smoke 50 · locked test once
+Corpus config    MUST_VERIFY_W1 (expected: text-corpus); record-level retrieval
+MedQA repo       mkieffer/MedQA-USMLE @ TBD_COMMIT_SHA
+PrimeKG          Harvard Dataverse DOI/version + SHA-256 · no redistribution
+Seed             20260712
+
+Required artifacts
+  data/manifests/files.sha256
+  data/manifests/schema.json
+  data/manifests/counts.json
+  data/manifests/licenses.md
+  data/manifests/leakage_audit.json
+  data/manifests/exclusions.jsonl</pre></div>
+      <div class="grid" style="margin-top:14px">
+        <article class="card wide"><h3>Leakage audit</h3><ul><li>Exact/near duplicate giữa dev và test</li><li>Question, ideal answer và gold options không được index</li><li>Retriever MedQA không nhìn options</li><li>Gold document IDs phải tồn tại trong frozen corpus</li><li>Mọi exclusion có lý do độc lập pipeline</li></ul></article>
+        <article class="card wide"><h3>Freeze discipline</h3><ul><li>Pin revision/DOI/checksum và preprocessing</li><li>Hash manifest, prompt, taxonomy và configs</li><li>Không tune sau khi mở locked test</li><li>API snapshot đổi giữa B3/G2 → run invalid</li><li>Không silently drop failure/no-graph cases</li></ul></article>
+      </div>
+      <p class="small">Expected config/split/field names come from the community dataset card and are not considered frozen until W1 loads the pinned revision, records exact schema/counts and verifies them in <code>schema.json</code>.</p>
+      <div class="contract"><h3>Confirmatory comparison và primary endpoints</h3>
+        <div class="table-wrap"><table><caption>Hai track báo cáo độc lập; không gộp thành một “medical score”.</caption><thead><tr><th>Track</th><th>Role</th><th>Comparison / endpoint</th><th>Analysis</th></tr></thead><tbody><tr><td>BioASQ</td><td>Confirmatory primary</td><td>B3 vs G2 · mean model-judged correctness 0–2 trên toàn locked test</td><td>Paired question-level bootstrap 10.000 resamples, two-sided 95% CI; improvement khi CI không chứa 0 và difference &gt; 0</td></tr><tr><td>MedQA</td><td>Supportive secondary</td><td>B3 vs G2 · exact option accuracy; parse/API failure = incorrect</td><td>Exact paired McNemar + bootstrap CI; không Holm chung với BioASQ</td></tr></tbody></table></div>
+        <p class="small">Subgroup/ablation analyses là exploratory. Nếu đưa ra inferential claim trong cùng metric family, áp dụng Holm trong family đó; luôn báo effect size và CI.</p>
+      </div>
+      <div class="contract"><h3>Frozen generator, evidence và retrieval defaults</h3><pre>generator          provider/model/snapshot = MUST_FREEZE_W1
+                   temperature=0 · top_p=1 · max_output_tokens=512
+                   retries=3 transport/rate-limit only · cache raw outputs
+answer prompt      configs/prompts/answer_v1.txt
+max evidence       1,800 tokens · max 8 items
+B3 text budget     1,800 tokens
+G2 hybrid budget   graph≤540; text nhận phần còn lại trong tổng 1,800
+                   graph thiếu/không coverage → backfill ranked text evidence
+                   log requested/actual text + graph tokens
+text retrieval     BM25 k50 + MedCPT k50 → RRF(60) → rerank pool30 → final8
+graph retrieval    confidence≥0.80 · seeds≤5 · hops={1,2}
+                   candidates≤200/seed · rerank pool30 · final paths≤5
+sampling           dev≤300 · smoke=50 · graph annotation=150</pre></div>
+      <div class="contract"><h3>Experiment registry · record bắt buộc</h3><pre>run_id · pipeline_id · track · split · question_ids_file
+code_commit · data_manifest_hash · config_hash · prompt_hash
+exact generator model/snapshot · hardware · seed · start/end time
+retrieval.jsonl · answers.jsonl · metrics.json · timing.jsonl · errors.jsonl
+
+Run invalid khi gold/options vào retriever, paired configs khác generator,
+prompt/data thay giữa B3 và G2, hoặc thiếu raw output/provenance.</pre></div>
+      <div class="contract"><h3>Registry budget, status và tuning boundary</h3><pre>statuses           planned | running | completed | failed | invalid
+core configs       max 6 (B0–B3, G1, G2)
+locked pipelines   exactly B3 + G2; others dev-only unless pre-registered
+graph ablations    max 4 after core completes
+API cost cap       MUST_FREEZE_W1
+no interim rule    do not add/drop experiments after locked outcome
+dev-only tune      final_k∈{3,5,8} · rerank_pool∈{20,30,50}
+                   hops∈{1,2} · final_paths∈{3,5}
+frozen IDs         configs/annotations/annotation_question_ids.json + SHA-256</pre></div>
+    </section>
+
+    <section id="architecture">
+      <div class="section-head"><div class="num">04 · RAG SYSTEM</div><div><h2>Hybrid Text–Graph RAG</h2><p>Hai nhánh retrieval độc lập, hợp nhất dưới cùng evidence budget, dùng một generator cố định để so sánh công bằng.</p></div></div>
+      <div class="architecture">
+        <svg viewBox="0 0 1120 500" role="img" aria-label="Kiến trúc Hybrid Text Graph RAG">
+          <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--line)"/></marker></defs>
+          <rect class="lane" x="190" y="40" width="590" height="190" rx="18"/><text class="lane-title" x="210" y="66">TEXT EVIDENCE LANE</text>
+          <rect class="lane" x="190" y="270" width="590" height="190" rx="18"/><text class="lane-title" x="210" y="296">GRAPH EVIDENCE LANE</text>
+          <rect class="node core" x="20" y="205" width="130" height="80" rx="14"/><text class="label" x="85" y="238" text-anchor="middle">Question</text><text class="sub" x="85" y="258" text-anchor="middle">text input</text>
+          <rect class="node text" x="220" y="95" width="145" height="70" rx="12"/><text class="label" x="292" y="125" text-anchor="middle">BM25</text><text class="sub" x="292" y="145" text-anchor="middle">lexical</text>
+          <rect class="node text" x="405" y="95" width="145" height="70" rx="12"/><text class="label" x="477" y="125" text-anchor="middle">MedCPT</text><text class="sub" x="477" y="145" text-anchor="middle">dense</text>
+          <rect class="node text" x="590" y="95" width="160" height="70" rx="12"/><text class="label" x="670" y="125" text-anchor="middle">RRF + rerank</text><text class="sub" x="670" y="145" text-anchor="middle">top passages</text>
+          <rect class="node graph" x="220" y="325" width="145" height="70" rx="12"/><text class="label" x="292" y="355" text-anchor="middle">Entity link</text><text class="sub" x="292" y="375" text-anchor="middle">PrimeKG nodes</text>
+          <rect class="node graph" x="405" y="325" width="145" height="70" rx="12"/><text class="label" x="477" y="355" text-anchor="middle">1–2 hops</text><text class="sub" x="477" y="375" text-anchor="middle">constrained</text>
+          <rect class="node graph" x="590" y="325" width="160" height="70" rx="12"/><text class="label" x="670" y="355" text-anchor="middle">Path ranking</text><text class="sub" x="670" y="375" text-anchor="middle">top triples</text>
+          <rect class="node core" x="825" y="160" width="135" height="85" rx="14"/><text class="label" x="892" y="194" text-anchor="middle">Evidence</text><text class="label" x="892" y="214" text-anchor="middle">fusion</text><text class="sub" x="892" y="233" text-anchor="middle">fixed budget</text>
+          <rect class="node core" x="825" y="300" width="135" height="75" rx="14"/><text class="label" x="892" y="330" text-anchor="middle">Generator</text><text class="sub" x="892" y="350" text-anchor="middle">fixed LLM</text>
+          <rect class="node core" x="995" y="230" width="110" height="100" rx="14"/><text class="label" x="1050" y="265" text-anchor="middle">Answer</text><text class="sub" x="1050" y="288" text-anchor="middle">citations</text><text class="sub" x="1050" y="306" text-anchor="middle">uncertainty</text>
+          <path class="edge" d="M150 230C180 180 185 130 220 130"/><path class="edge" d="M150 260C180 310 185 360 220 360"/>
+          <path class="edge" d="M365 130H405"/><path class="edge" d="M550 130H590"/><path class="edge" d="M365 360H405"/><path class="edge" d="M550 360H590"/>
+          <path class="edge" d="M750 130C790 130 795 180 825 190"/><path class="edge" d="M750 360C790 360 795 230 825 220"/><path class="edge" d="M892 245V300"/><path class="edge" d="M960 338C980 338 980 300 995 295"/>
+        </svg>
+      </div>
+    </section>
+
+    <section id="experiments">
+      <div class="section-head"><div class="num">04 · TESTS</div><div><h2>Ma trận thực nghiệm</h2><p>Dừng ở sáu hệ thống chính. Mỗi biến thể phải trả lời một câu hỏi nghiên cứu; không chạy model zoo.</p></div></div>
+      <div class="callout"><strong>Nguyên tắc chọn thí nghiệm:</strong> chỉ chạy một chiến lược khi kết quả trước tạo ra một câu hỏi chưa được trả lời. Mỗi thí nghiệm phải ghi trước giả thuyết, biến thay đổi, biến giữ cố định, metric quyết định và hành động tiếp theo.</div>
+      <div class="grid" style="margin:14px 0">
+        <article class="card"><div class="kicker">Phase 1 · Need</div><h3>RAG có cần không?</h3><p><strong>B0 → B1/B2.</strong> Nếu retrieval không cải thiện answer hoặc citation, kiểm tra corpus/retriever trước khi thêm graph.</p></article>
+        <article class="card"><div class="kicker">Phase 2 · Strength</div><h3>Text baseline đã đủ mạnh?</h3><p><strong>B1/B2 → B3.</strong> BM25 xử lý từ khóa; MedCPT xử lý semantic gap; reranker kiểm tra lỗi xếp hạng.</p></article>
+        <article class="card"><div class="kicker">Phase 3 · Structure</div><h3>Graph thêm gì?</h3><p><strong>B3 ↔ G1 ↔ G2.</strong> Chỉ quy lợi ích cho graph khi G2 thắng B3 dưới cùng generator và evidence budget.</p></article>
+        <article class="card"><div class="kicker">Phase 4 · Causality</div><h3>Vì sao graph giúp?</h3><p><strong>Ablation.</strong> 1/2-hop, random neighbors, path reranker và conditional routing tách coverage khỏi reasoning thật.</p></article>
+        <article class="card"><div class="kicker">Phase 5 · Trade-off</div><h3>Có đáng triển khai?</h3><p>So accuracy/citation với latency, token và cost. Module tăng điểm rất nhỏ nhưng tăng chi phí lớn sẽ bị loại.</p></article>
+        <article class="card"><div class="kicker">Stop rule</div><h3>Không test vô hạn</h3><p>B3/G2 bắt buộc, không dừng theo interim score. Chỉ báo graph feasibility failure nếu entity coverage &lt;20% hoặc cap 200 candidates/seed bị chạm ở &gt;25% dev questions; optional ablations chỉ chạy sau core.</p></article>
+      </div>
+      <div class="table-wrap"><table><caption>Core matrix — B3 và G2 là confirmatory pair; các pipeline còn lại giải thích cơ chế.</caption>
+        <thead><tr><th>ID</th><th>Pipeline</th><th>Điều cần biết</th></tr></thead>
+        <tbody>
+          <tr><td class="id">B0</td><td>Closed-book LLM</td><td>External evidence có cần không?</td></tr>
+          <tr><td class="id">B1</td><td>BM25 RAG</td><td>Lexical baseline.</td></tr>
+          <tr><td class="id">B2</td><td>MedCPT dense RAG</td><td>Biomedical semantic retrieval.</td></tr>
+          <tr><td class="id">B3</td><td>BM25 + MedCPT + RRF + reranker</td><td>Strong Text-RAG baseline.</td></tr>
+          <tr><td class="id">G1</td><td>PrimeKG-only RAG</td><td>Graph coverage và graph-only quality.</td></tr>
+          <tr><td class="id">G2</td><td>B3 + PrimeKG</td><td>Giá trị gia tăng thật sự của graph.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="grid" style="margin-top:14px">
+        <article class="card"><h3>Core ablations</h3><p>A1: chỉ 1-hop · A2: bỏ path reranker. Graph-only đã là G1; conditional routing chỉ là future work.</p></article>
+        <article class="card"><h3>Matched controls</h3><p>A3: extra text cùng token · A4: random path match relation/hop/degree; fallback adjacent degree bucket → same relation/hop. Không match được vẫn giữ câu và báo unmatched.</p></article>
+        <article class="card"><h3>Fairness control</h3><p>B3 và G2 dùng cùng generator, prompt, test set và tổng evidence token budget.</p></article>
+      </div>
+    </section>
+
+    <section id="evaluation">
+      <div class="section-head"><div class="num">05 · EVAL</div><div><h2>Đánh giá đa tầng</h2><p>Không dùng ROUGE làm kết luận chính. Đo retrieval, graph, answer, citation, efficiency và độ tin cậy thống kê riêng.</p></div></div>
+      <div class="grid">
+        <article class="card"><div class="kicker">Text retrieval</div><h3>Gold evidence</h3><p>Recall@5/10 · Precision@5 · MRR · nDCG@10 · snippet coverage.</p></article>
+        <article class="card"><div class="kicker">Graph</div><h3>Path quality</h3><p>Entity-link accuracy · graph coverage · valid/useful path rate · relation relevance.</p></article>
+        <article class="card"><div class="kicker">Answer</div><h3>Medical grounding</h3><p>Correctness · completeness · faithfulness · citation precision/recall · unsupported claims.</p></article>
+        <article class="card"><div class="kicker">Clinical reasoning</div><h3>MedQA</h3><p>Exact option accuracy và số ca RAG sửa đúng/làm hỏng đáp án closed-book.</p></article>
+        <article class="card"><div class="kicker">Efficiency</div><h3>Cost of structure</h3><p>Median/p95 latency · tokens · API cost · traversal time · RAM/VRAM.</p></article>
+        <article class="card"><div class="kicker">Statistics</div><h3>B3 vs G2</h3><p>McNemar cho đúng/sai; paired bootstrap CI; báo theo subset, không chỉ overall.</p></article>
+      </div>
+      <div class="contract"><h3>Operational rubric</h3>
+        <div class="table-wrap"><table><caption>Đơn vị và thang chấm được khóa trước test.</caption><thead><tr><th>Outcome</th><th>Unit</th><th>Definition</th></tr></thead><tbody><tr><td>Correctness 0–2</td><td>Answer</td><td>2: đúng mọi ý chính; 1: đúng cốt lõi nhưng thiếu/lỗi nhỏ; 0: sai, không trả lời hoặc lỗi trọng yếu.</td></tr><tr><td>Completeness 0–2</td><td>Answer</td><td>2: đủ ý thiết yếu; 1: thiếu ≥1 ý; 0: thiếu phần lớn.</td></tr><tr><td>Citation precision</td><td>Citation</td><td>Citation thực sự hỗ trợ claim / tổng citation; relevance cùng chủ đề là chưa đủ.</td></tr><tr><td>Citation recall</td><td>Major claim</td><td>Major claims có ít nhất một nguồn hỗ trợ / tổng major claims.</td></tr><tr><td>Unsupported claim</td><td>Atomic claim</td><td>Medical factual claims không được evidence hỗ trợ / tổng factual claims.</td></tr><tr><td>Path validity</td><td>Graph path</td><td>Node/edge/direction tồn tại trong pinned PrimeKG và giữ provenance.</td></tr><tr><td>Path usefulness</td><td>Graph path</td><td>supports · partial · irrelevant · misleading; validity không đồng nghĩa usefulness.</td></tr></tbody></table></div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <article class="card wide"><h3>Frozen annotation sample</h3><p>150 câu seed 20260712: 100 simple-random overall audit + 50 graph yes/partial oversample. Lưu <code>annotation_question_ids.json</code> với stratum, inclusion reason/probability và hash; raw overall mean chỉ dùng 100 câu random.</p></article>
+        <article class="card wide"><h3>Manual review</h3><p>Hai reviewer độc lập chấm toàn bộ 100 câu random fallback; 50 câu graph oversample cần ≥30 câu overlap. Randomize answer order, lưu label gốc và adjudicate mọi bất đồng mà không thấy pipeline.</p></article>
+        <article class="card wide"><h3>Graph labels frozen</h3><p>answerability: yes/partial/no · reasoning: single fact/one-hop/multi-hop/literature/list/other · relation: drug–disease/adverse effect/contraindication/symptom/gene/treatment.</p></article>
+        <article class="card wide"><h3>Failure policy</h3><p>API failure sau 3 retry vẫn tính failure; MedQA parse failure tính sai; missing citation cho major claim cho recall 0; data exclusion chỉ theo rule độc lập pipeline.</p></article>
+      </div>
+      <div class="contract"><h3>Frozen LLM judge contract · primary BioASQ scorer</h3><pre>population         every frozen locked-test question ID; missing output creates
+                   a retained failure record and correctness=0, never excluded
+judge             provider/model/snapshot = MUST_FREEZE_W1; must differ from generator
+input             question + reference answer + candidate answer + cited evidence
+hidden            pipeline name, retrieval scores, competing answer, experiment outcome
+output JSON       correctness 0|1|2 · completeness 0|1|2 · claim labels · rationale
+decoding           temperature=0 · frozen prompt/config · invalid JSON retry≤2
+calibration       compare with adjudicated 100-question random human audit
+validity gate     report weighted kappa + confusion matrix; κ≥0.60 to use as primary
+fallback          if κ&lt;0.60, full judge score becomes exploratory and adjudicated
+                  100-question random sample is the predeclared primary estimate
+statistics        bootstrap at question level; claims are not independent samples</pre></div>
+      <p class="small">Correctness đo factual/medical validity: 2 không có lỗi quan trọng; 1 lỗi nhỏ nhưng kết luận chính đúng; 0 kết luận sai/lỗi trọng yếu/failure. Completeness đo riêng mức bao phủ essential points. Faithfulness = factual claims supported hoặc partially supported / tổng factual claims; contradictory và unsupported không được tính.</p>
+      <h3 style="margin-top:28px">Error taxonomy</h3>
+      <div class="table-wrap"><table><caption>Mỗi case có một primary error là lỗi sớm nhất trong causal pipeline, cộng contributing errors tùy chọn.</caption><thead><tr><th>Family</th><th>Codes</th><th>Examples</th></tr></thead><tbody>
+        <tr><td class="id">D</td><td>D1–D4</td><td>Ambiguous question · duplicate/leakage · incomplete reference · out of corpus</td></tr>
+        <tr><td class="id">T</td><td>T1–T6</td><td>No document · low rank · chunk boundary · semantic mismatch · rerank/truncation</td></tr>
+        <tr><td class="id">E/G</td><td>E1–E5 · G1–G9</td><td>Entity detection/linking · graph coverage · direction · hub noise · spurious path</td></tr>
+        <tr><td class="id">F/A</td><td>F1–F6 · A1–A8</td><td>Evidence displacement/calibration · wrong conclusion · unsupported claim · failed abstention</td></tr>
+        <tr><td class="id">C/S/I</td><td>C1–C5 · S1–S5 · I1–I5</td><td>Citation · medical safety · API/timeout/cache/config</td></tr>
+      </tbody></table></div>
+      <p class="small">Executable source of truth là <code>configs/evaluation/error_taxonomy.yaml</code>; mỗi code bắt buộc có definition, inclusion, exclusion và example. Primary error là lỗi sớm nhất trong causal pipeline mà nếu sửa riêng nó thì final answer nhiều khả năng đổi từ sai sang đúng; lỗi sau đó ghi contributing.</p>
+    </section>
+
+    <section id="automation">
+      <div class="section-head"><div class="num">06 · HUMAN × AI</div><div><h2>Tự động hóa có kiểm soát</h2><p>Subagents làm phần lớn engineering và draft annotation. Nhiều AI đồng ý với nhau không tạo thành kiểm chứng y khoa độc lập.</p></div></div>
+      <div class="grid">
+        <article class="card wide"><div class="kicker">Automate</div><h3>AI/subagents làm</h3><p>Data loader, EDA, index, entity linking, traversal, fusion, experiment runner, metrics, statistics, candidate paths, draft labels, plots và error classification.</p></article>
+        <article class="card wide"><div class="kicker">Verify</div><h3>Con người giữ trách nhiệm</h3><p>Freeze protocol, duyệt thresholds/relation whitelist, kiểm tra 50–100 annotations, review medical/safety subset và ký nhận kết luận.</p></article>
+      </div>
+      <p class="small">Nếu reviewer không phải bác sĩ, tài liệu phải gọi là “manual validation”, không phải “clinical validation”. Gold path do AI hỗ trợ phải ghi “LLM-assisted graph-path annotation”.</p>
+    </section>
+
+    <section id="fullstack">
+      <div class="section-head"><div class="num">07 · FULL-STACK</div><div><h2>Frontend–backend demo contract</h2><p>Demo dùng cùng pipeline, config và artifact với evaluation harness; không làm một chatbot UI riêng không thể tái lập.</p></div></div>
+      <div class="grid">
+        <article class="card"><div class="kicker">Frontend</div><h3>React + Vite + TypeScript</h3><p>Question composer, pipeline selector, streamed answer, citations, pipeline details và B3/G2 comparison. Không thêm global state library.</p></article>
+        <article class="card"><div class="kicker">Backend</div><h3>FastAPI monolith</h3><p>API routes → frozen pipeline registry → retrievers/graph/generator → artifact logger. Không microservices hay queue.</p></article>
+        <article class="card"><div class="kicker">Persistence</div><h3>SQLite + JSON artifacts</h3><p>SQLite giữ request metadata; raw retrieval/answer/timing lưu theo request để evaluator replay không gọi model.</p></article>
+      </div>
+      <div class="contract"><h3>Request flow</h3><pre>Browser
+  → POST /api/v1/questions {question, pipeline_id}
+  → 202 {request_id, stream_url}
+  → GET /api/v1/questions/{id}/events  (Server-Sent Events)
+      status → evidence → token* → completed | error | cancelled
+  → GET /api/v1/questions/{id}         (reload completed result)
+
+SSE thay WebSocket vì luồng chỉ server → browser. Backend chạy ngay;
+trạng thái queued không yêu cầu Redis/message queue.</pre></div>
+      <div class="table-wrap" style="margin-top:14px"><table><caption>Frozen API surface v1</caption><thead><tr><th>Method</th><th>Route</th><th>Purpose</th><th>Acceptance</th></tr></thead><tbody>
+        <tr><td>GET</td><td><code>/api/v1/health</code></td><td>Process liveness</td><td>Không load model; p95 &lt; 200 ms</td></tr>
+        <tr><td>GET</td><td><code>/api/v1/ready</code></td><td>Generator/index/PrimeKG/DB readiness</td><td>503 và disable đúng pipeline khi dependency lỗi</td></tr>
+        <tr><td>GET</td><td><code>/api/v1/pipelines</code></td><td>Allowlisted B0–G2 + config hash</td><td>Client không gửi model/prompt/path tùy ý</td></tr>
+        <tr><td>POST</td><td><code>/api/v1/questions</code></td><td>Submit 1–2.000 ký tự, enum pipeline</td><td>Reject extra fields; response &lt;500 ms chưa tính inference</td></tr>
+        <tr><td>GET</td><td><code>/api/v1/questions/{id}/events</code></td><td>SSE progress/evidence/tokens/result</td><td>Heartbeat; event IDs; đóng ở mọi terminal state</td></tr>
+        <tr><td>GET/DELETE</td><td><code>/api/v1/questions/{id}</code></td><td>Reload/cancel</td><td>Refresh giữ result; cancel không làm process chết</td></tr>
+      </tbody></table></div>
+      <div class="contract"><h3>Unified evidence schema</h3><pre>TextEvidence
+  id="PMID:..." · type="text" · rank · score · title · snippet
+  source="PubMed" · pmid · doi · validated PubMed URL
+
+GraphEvidence
+  id="primekg:path:sha256..." · type="graph" · rank · score
+  nodes[{id,name,type}] · edges[{source_id,relation,target_id,source_dataset}]
+  verbalized text · pinned PrimeKG provenance
+
+Graph evidence là structured knowledge, không giả làm PubMed citation.
+Frontend chỉ tạo link từ field đã validate; không render HTML/URL do model sinh.</pre></div>
+      <div class="contract"><h3>Exact API payload, state và citation integrity</h3><pre>POST request       {question: string[1..2000], pipeline_id: enum[B0..G2],
+                    client_request_id?: uuid, run_kind: "demo"}
+202 response       {request_id: uuid, status: "queued", stream_url: string}
+status enum        queued | running | completed | failed | cancelled
+SSE events         status | evidence | token | completed | error
+error payload      {code: stable enum, message: safe string, retryable: boolean}
+completed          {request_id, answer, citation_map, evidence[], metrics, provenance}
+citation_map       answer marker [n] → one existing evidence.id; invented/missing ID
+                    is rejected and answer is flagged, never linked by frontend
+graph path ID      SHA-256(canonical UTF-8 JSON: ordered nodes/edges/source/direction)
+
+Runtime            one Uvicorn worker + in-process task registry + concurrency semaphore
+Persistence        SQLite transaction; artifacts temp-write then atomic rename
+Restart            queued/running → failed(code=SERVER_RESTARTED); completed retained
+DELETE             cancels active demo request only; never deletes frozen experiment runs
+Namespaces         artifacts/demo/{request_id} vs artifacts/experiments/{run_id}
+Evaluator          reads only frozen experiment IDs from registry</pre></div>
+      <p class="small">W1 phải export và hash exact <code>openapi.json</code>. Readiness trả availability theo từng pipeline. SSE hỗ trợ event ID/heartbeat; reconnect policy và timeout/error enums được khóa trong OpenAPI trước frontend implementation.</p>
+      <div class="grid" style="margin-top:14px">
+        <article class="card wide"><h3>Frontend DoD</h3><ul><li>Ask/Stop, pipeline select và sample questions</li><li>Streaming states: linking, text/graph retrieval, generating</li><li>PubMed và PrimeKG citations hiển thị khác nhau</li><li>Empty/error/cancel/timeout/no-evidence states</li><li>Keyboard, visible focus, aria-live, responsive</li><li>Medical warning luôn nhìn thấy</li></ul></article>
+        <article class="card wide"><h3>Backend DoD</h3><ul><li>Mọi pipeline cùng response schema và stable citation IDs</li><li>Config/model/data/KG revisions và request ID được lưu</li><li>Timeout, concurrency limit, CORS allowlist, local bind mặc định</li><li>Secrets chỉ từ environment; không log key/stack trace</li><li>Evaluation harness replay artifact không gọi model</li><li>OpenAPI + runnable end-to-end smoke test</li></ul></article>
+      </div>
+      <div class="callout" style="margin-top:14px"><strong>Safety:</strong> Research prototype — not medical advice. Do not enter personally identifiable health information. Không upload EHR, authentication, payment hay admin trong local demo.</div>
+    </section>
+
+    <section id="roadmap">
+      <div class="section-head"><div class="num">08 · ROADMAP</div><div><h2>Năm tuần, năm cổng kiểm soát</h2><p>Generation smoke test bắt đầu từ tuần 1; frontend/backend đi song song sau khi API/evidence contract freeze.</p></div></div>
+      <div class="week"><div class="week-no">W1 · 13–19/07</div><div><h3>Protocol freeze + vertical smoke</h3><ul><li>Pin data/KG revisions, checksums, licenses, leakage audit</li><li>Freeze runtime/budget/prompts/rubric; secure reviewers</li><li>B0/B1 + generator smoke n=50</li><li>Freeze API/evidence schemas; backend health/submit skeleton</li></ul></div><div class="gate"><strong>Gate</strong>Manifest/protocol hashes; một câu chạy question→answer→artifact.</div></div>
+      <div class="week"><div class="week-no">W2 · 20–26/07</div><div><h3>Strong Text-RAG + backend</h3><ul><li>BM25, MedCPT, RRF, reranker; B2/B3 dev≤300</li><li>Generation + citation trên dev; truncation audit</li><li>FastAPI registry, SSE, persistence và smoke test</li></ul></div><div class="gate"><strong>Gate</strong>B3 retrieval + answer/citation không kém B1; API replayable.</div></div>
+      <div class="week"><div class="week-no">W3 · 27/07–02/08</div><div><h3>PrimeKG + frontend</h3><ul><li>Entity linker, whitelist, 1–2 hop, provenance, G1/G2 dev</li><li>Freeze graph labels và annotation subset 150</li><li>React composer, streaming answer, citation panels</li></ul></div><div class="gate"><strong>Gate</strong>Path traceable; G2 chạy cùng API/UI contract như B3.</div></div>
+      <div class="week"><div class="week-no">W4 · 03–09/08</div><div><h3>Confirmatory pair + controls</h3><ul><li>Freeze registry; B3/G2 primary dev run</li><li>A1/A2 + extra-text + matched random-path controls</li><li>Comparison UI, full-stack QA, statistics dry-run</li></ul></div><div class="gate"><strong>Gate</strong>Không silent failure; cost dưới cap; ký locked-test freeze.</div></div>
+      <div class="week"><div class="week-no">W5 · 10–16/08</div><div><h3>Locked test + review + handoff</h3><ul><li>Locked test B3/G2 một lần; blind manual review</li><li>BioASQ bootstrap; MedQA exact McNemar; exploratory corrections</li><li>Error taxonomy, cost/latency, demo acceptance và report</li></ul></div><div class="gate"><strong>Gate</strong>Mọi claim map tới run/config/hash; demo và report tái lập.</div></div>
+    </section>
+
+    <section id="roles">
+      <div class="section-head"><div class="num">08 · TEAM</div><div><h2>Subagents như thành viên nghiên cứu</h2><p>Vai trò tách theo trách nhiệm; agent chính giữ protocol và hợp nhất kết quả. Vai trò không đồng nghĩa tất cả phải chạy đồng thời.</p></div></div>
+      <div class="roles">
+        <div class="role"><b>Research Lead</b><span>RQ, protocol, leakage, experiment registry, conclusion.</span></div>
+        <div class="role"><b>Data & EDA Engineer</b><span>Ingestion, split audit, quality, license, coverage.</span></div>
+        <div class="role"><b>Text-RAG Engineer</b><span>BM25, MedCPT, RRF, reranker, B1–B3.</span></div>
+        <div class="role"><b>Knowledge Graph Engineer</b><span>PrimeKG, entity linking, traversal, path ranking, G1/G2.</span></div>
+        <div class="role"><b>Evaluation & Statistics</b><span>Harness, metrics, CI, McNemar, plots.</span></div>
+        <div class="role"><b>Backend Engineer</b><span>FastAPI, pipeline adapter, SSE, SQLite/artifacts, observability.</span></div>
+        <div class="role"><b>Frontend Engineer</b><span>React UI, streaming states, evidence panels, B3/G2 comparison.</span></div>
+        <div class="role"><b>Review & Report Editor</b><span>Rubric, blind subset, terminology, results, limitations.</span></div>
+      </div>
+      <div class="table-wrap" style="margin-top:18px"><table><caption>Owner → artifact → Definition of Done</caption><thead><tr><th>Work package</th><th>Owner / reviewer</th><th>Artifacts</th><th>DoD</th></tr></thead><tbody>
+        <tr><td>WP-DATA</td><td>Data Engineer / Research Lead</td><td><code>data/manifests/*</code></td><td>Revision, schema, counts, checksum, licenses và leakage audit frozen.</td></tr>
+        <tr><td>WP-TEXT</td><td>Text-RAG / Eval</td><td><code>indexes/</code>, B1–B3 run artifacts</td><td>Retrieval + dev generation reproducible; truncation audit.</td></tr>
+        <tr><td>WP-GRAPH</td><td>KG Engineer / Research Lead</td><td>entity links, paths, labels, provenance</td><td>Failure retained; every edge traceable; coverage reported.</td></tr>
+        <tr><td>WP-EVAL</td><td>Eval & Stats / Research Lead</td><td>rubric, frozen IDs, metrics, stats report</td><td>Blind calibration and synthetic stats dry-run pass.</td></tr>
+        <tr><td>WP-BE</td><td>Backend / Retrieval+KG</td><td>OpenAPI, SSE, SQLite, JSON artifacts</td><td>All B0–G2 use one interface; E2E smoke test passes.</td></tr>
+        <tr><td>WP-FE</td><td>Frontend / QA</td><td>chat, citations, comparison, states</td><td>Responsive, keyboard accessible, no unsafe HTML/links.</td></tr>
+        <tr><td>WP-QA</td><td>QA/Repro / Research Lead</td><td>acceptance checklist, incident log</td><td>Success/no-evidence/timeout/cancel/unavailable all tested.</td></tr>
+      </tbody></table></div>
+    </section>
+
+    <section id="decision">
+      <div class="section-head"><div class="num">09 · DECISION</div><div><h2>Kết quả nào cũng có giá trị nếu protocol đúng</h2><p>Không đặt trước kết luận Graph-RAG thắng. Nghiên cứu tốt có thể chứng minh graph chỉ hữu ích có điều kiện.</p></div></div>
+      <div class="callout">Giả thuyết cần bác bỏ hoặc xác nhận: <strong>Graph có thể hữu ích khi entity linking đáng tin, PrimeKG có coverage và câu hỏi cần relational/multi-hop evidence; Text-RAG có thể phù hợp hơn với literature-specific QA.</strong> Nếu B3↔G2 CI chứa 0 hoặc matched controls giải thích hết gain, không được kết luận graph tốt hơn.</div>
+      <div class="chips"><span class="chip">Overall win</span><span class="chip">Subset-only win</span><span class="chip">Conditional routing win</span><span class="chip">Negative result with explanation</span></div>
+    </section>
+
+    <section id="sources">
+      <div class="section-head"><div class="num">10 · SOURCES</div><div><h2>Tài nguyên chính</h2><p>Ưu tiên paper, dataset card và repository gốc. Các link là đầu vào tái lập, không phải kiến trúc cần sao chép nguyên bản.</p></div></div>
+      <ul class="sources">
+        <li><a href="https://aclanthology.org/2024.findings-acl.372/">MIRAGE / Benchmarking RAG for Medicine</a></li>
+        <li><a href="https://github.com/gzxiong/MedRAG">MedRAG toolkit</a></li>
+        <li><a href="https://github.com/gzxiong/MIRAGE">MIRAGE benchmark repository</a></li>
+        <li><a href="https://huggingface.co/datasets/mattmorgis/bioasq-12b-rag">BioASQ 12B RAG dataset</a></li>
+        <li><a href="https://participants-area.bioasq.org/datasets/">BioASQ official datasets</a></li>
+        <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10627406/">MedCPT paper</a></li>
+        <li><a href="https://huggingface.co/ncbi/MedCPT-Query-Encoder">MedCPT Query Encoder</a></li>
+        <li><a href="https://huggingface.co/ncbi/MedCPT-Article-Encoder">MedCPT Article Encoder</a></li>
+        <li><a href="https://huggingface.co/ncbi/MedCPT-Cross-Encoder">MedCPT Cross Encoder</a></li>
+        <li><a href="https://github.com/mims-harvard/PrimeKG">PrimeKG repository</a></li>
+        <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9893183/">PrimeKG paper</a></li>
+        <li><a href="https://aclanthology.org/2024.bionlp-1.13/">KG-Rank paper</a></li>
+        <li><a href="https://github.com/ImprintLab/Medical-Graph-RAG">Medical Graph RAG repository</a></li>
+        <li><a href="https://github.com/plannotator/effective-html">effective-html style source</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer><div class="shell"><strong>Research artifact.</strong> Self-contained HTML · no runtime dependency · generated in the effective-html style.<br><span class="small">Threats: BioASQ ≠ patient-facing deployment; PrimeKG relation ≠ causality; LLM-assisted labels ≠ physician validation; English findings do not automatically transfer to Vietnamese.</span></div></footer>
+  <script>
+    const button=document.getElementById('theme');
+    const syncTheme=()=>{const dark=document.documentElement.classList.contains('dark');button.setAttribute('aria-pressed',String(dark));button.setAttribute('aria-label',dark?'Bật giao diện sáng':'Bật giao diện tối')};
+    syncTheme();button.addEventListener('click',()=>{document.documentElement.classList.toggle('dark');try{localStorage.setItem('medical-rag-theme',document.documentElement.classList.contains('dark')?'dark':'light')}catch{}syncTheme()});
+  </script>
+</body>
+</html>
