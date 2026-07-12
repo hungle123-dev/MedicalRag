@@ -25,7 +25,7 @@ configs/ frozen protocol and pipeline definitions
 docs/    research plan, architecture, API and ADRs
 ```
 
-See [the execution plan](docs/KE_HOACH_NGHIEN_CUU_MedicalGraphRAG.html) and [architecture](docs/ARCHITECTURE.md).
+Start with [the Vietnamese step-by-step overview](docs/TONG_QUAN_TUNG_BUOC_MedicalGraphRAG.html), then see [the detailed execution plan](docs/KE_HOACH_NGHIEN_CUU_MedicalGraphRAG.html) and [architecture](docs/ARCHITECTURE.md).
 
 ## Development
 
