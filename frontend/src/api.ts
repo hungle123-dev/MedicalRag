@@ -14,14 +14,15 @@ export type Details = {
   degraded_reason?: string;
   linked_entities?: { name: string; type: string; confidence: number }[];
   budget?: { word_budget?: number; graph_words_actual?: number; text_words_actual?: number; evidence_items?: number };
-  generator?: { provider: string; model: string; cached: boolean };
+  generator?: { provider: string; model: string; cached: boolean; response_model?: string; system_fingerprint?: string };
 };
 
-export type Result = { answer: string; citations: Citation[]; evidence: Citation[]; details: Details };
+export type Provenance = { pipeline_id?: string; pipeline_config_hash?: string; prompt_hash?: string; data_manifest_hash?: string };
+export type Result = { answer: string; citations: Citation[]; evidence: Citation[]; details: Details; provenance?: Provenance };
 export type Readiness = { status: string; pipelines: Record<string, boolean>; dependencies: Record<string, unknown> };
 
 export type StreamEvent =
-  | { type: "token"; text: string }
+  | { type: "answer"; text: string }
   | { type: "citations"; citations: Citation[] }
   | { type: "details"; details: Details }
   | { type: "done" }
@@ -56,8 +57,9 @@ export async function streamAnswer(
       };
       if (current.status === "completed") {
         const result: Result = { answer: current.result?.answer ?? "", citations: current.result?.citations ?? [],
-          evidence: current.result?.evidence ?? [], details: current.result?.details ?? {} };
-        onEvent({ type: "token", text: result.answer });
+          evidence: current.result?.evidence ?? [], details: current.result?.details ?? {},
+          provenance: current.result?.provenance };
+        onEvent({ type: "answer", text: result.answer });
         onEvent({ type: "citations", citations: result.citations });
         onEvent({ type: "details", details: result.details });
         onEvent({ type: "done" }); close(); resolve(result);

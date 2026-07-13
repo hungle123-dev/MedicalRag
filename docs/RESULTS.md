@@ -10,7 +10,7 @@ All numbers below come from committed manifests whose detailed per-question arti
 | PrimeKG nodes / directed edges | 129,375 / 8,100,498 |
 | PrimeKGQA train / val / test | 51,220 / 17,074 / 17,074 |
 
-BioASQ dev/eval have no exact or ≥0.90 token-Jaccard question overlap. Gold-PMID corpus coverage is 0.999802 on dev and 1.0 on eval. MedCPT would truncate 2,232 corpus records (4.5079%) at 512 tokens. PrimeKG is one connected component, but the distributed edge table has no row-level provenance field; only release-level provenance is claimed. PrimeKGQA contains 6,394 records without a generated question across all splits and substantial exact question overlap between published splits, so it is component-only synthetic evaluation.
+BioASQ dev/eval have no exact or ≥0.90 token-Jaccard question overlap. Questions with at least one gold PMID present in the corpus are 0.999802 on dev and 1.0 on eval; coverage over every gold PMID ID is 0.999213 and 0.999850 respectively. MedCPT would truncate 2,232 corpus records (4.5079%) at 512 model tokens. PrimeKG is one connected component, but the distributed edge table has no row-level provenance field; only release-level provenance is claimed. PrimeKGQA contains 6,394 records without a generated question across all splits and substantial exact question overlap between published splits, so it is component-only synthetic evaluation.
 
 The PrimeKGQA release totals 85,368, matching its paper table but not the 83,999 figure in the Zenodo conclusion. All local/source checksums are in `data/manifests/files.json`.
 
@@ -43,6 +43,10 @@ PrimeKG entity/type expansion Q1 reduced Recall@10 from 0.658453 to 0.645010; pa
 
 B3−B1 Recall@10 is +0.076197 [0.050773, 0.103334]; B3−B2 is +0.073446 [0.052974, 0.095490]. B3 is frozen as C0 + Q0 + BM25 top-50 + MedCPT top-50 + RRF(k=60) pool-30 + MedCPT Cross-Encoder.
 
+### Answer-context extraction audit
+
+The first E5 pilot exposed an undocumented 600-character crop per retrieved abstract. On the same frozen B3 top-8 rankings and a 1,800 whitespace-word global budget, prefix-600, full-abstract and lexical sentence-window strategies were compared without using gold at extraction time. Question-level any-gold-snippet visibility was 0.8000, 0.9200 and 0.9133 respectively. Full abstract improved over prefix by +0.1200 [0.0833, 0.1567], and retrieved-gold-snippet visibility rose from 0.5244 to 0.9096. The predeclared visibility/latency rule selected full abstracts; the incomplete v7 E5 outputs are pilot-only.
+
 ## Graph evaluation
 
 The 100-query PrimeKGQA/PrimeKG compatibility smoke achieved only 3% non-empty execution and 0 exact denotation match. RDF IRIs do not directly map to the pinned Dataverse CSV node indices. The 99% gate failed, so no SPARQL execution-accuracy claim is valid; all following results are explicitly normalized-pattern fallback.
@@ -55,15 +59,19 @@ The single official test run evaluated 15,814 of 17,074 test records; 1,260 with
 |---|---:|
 | Answer-set exact match / F1 | 0.018022 / 0.069993 |
 | Entity-link F1 / relation F1 | 0.694486 / 0.110063 |
-| Path-valid rate | 0.935437 |
-| Full / partial / no graph answerability | 285 / 2,112 / 13,417 |
+| Path-return rate (historical field was misnamed `path_valid`) | 0.935437 |
+| Exact / partial / no answer recovery | 285 / 2,112 / 13,417 |
 | 2-node / 3-node / 4-node F1 | 0.159332 / 0.065352 / 0.024987 |
 
 Dev controls do not support the path scorer: full F1 0.058013, one-hop 0.045791, no-reranker 0.069601 and hop-matched random path 0.078931. Because random/no-reranker beat full, graph connectivity or added relation words—not intelligent path ranking—can explain apparent gains. Controls finished after the one locked execution; `protocol_deviations.json` therefore limits the locked graph result to descriptive interpretation and prohibits a positive confirmatory claim.
 
+On frozen BioASQ dev-300, exact longest-name entity linking returned at least one PrimeKG entity for 50.0% of questions and at least one path passed the score threshold for 45.6667%. Accepted-path coverage was highest for yes/no (62.6506%) and lowest for list questions (30.8824%). These are retrieval-coverage diagnostics, not gold entity-link accuracy or graph-answerability labels.
+
 ## End-to-end and product status
 
-B3/G2 share one backend pipeline contract, generator/prompt/model settings, retry policy and evidence registry. The original five-question smoke used an eight-item maximum and exposed an actual-budget confound; protocol v1.3 therefore matches every E5 arm to B3's per-question whitespace-word count and adds X1/X2 controls. Gateway model-list and structured-output probes verified `deepseek-v3.2` and the independent `cerebras/gpt-oss-120b` judge on 2026-07-13. The key remains local and gitignored.
+B3/G2 share one backend pipeline contract, generator/prompt/model settings, retry policy and evidence registry. Protocol v1.5 matches every E5 arm to B3's per-question whitespace-word count. X1 replaces graph slots with equal-length extra text; X2 uses intact PrimeKG paths sampled away from linked target entities and matched on hop count/nearest verbalized length. ITT and an eligible complete-X2 sensitivity are both mandatory. Gateway probes verified `deepseek-v3.2` and the independent `cerebras/gpt-oss-120b` judge on 2026-07-13. The key remains local and gitignored.
+
+The completed v8 dev-80 run produced 320/320 answers with one observed DeepSeek response model, 100% deterministic citation-ID integrity and 43 graph-retrieval-positive questions. A strict post-budget audit then found 10 malformed/truncated X2 graph paths and one missing slot, while total word budgets still matched across all arms. This is a documented design incident (`DEV-004`): v8 is pilot-only, was not judged for a final claim, and must be superseded by atomic-path v9. The v9 runner freezes and validates the full evidence population before generating any answer.
 
 The clean-commit dev smoke `bioasq_dev_b3_g2_mock_warmed_counterbalanced_v5_50_20260712` replayed 50 paired questions / 100 results with one config/prompt hash. After unmeasured warm-up and counterbalanced ordering, mean latency was 1,113.8 ms for B3 and 1,199.7 ms for G2; paired median G2−B3 was +26.5 ms. G2 returned graph evidence for 44% of questions. These are product-flow/coverage numbers only because the mock makes no medical claim.
 

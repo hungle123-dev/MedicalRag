@@ -31,9 +31,9 @@ experiments:
     primary_metric: answer_set_f1
     gate: Gold SPARQL non-empty executable rate must be at least 0.99; otherwise normalized-pattern fallback only.
   E5_graph_value:
-    hypothesis: Relevant PrimeKG paths improve answer correctness beyond equal-budget text.
+    hypothesis: The frozen heuristic PrimeKG augmentation improves answer correctness beyond equal-budget text and matched controls.
     change: [B3, G2, X1_extra_text_sham, X2_seed_matched_random_path]
     fixed: [question IDs, generator, prompt, P1 full-abstract evidence, actual whitespace-word budget, output limit, retries]
     primary_metric: paired_mean_correctness_0_2
     sampling: 80 frozen BioASQ dev IDs after excluding the first 20 generator-calibration IDs
-    decision_rule: Claim benefit only when all three ITT G2-minus-control CIs and the complete-X2 sensitivity CI exclude zero, and human review finds no harm increase.
+    decision_rule: Claim benefit from this frozen heuristic only when all three ITT G2-minus-control CIs and the eligible complete-X2 sensitivity CI exclude zero, and human review finds no harm increase. Concluding where medically relevant graph evidence helps additionally requires human path-usefulness and graph-answerability labels.

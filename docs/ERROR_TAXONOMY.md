@@ -14,10 +14,12 @@ The primary error is the earliest causal failure which, if fixed alone, would pl
 | HUB_NOISE | High-degree generic nodes dominate paths | Specific but irrelevant path is selected | Anatomy hub displaces the disease node |
 | SPURIOUS_PATH | Valid edges form irrelevant or misleading reasoning | Path is relevant but generator misreads it | Two-hop co-neighbor implies unsupported treatment |
 | TEXT_GRAPH_DISPLACE | Graph items remove more useful text under matched budget | Total budget was not actually matched | Five short paths leave only three PubMed items |
+| CONTROL_INCOMPLETE | X1/X2 cannot provide every preregistered matched slot | All requested controls are present and budget-matched | Only three sham paths exist for five graph slots |
 | ANSWER_REASON | Evidence is adequate but synthesis is medically wrong | Required evidence is absent | Model reverses an association |
 | UNSUPPORTED | An atomic claim has no supporting cited evidence | Citation supports the claim but is formatted wrong | New dosage recommendation appears without evidence |
 | CITATION_MISMATCH | Citation exists but does not support its attached claim | Citation ID was invented | PMID discusses another disease |
 | ABSTENTION_FAIL | System answers confidently despite insufficient/conflicting evidence | Evidence supports the conclusion | G1 answers after no entity links |
 | API_RUNTIME | Timeout, quota, cache, transport or config failure | Model returned a substantive bad answer | Gateway quota interrupts one member of a pair |
+| MODEL_DRIFT | Provider response model changes within one frozen run | Alias and observed response snapshot remain constant | Two arms resolve to different model snapshots |
 
 For each reviewed case store `primary_error`, zero or more `contributing_errors`, inclusion rationale, evidence IDs and reviewer ID. PrimeKG edges are associations unless their relation/source explicitly establishes something stronger; a path alone never proves causality.

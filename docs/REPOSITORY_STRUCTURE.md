@@ -37,7 +37,6 @@ MedicalRag/
 - Demo request IDs are UUIDs; research run IDs are descriptive slugs containing split, protocol version, population size and commit hash.
 - Graph evidence IDs: `primekg:path:<sha256>` over canonical ordered path JSON.
 - Text evidence IDs: stable corpus identifiers such as `PMID:<id>`.
-- Experiment output: `artifacts/experiments/<run_id>/`.
 - Track output: `artifacts/experiments/<track>/<run_id>/`, where `track` is `bioasq` or `primekgqa`.
 
 ## Minimal commands expected

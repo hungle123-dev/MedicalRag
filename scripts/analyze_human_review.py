@@ -155,6 +155,12 @@ def main() -> None:
 
     all_kappas = [agreement[arm][field]["weighted_kappa"]
                   for arm in ("B3", "G2") for field in ("correctness", "completeness")]
+    human_review_gate = (adjudication_complete and min(all_kappas) >= .60
+                         and harm_effect["ci95"][1] <= 0)
+    judge_scaleup_gate = (adjudication_complete and isinstance(judge_validity, dict)
+                          and all(arm in judge_validity for arm in ("B3", "G2"))
+                          and min(judge_validity[arm]["weighted_kappa"]
+                                  for arm in ("B3", "G2")) >= .60)
     result = {
         "questions": len(qids), "agreement": agreement,
         "disagreement_questions": len(rows),
@@ -167,8 +173,9 @@ def main() -> None:
             review[qid]["arms"][arm]["error_code"] for review in (a, b)
             for qid in qids for arm in ("B3", "G2"))),
         "judge_human_validity": judge_validity,
-        "human_gate_passed": adjudication_complete and min(all_kappas) >= .60
-                             and harm_effect["ci95"][1] <= 0,
+        "human_review_gate_passed": human_review_gate,
+        "judge_scaleup_gate_passed": judge_scaleup_gate,
+        "final_claim_gate_passed": human_review_gate and judge_scaleup_gate,
         "note": "Without adjudication, paired effects use reviewer means and are exploratory only.",
     }
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")

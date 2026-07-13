@@ -1,4 +1,4 @@
-version: "1.4-e5-pilot-amendment"
+version: "1.5-e5-v9-control-fix"
 seed: 20260712
 
 tracks:
@@ -116,6 +116,12 @@ sampling:
   human_random: 100
   human_random_split: eval
   primekgqa_gold_query_smoke: 100
+
+analysis:
+  complete_x2_min_questions: 30
+  complete_x2_min_coverage: 0.80
+  subgroup_status: exploratory_overlapping_no_multiplicity_claims
+  precision_rule: report_observed_paired_sd_and_ci_width_before_locked_eval
 
 locked_tests:
   bioasq:

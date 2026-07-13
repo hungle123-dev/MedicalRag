@@ -20,6 +20,13 @@
       "description": "The v7 dev pilot was stopped before completion after audit found an undocumented 600-character per-abstract crop and incomplete X2 sham paths.",
       "impact": "The 78 evidence snapshots and 308 generated arm outputs are design-pilot artifacts only and cannot support the final graph-value claim.",
       "mitigation": "A frozen dev-300 component experiment selected full abstracts under the 1,800-word global budget. X2 now uses structurally valid unlinked background paths; ITT and complete-control sensitivity are both mandatory. E5-v8 must be rerun before any locked evaluation."
+    },
+    {
+      "id": "DEV-004",
+      "track": "BioASQ E5-v2 development",
+      "description": "A strict post-budget audit of the completed v8 dev run found 10/43 graph-positive X2 questions with malformed visible paths; one also lost one of five sham-path slots, although every stored pre-budget control_complete flag was true.",
+      "impact": "All arms retained equal total word budgets and generation had no failures, but X2 was not a structurally valid matched control. The entire v8 run is therefore a design pilot and cannot be the final E5 ablation.",
+      "mitigation": "Graph paths are now atomic and never truncated; X1 and X2 have separate post-budget validators for target coverage, type, word length, hop count, canonical path syntax, and forbidden-node overlap. A clean v9 dev run is required before locked evaluation."
     }
   ]
 }

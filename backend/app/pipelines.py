@@ -12,7 +12,8 @@ from .retrieval import BM25Index
 from .graph import PrimeKGIndex
 from .medcpt import MedCPTIndex, MedCPTReranker, reciprocal_rank_fusion
 from .generator import create_generator, validate_citations
-from .controls import matched_extra_text, matched_random_paths
+from .controls import (matched_extra_text, matched_graph_control_audit,
+                       matched_random_paths, matched_text_control_audit)
 
 
 _bm25: BM25Index | None = None
@@ -121,9 +122,11 @@ def evidence_budget(texts: list[dict], graphs: list[dict], *, word_budget: int =
     for item in graphs[:5]:
         if len(selected_graphs) == max_items or graph_used >= graph_limit:
             break
-        trimmed, used = trim_item(item, min(graph_limit - graph_used, 180))
-        if used:
-            selected_graphs.append(trimmed); graph_used += used
+        used = len(item.get("snippet", "").split())
+        # A graph path is an atomic structured fact. Truncating it can create an
+        # invalid relation, so only whole verbalizations may enter an arm.
+        if used and graph_used + used <= graph_limit:
+            selected_graphs.append(item); graph_used += used
     for item in texts:
         if len(selected_graphs) + len(selected_texts) == max_items or graph_used + text_used >= word_budget:
             break
@@ -240,16 +243,23 @@ def build_e5_arms(question: str, seed: int) -> dict[str, dict]:
     candidates = background_control_evidence(selected_graphs, seeds, seed)
     random_paths = matched_random_paths(candidates, selected_graphs, seed)
     x2, x2_budget = evidence_budget(base_texts, random_paths, word_budget=target_budget,
-                                    max_items=text_k, graph_word_budget=graph_words)
+                                    max_items=text_k,
+                                    graph_word_budget=min(evidence_words(random_paths), target_budget))
+    x1_audit = matched_text_control_audit(selected_graphs, [item for item in x1
+                                                            if item.get("matched_target_id")])
+    forbidden_nodes = {str(node["id"]) for item in selected_graphs for node in item.get("nodes", [])}
+    forbidden_nodes.update(str(item["id"]) for item in seeds)
+    x2_audit = matched_graph_control_audit(
+        selected_graphs, [item for item in x2 if item.get("matched_target_id")], forbidden_nodes)
     return {
         "B3": {"evidence": b3, "budget": b3_budget, "linked": [], "graph_retrieval_positive": True,
                "control_complete": True},
         "G2": {"evidence": g2, "budget": g2_budget, "linked": seeds, "graph_retrieval_positive": True,
                "control_complete": True},
         "X1": {"evidence": x1, "budget": x1_budget, "linked": seeds, "graph_retrieval_positive": True,
-               "control_complete": len(extra) == len(selected_graphs)},
+               "control_complete": x1_audit["complete"], "control_audit": x1_audit},
         "X2": {"evidence": x2, "budget": x2_budget, "linked": seeds, "graph_retrieval_positive": True,
-               "control_complete": len(random_paths) == len(selected_graphs)},
+               "control_complete": x2_audit["complete"], "control_audit": x2_audit},
     }
 
 

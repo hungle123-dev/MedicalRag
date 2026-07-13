@@ -1,12 +1,12 @@
 # Medical Graph-RAG architecture
 
-Status: implemented and real-data tested. `configs/protocol.yaml`, the execution-plan HTML and `docs/RESULTS.md` record the frozen choices and observed limitations.
+Status: local product and component experiments are implemented and real-data tested; E5-v2 dev and locked/human stages are reported separately in `docs/RESULTS.md`. “Implemented” never implies answer-quality validation.
 
 ## Goals
 
 - Answer an English medical question with text and traceable evidence.
 - Run B0–G2 through one pipeline contract so experiments and the demo use identical code.
-- Persist enough provenance to replay evaluation without calling a model.
+- Persist evidence and generation artifacts so answer evaluation can replay without recalling the generator; a non-cached machine judge still makes external calls.
 - Keep the five-week build local and boring: one FastAPI process, one React app, SQLite, files.
 
 ## System context
@@ -39,10 +39,10 @@ sequenceDiagram
 
   B->>A: POST /api/v1/questions
   A->>S: create queued request
-  A-->>B: 202 request_id + stream_url
+  A-->>B: 202 id + stream_url
   B->>A: GET .../{id}/events
   A->>P: run allowlisted pipeline
-  P-->>A: status / evidence / tokens / result
+  P-->>A: persisted status snapshots
   A->>S: persist metadata + atomic artifact
   A-->>B: SSE completed or error
   B->>A: GET /api/v1/questions/{id}
@@ -77,21 +77,21 @@ The browser sends only a pipeline ID. Server configuration defines the implement
 | G1 | PrimeKG retrieval + generator |
 | G2 | B3 evidence + PrimeKG evidence + fixed-budget fusion + generator |
 
-Each result records pipeline/config/prompt/model/data/KG revisions and hashes. B3 and G2 must use the same generator, prompt family, test questions and evidence budget.
+Each frozen run records pipeline/config/prompt/model/data/population and index fingerprints. B3/G2/X1/X2 use the same generator, prompt family, test questions and per-question whitespace-word budget.
 
 ## Evaluation tracks
 
 | Track | Data | Purpose | Primary metrics |
 |---|---|---|---|
 | End-to-end | BioASQ `question-answer-passages` + `text-corpus` | Compare frozen B3 with G2 | Human paired correctness 0–2; calibrated full-set judge; citation metrics |
-| Graph component | PrimeKGQA release + pinned PrimeKG tables | Descriptive linking/path-pattern fallback | Answer-set EM/F1 and path validity by 2/3/4-node; execution accuracy N/A |
+| Graph component | PrimeKGQA release + pinned PrimeKG tables | Descriptive linking/path-pattern fallback | Answer-set EM/F1, path-return and structural checks by 2/3/4-node; execution accuracy N/A |
 
 PrimeKG is the graph being queried; PrimeKGQA is a QA benchmark generated from it. The required 99% compatibility gate reached only 3%, so current PrimeKGQA results are normalized-pattern fallback metrics and cannot support executable-query claims.
 
 ## Persistence and failure semantics
 
-- SQLite stores request identity, state, timestamps and artifact path.
-- JSON artifacts store question, evidence, raw answer, citation map, timings and provenance.
+- SQLite stores request identity, question, lifecycle state, timestamps and the result JSON used by the API.
+- Atomic JSON artifacts store a job envelope (`id`, question, pipeline, timestamps) plus evidence, answer, citation map, timings and provenance.
 - Write artifacts to a temporary file and atomically rename before marking a request completed.
 - On restart, queued/running requests become `failed` with `SERVER_RESTARTED`; completed results remain readable.
 - One Uvicorn worker owns an in-process task registry and concurrency semaphore. A queue is explicitly out of scope.
@@ -100,8 +100,8 @@ PrimeKG is the graph being queried; PrimeKGQA is a QA benchmark generated from i
 ## Security and safety
 
 - Bind locally by default; use an explicit CORS allowlist.
-- Read secrets only from environment variables and never return stack traces or keys.
-- Reject unknown request fields, unknown pipeline IDs and questions outside 1–2000 characters.
+- Read secrets only from environment variables and never return stack traces, provider messages or keys; server-side exception traces stay in local logs.
+- Reject unknown request fields, unknown pipeline IDs and questions outside 3–2000 characters.
 - Render only validated PubMed URLs. PrimeKG paths are structured evidence, not PubMed citations.
 - Never render model-produced HTML. Always show the research-prototype warning.
 - No EHR upload, authentication, payment, patient profile or clinical deployment.

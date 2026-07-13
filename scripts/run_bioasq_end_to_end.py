@@ -10,6 +10,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 from app.env import load_dotenv
@@ -43,6 +45,28 @@ def file_fingerprint(path: Path) -> dict:
             "sha256": digest.hexdigest()}
 
 
+def validate_arm_design(arms: dict[str, dict]) -> dict:
+    totals = {arm: sum(len(item.get("snippet", "").split())
+                       for item in arms[arm]["evidence"]) for arm in ARMS}
+    errors = []
+    if len(set(totals.values())) != 1:
+        errors.append(f"unequal_total_words:{totals}")
+    positive = bool(arms["G2"].get("graph_retrieval_positive"))
+    if positive:
+        for control in ("X1", "X2"):
+            if not arms[control].get("control_complete"):
+                errors.append(f"{control.lower()}_incomplete:{arms[control].get('control_audit')}")
+    else:
+        frozen = json.dumps(arms["B3"]["evidence"], sort_keys=True)
+        if any(json.dumps(arms[arm]["evidence"], sort_keys=True) != frozen for arm in ARMS[1:]):
+            errors.append("graph_negative_arms_not_identical")
+    if errors:
+        raise RuntimeError("Invalid E5 arm design: " + "; ".join(errors))
+    return {"total_words": totals["B3"], "graph_retrieval_positive": positive,
+            "x1_complete": arms["X1"].get("control_complete", True),
+            "x2_complete": arms["X2"].get("control_complete", True)}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", choices=("dev", "eval"), default="dev")
@@ -59,8 +83,8 @@ def main() -> None:
         raise SystemExit("Locked eval forbids population overrides, force, and dirty-worktree execution")
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, check=True,
                             text=True, capture_output=True).stdout.strip()
-    dirty = bool(subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT,
-                                check=True, text=True, capture_output=True).stdout)
+    dirty = bool(subprocess.run(["git", "status", "--porcelain"], cwd=ROOT,
+                                 check=True, text=True, capture_output=True).stdout)
     if dirty and not args.allow_dirty:
         raise SystemExit("Refusing a research run from a dirty tracked worktree; commit first")
     load_dotenv(ROOT)
@@ -78,21 +102,40 @@ def main() -> None:
         raise SystemExit("Frozen IDs do not match the local BioASQ split")
     generator = os.getenv("MEDICAL_RAG_GENERATOR", "mock")
     model = os.getenv("GATEWAY_GENERATOR_MODEL", "local") if generator == "gateway" else generator
+    protocol = yaml.safe_load((ROOT / "configs/protocol.yaml").read_text(encoding="utf-8"))
+    if args.split == "eval" and (generator != "gateway" or model != protocol["generator"]["model"]):
+        raise SystemExit("Locked eval generator/provider/model do not match configs/protocol.yaml")
     model_slug = "".join(character if character.isalnum() else "-" for character in model).strip("-")
-    run_id = f"bioasq_{args.split}_e5_{generator}_{model_slug}_v8_{count}_{commit[:8]}"
+    run_id = f"bioasq_{args.split}_e5_{generator}_{model_slug}_v9_{count}_{commit[:8]}"
     directory = ROOT / "artifacts/experiments/bioasq" / run_id
     directory.mkdir(parents=True, exist_ok=True)
 
-    dev_warmup = json.loads((ROOT / "data/raw/bioasq/dev.jsonl").read_text(encoding="utf-8").splitlines()[-1])
-    PIPELINES["B3"].run(dev_warmup["question"])
-    started = datetime.now(timezone.utc).isoformat()
-    records, snapshot_hashes = [], []
+    index_files = [bm25_index_path(), medcpt_index_path() / "articles.faiss",
+                   medcpt_index_path() / "metadata.jsonl", graph_index_path()]
+    if not all(path.is_file() for path in index_files):
+        raise RuntimeError("A frozen index is missing before the run")
+    config_paths = {"experiments": ROOT / "configs/experiments.yaml",
+                    "pipelines": ROOT / "configs/pipelines.yaml",
+                    "protocol": ROOT / "configs/protocol.yaml",
+                    "prompt": ROOT / "configs/prompts/answer_v1.txt",
+                    "data": ROOT / "data/manifests/files.json", "population": id_manifest}
+    config_hashes = {name: sha(path) for name, path in config_paths.items()}
+    index_fingerprints = {path.name: file_fingerprint(path) for path in index_files}
+
+    # Freeze and validate the entire evidence population before observing any
+    # answer output. This prevents a late control failure from creating a
+    # selectively generated population.
+    prepared, snapshot_hashes = {}, []
     for question_index, question_id in enumerate(ids):
         row = by_id[question_id]
         snapshot_target = directory / f"{question_id}_evidence.json"
         arms = build_e5_arms(row["question"], seed=frozen["seed"] + question_index)
+        design_audit = validate_arm_design(arms)
         snapshot = {"question_id": question_id, "question_type": row.get("type"), "arms": arms,
-                    "experiment_config_hash": sha(ROOT / "configs/experiments.yaml")}
+                    "design_audit": design_audit,
+                    "experiment_config_hash": config_hashes["experiments"],
+                    "frozen_input_hashes": {"configs": config_hashes,
+                                            "indexes": index_fingerprints}}
         snapshot_text = json.dumps(snapshot, ensure_ascii=False, sort_keys=True)
         snapshot_hash = hashlib.sha256(snapshot_text.encode()).hexdigest()
         snapshot_hashes.append(snapshot_hash)
@@ -103,7 +146,18 @@ def main() -> None:
             arms = existing["arms"]
         else:
             snapshot_target.write_text(json.dumps(snapshot | {"snapshot_hash": snapshot_hash},
-                                                  ensure_ascii=False, indent=2), encoding="utf-8")
+                                                   ensure_ascii=False, indent=2), encoding="utf-8")
+        prepared[question_id] = {"arms": arms, "snapshot_hash": snapshot_hash}
+        print(f"prepared_evidence={question_index + 1}/{len(ids)}", flush=True)
+
+    dev_warmup = json.loads((ROOT / "data/raw/bioasq/dev.jsonl").read_text(encoding="utf-8").splitlines()[-1])
+    PIPELINES["B3"].run(dev_warmup["question"])
+    started = datetime.now(timezone.utc).isoformat()
+    records = []
+    for question_index, question_id in enumerate(ids):
+        row = by_id[question_id]
+        arms = prepared[question_id]["arms"]
+        snapshot_hash = prepared[question_id]["snapshot_hash"]
         offset = question_index % len(ARMS)
         order = ARMS[offset:] + ARMS[:offset]
         for arm_id in order:
@@ -129,10 +183,18 @@ def main() -> None:
                 temporary.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
                 os.replace(temporary, target)
             records.append(record)
-    index_files = [bm25_index_path(), medcpt_index_path() / "articles.faiss",
-                   medcpt_index_path() / "metadata.jsonl", graph_index_path()]
-    if not all(path.is_file() for path in index_files):
-        raise RuntimeError("A frozen index disappeared during the run")
+        completed_questions = question_index + 1
+        print(f"completed_questions={completed_questions}/{len(ids)} records={len(records)}", flush=True)
+    if {name: sha(path) for name, path in config_paths.items()} != config_hashes:
+        raise RuntimeError("A frozen config or population file changed during the run")
+    if {path.name: file_fingerprint(path) for path in index_files} != index_fingerprints:
+        raise RuntimeError("A frozen index changed during the run")
+    completed = [record for record in records if record["status"] == "completed"]
+    response_models = sorted({record["result"]["details"]["generator"].get("response_model")
+                              or record["result"]["details"]["generator"]["model"]
+                              for record in completed})
+    if len(response_models) != 1:
+        raise RuntimeError(f"Research run observed model drift: {response_models}")
     manifest = {
         "run_id": run_id, "track": "bioasq_e5_answer_stage", "split": args.split,
         "locked_execution": args.split == "eval", "arms": list(ARMS), "question_ids": ids,
@@ -140,24 +202,15 @@ def main() -> None:
         "generator": generator, "generator_model": model, "code_commit": commit,
         "working_tree_dirty_at_start": dirty, "order": "latin_rotation_by_question_index",
         "warmup": "one unmeasured out-of-population dev B3 question",
-        "config_hashes": {"experiments": sha(ROOT / "configs/experiments.yaml"),
-                          "pipelines": sha(ROOT / "configs/pipelines.yaml"),
-                          "protocol": sha(ROOT / "configs/protocol.yaml"),
-                          "prompt": sha(ROOT / "configs/prompts/answer_v1.txt"),
-                          "data": sha(ROOT / "data/manifests/files.json"),
-                          "population": sha(id_manifest)},
-        "index_fingerprints": {path.name: file_fingerprint(path) for path in index_files},
+        "config_hashes": config_hashes,
+        "index_fingerprints": index_fingerprints,
         "evidence_population_hash": hashlib.sha256("".join(snapshot_hashes).encode()).hexdigest(),
         "started_at": started, "ended_at": datetime.now(timezone.utc).isoformat(),
         "records": len(records), "failures": sum(record["status"] == "failed" for record in records),
     }
     (directory / "run_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    completed = [record for record in records if record["status"] == "completed"]
-    response_models = sorted({record["result"]["details"]["generator"].get("response_model")
-                              or record["result"]["details"]["generator"]["model"]
-                              for record in completed})
-    usage_by_arm = {arm: [record["result"]["details"]["generator"].get("usage") or {}
-                          for record in completed if record["pipeline_id"] == arm] for arm in ARMS}
+    completed_by_arm = {arm: [record for record in completed if record["pipeline_id"] == arm]
+                        for arm in ARMS}
     latency_by_arm = {arm: [record["result"]["details"]["latency_ms"] for record in completed
                             if record["pipeline_id"] == arm] for arm in ARMS}
     summary = {"run_id": run_id, "split": args.split, "questions": len(ids), "arms": list(ARMS),
@@ -175,10 +228,20 @@ def main() -> None:
                    "p95": round(percentile(latency_by_arm[arm], .95), 3) if latency_by_arm[arm] else None,
                } for arm in ARMS},
                "api_usage": {arm: {
-                   "calls": len(usage_by_arm[arm]),
-                   "prompt_tokens": sum(int(row.get("prompt_tokens", 0)) for row in usage_by_arm[arm]),
-                   "completion_tokens": sum(int(row.get("completion_tokens", 0)) for row in usage_by_arm[arm]),
-               } for arm in ARMS},
+                    "logical_requests": len(completed_by_arm[arm]),
+                    "network_calls": sum(not row["result"]["details"]["generator"].get("cached", False)
+                                         for row in completed_by_arm[arm]),
+                    "cache_hits": sum(row["result"]["details"]["generator"].get("cached", False)
+                                      for row in completed_by_arm[arm]),
+                    "logical_prompt_tokens": sum(int((row["result"]["details"]["generator"].get("usage") or {}).get("prompt_tokens", 0))
+                                                 for row in completed_by_arm[arm]),
+                    "network_prompt_tokens": sum(int((row["result"]["details"]["generator"].get("usage") or {}).get("prompt_tokens", 0))
+                                                 for row in completed_by_arm[arm]
+                                                 if not row["result"]["details"]["generator"].get("cached", False)),
+                    "network_completion_tokens": sum(int((row["result"]["details"]["generator"].get("usage") or {}).get("completion_tokens", 0))
+                                                     for row in completed_by_arm[arm]
+                                                     if not row["result"]["details"]["generator"].get("cached", False)),
+                } for arm in ARMS},
                "no_invented_citation_id_rate": {arm: round(sum(record["result"]["details"]["citation_integrity"]["valid"]
                                                            for record in completed if record["pipeline_id"] == arm) /
                                                           max(1, sum(record["pipeline_id"] == arm for record in completed)), 6)

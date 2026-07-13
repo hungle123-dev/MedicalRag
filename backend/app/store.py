@@ -63,6 +63,13 @@ class JobStore:
         job["result"] = json.loads(job["result"]) if job["result"] else None
         return job
 
+    def ping(self) -> bool:
+        try:
+            with self._connection() as connection:
+                return connection.execute("SELECT 1").fetchone()[0] == 1
+        except sqlite3.Error:
+            return False
+
     def set_status(self, job_id: str, status: str, *, result: dict | None = None,
                    error: str | None = None, allowed_from: set[str] | None = None) -> bool:
         now = utc_now()
@@ -71,18 +78,28 @@ class JobStore:
             placeholders = ",".join("?" for _ in allowed_from)
             where += f" AND status IN ({placeholders})"
             values.extend(sorted(allowed_from))
+        temporary = None
+        target = None
+        if result:
+            job = self.get(job_id)
+            if not job:
+                return False
+            target = self.artifacts / f"{job_id}.json"
+            temporary = target.with_suffix(".json.tmp")
+            envelope = {"id": job_id, "pipeline_id": job["pipeline_id"],
+                        "question": job["question"], "status": status,
+                        "created_at": job["created_at"], "updated_at": now,
+                        "result": result}
+            temporary.write_text(json.dumps(envelope, ensure_ascii=False, indent=2), encoding="utf-8")
         with self.lock, self._connection() as connection:
             cursor = connection.execute(
                 f"UPDATE jobs SET status = ?, result = ?, error = ?, updated_at = ? WHERE {where}", values,
             )
-        if cursor.rowcount != 1:
-            return False
-        if result:
-            target = self.artifacts / f"{job_id}.json"
-            temporary = target.with_suffix(".json.tmp")
-            temporary.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-            os.replace(temporary, target)
-        return True
+            if cursor.rowcount == 1 and temporary and target:
+                os.replace(temporary, target)
+        if cursor.rowcount != 1 and temporary:
+            temporary.unlink(missing_ok=True)
+        return cursor.rowcount == 1
 
     def cancel(self, job_id: str) -> bool:
         with self.lock, self._connection() as connection:

@@ -1,3 +1,4 @@
+import json
 import tempfile
 from pathlib import Path
 
@@ -10,7 +11,12 @@ def test_artifact_write_is_complete_and_has_no_temporary_file():
         store = JobStore(root / "jobs.db", root / "artifacts")
         job = store.create("B0", "A valid question?")
         store.set_status(job["id"], "completed", result={"answer": "done"})
-        assert (root / "artifacts" / f"{job['id']}.json").read_text(encoding="utf-8")
+        artifact = json.loads((root / "artifacts" / f"{job['id']}.json").read_text(encoding="utf-8"))
+        assert artifact["id"] == job["id"]
+        assert artifact["question"] == "A valid question?"
+        assert artifact["pipeline_id"] == "B0"
+        assert artifact["result"]["answer"] == "done"
+        assert store.ping()
         assert not list((root / "artifacts").glob("*.tmp"))
 
 

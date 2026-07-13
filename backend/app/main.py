@@ -12,8 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from .pipelines import (PIPELINES, bm25_index_path, graph_index_path,
-                        list_pipelines, medcpt_index_path)
+from .pipelines import (PIPELINES, bm25, bm25_index_path, graph, graph_index_path,
+                        list_pipelines, medcpt, medcpt_index_path)
 from .store import JobStore
 from .env import load_dotenv
 
@@ -29,6 +29,27 @@ class QuestionRequest(BaseModel):
     pipeline_id: Literal["B0", "B1", "B2", "B3", "G1", "G2"] = "G2"
     client_request_id: str | None = Field(default=None, max_length=128)
     run_kind: Literal["demo"] = "demo"
+
+
+class JobResponse(BaseModel):
+    id: str
+    pipeline_id: str
+    question: str
+    status: Literal["queued", "running", "completed", "failed", "cancelled"]
+    result: dict | None = None
+    error: str | None = None
+    created_at: str
+    updated_at: str
+
+
+class SubmissionResponse(JobResponse):
+    stream_url: str
+
+
+class ReadinessResponse(BaseModel):
+    status: Literal["ready", "degraded"]
+    pipelines: dict[str, bool]
+    dependencies: dict[str, object]
 
 
 def create_app(database: Path | None = None, artifacts: Path | None = None) -> FastAPI:
@@ -52,23 +73,42 @@ def create_app(database: Path | None = None, artifacts: Path | None = None) -> F
     )
     capacity = BoundedSemaphore(int(os.getenv("MEDICAL_RAG_MAX_CONCURRENCY", "2")))
 
-    @app.get("/health")
-    @app.get("/api/v1/health")
+    @app.get("/health", response_model=dict[str, str])
+    @app.get("/api/v1/health", response_model=dict[str, str])
     def health():
         return {"status": "ok"}
 
-    @app.get("/ready")
-    @app.get("/api/v1/ready")
+    @app.get("/ready", response_model=ReadinessResponse)
+    @app.get("/api/v1/ready", response_model=ReadinessResponse)
     def ready():
-        bm25_ready = bm25_index_path().is_file()
-        graph_ready = graph_index_path().is_file()
+        bm25_ready = graph_ready = dense_ready = False
+        database_ready = store.ping()
+        try:
+            bm25_ready = bm25_index_path().is_file() and len(bm25().documents) > 0
+        except Exception:  # readiness boundary: corrupted or incompatible local index
+            pass
+        try:
+            if graph_index_path().is_file():
+                with graph().connect() as connection:
+                    required = {"nodes", "edges", "node_degrees"}
+                    present = {row[0] for row in connection.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'")}
+                    graph_ready = required.issubset(present)
+        except Exception:
+            pass
         dense_root = medcpt_index_path()
-        dense_ready = (dense_root / "articles.faiss").is_file() and (dense_root / "metadata.jsonl").is_file()
+        try:
+            dense_ready = ((dense_root / "articles.faiss").is_file()
+                           and (dense_root / "metadata.jsonl").is_file()
+                           and medcpt().index.ntotal == len(medcpt().documents))
+        except Exception:
+            pass
         selected_generator = os.getenv("MEDICAL_RAG_GENERATOR", "mock").casefold()
-        generator_ready = selected_generator == "mock" or (
-            selected_generator == "gateway" and bool(os.getenv("OPENAI_API_KEY"))
-            and bool(os.getenv("OPENAI_BASE_URL")) and bool(os.getenv("GATEWAY_GENERATOR_MODEL")))
-        ready = bm25_ready and graph_ready and dense_ready and generator_ready
+        generator_ready = (selected_generator == "mock" or
+                           (selected_generator == "gateway" and bool(os.getenv("OPENAI_API_KEY"))
+                            and bool(os.getenv("OPENAI_BASE_URL")) and bool(os.getenv("GATEWAY_GENERATOR_MODEL")))
+                           or (selected_generator == "gemini" and bool(os.getenv("GEMINI_API_KEY"))))
+        ready = bm25_ready and graph_ready and dense_ready and generator_ready and database_ready
         availability = {"B0": generator_ready, "B1": bm25_ready and generator_ready,
                         "B2": dense_ready and generator_ready,
                         "B3": bm25_ready and dense_ready and generator_ready,
@@ -76,10 +116,13 @@ def create_app(database: Path | None = None, artifacts: Path | None = None) -> F
                         "G2": bm25_ready and dense_ready and graph_ready and generator_ready}
         return JSONResponse({"status": "ready" if ready else "degraded", "pipelines": availability,
                 "dependencies": {"bm25": bm25_ready, "primekg": graph_ready, "medcpt": dense_ready,
-                                 "generator": generator_ready, "generator_provider": selected_generator}},
+                                 "generator_configured": generator_ready,
+                                 "generator_provider": selected_generator,
+                                 "provider_reachability_checked": False,
+                                 "database": database_ready}},
                 status_code=200 if ready else 503)
 
-    @app.get("/api/v1/pipelines")
+    @app.get("/api/v1/pipelines", response_model=dict[str, list[dict]])
     def pipelines():
         return {"items": list_pipelines()}
 
@@ -103,7 +146,7 @@ def create_app(database: Path | None = None, artifacts: Path | None = None) -> F
         finally:
             capacity.release()
 
-    @app.post("/api/v1/questions", status_code=202)
+    @app.post("/api/v1/questions", status_code=202, response_model=SubmissionResponse)
     def submit(payload: QuestionRequest, background_tasks: BackgroundTasks):
         if payload.pipeline_id not in PIPELINES:
             raise HTTPException(422, f"Unknown pipeline_id: {payload.pipeline_id}")
@@ -111,14 +154,14 @@ def create_app(database: Path | None = None, artifacts: Path | None = None) -> F
         background_tasks.add_task(execute, job["id"], payload.pipeline_id, payload.question.strip())
         return job | {"stream_url": f"/api/v1/questions/{job['id']}/events"}
 
-    @app.get("/api/v1/questions/{job_id}")
+    @app.get("/api/v1/questions/{job_id}", response_model=JobResponse)
     def get_job(job_id: str):
         job = store.get(job_id)
         if not job:
             raise HTTPException(404, "Question job not found")
         return job
 
-    @app.delete("/api/v1/questions/{job_id}")
+    @app.delete("/api/v1/questions/{job_id}", response_model=JobResponse)
     def cancel(job_id: str):
         if not store.get(job_id):
             raise HTTPException(404, "Question job not found")

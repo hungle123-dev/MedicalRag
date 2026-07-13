@@ -50,18 +50,18 @@ Không đưa ideal answer/gold snippets vào index hoặc prompt sinh đáp án.
     <section id="architecture">
       <div class="head"><div class="num">03 · KIẾN TRÚC</div><div><h2>Hai nhánh retrieval, một câu trả lời chung</h2><p>Chúng độc lập ở cách tìm evidence, sau đó gặp nhau ở evidence fusion.</p></div></div>
       <div class="flow"><pre>                                 ┌─ <span class="text">NHÁNH TEXT</span> ─────────────────────────────┐
-                                 │ Query expansion                     │
+                                 │ Q0 câu gốc (Q1 expansion đã bị loại)│
                                  │ BM25 + MedCPT → RRF → reranker      │
-                                 │ Kết quả: đoạn PubMed [T1], [T2]     │
+                                 │ Kết quả: PMID:...                    │
 Question → xử lý query ──────────┤                                      ├→ Evidence fusion
                                  │ <span class="graph">NHÁNH GRAPH</span>                              │       ↓
                                  │ Entity linking → PrimeKG 1–2 hop    │  LLM inference
-                                 │ Kết quả: graph paths [G1], [G2]     │       ↓
+                                 │ Kết quả: primekg:path:...            │       ↓
                                  └──────────────────────────────────────┘  Answer + citations
 
 Ví dụ evidence hợp nhất:
-[T1] PMID 123...: non-selective beta blockers may cause bronchoconstriction
-[G1] Propranolol → targets → ADRB2 → associated_with → bronchoconstriction</pre></div>
+[PMID:123] non-selective beta blockers may cause bronchoconstriction
+[primekg:path:...] Propranolol → targets → ADRB2 → associated_with → bronchoconstriction</pre></div>
       <div class="grid" style="margin-top:14px">
         <article class="card"><h3>Offline</h3><p>Chuẩn bị chunks, BM25 index, FAISS embeddings và PrimeKG adjacency. Chỉ chạy lại khi data/config thay đổi.</p></article>
         <article class="card"><h3>Online</h3><p>Nhận câu hỏi, tìm text/path, fusion, gọi LLM và kiểm tra citations. Chạy mỗi lần người dùng hỏi.</p></article>
@@ -74,11 +74,11 @@ Ví dụ evidence hợp nhất:
       <div class="step"><div class="step-no">BƯỚC 1</div><div><h3>Chốt dữ liệu và EDA</h3><p>Tải/pin BioASQ, PrimeKG và PrimeKGQA; kiểm tra schema, count, null, duplicate, license, checksum, gold PMID coverage, entity/relation overlap và leakage giữa split.</p></div><div class="done"><b>Hoàn thành khi</b>Có manifest và báo cáo EDA tái lập.</div></div>
       <div class="step"><div class="step-no">BƯỚC 2</div><div><h3>Chuẩn bị corpus và thử chunking</h3><p>So C0: một abstract với C2: sentence-aware tối đa 256 tokens trên cả BM25 và MedCPT. Mọi chunk giữ parent PMID và offsets.</p></div><div class="done"><b>Hoàn thành khi</b>Chọn chunk bằng Recall@10/nDCG@10, không bias riêng BM25.</div></div>
       <div class="step"><div class="step-no">BƯỚC 3</div><div><h3>Xây Text-RAG đủ mạnh</h3><p>BM25 top-50 và MedCPT top-50 → RRF → MedCPT cross-encoder rerank top-30 → lấy tối đa 8 passages.</p></div><div class="done"><b>Hoàn thành khi</b>Có B1, B2, B3 và retrieval metrics.</div></div>
-      <div class="step"><div class="step-no">BƯỚC 4</div><div><h3>Thử query expansion có điều kiện</h3><p>Q0 dùng câu gốc; Q1 thêm entity/alias; Q2 dùng LLM rẻ tạo tối đa 3 queries. Gold miss chỉ dùng phân tích dev; runtime phải kích hoạt Q2 bằng confidence rule đã freeze.</p></div><div class="done"><b>Hoàn thành khi</b>Expansion tăng paired Recall@10 mà không dùng gold lúc inference.</div></div>
-      <div class="step"><div class="step-no">BƯỚC 5</div><div><h3>Kết nối và kiểm tra PrimeKG</h3><p>Trước tiên chạy 100 gold SPARQL để xác nhận PrimeKGQA tương thích PrimeKG RDF/version. Sau đó entity linking → path 1–2 hop cho BioASQ; tối đa 3-hop cho PrimeKGQA 4-node challenge.</p></div><div class="done"><b>Hoàn thành khi</b>Gold query executable rate ≥99% và graph metrics chạy được.</div></div>
+      <div class="step"><div class="step-no">BƯỚC 4</div><div><h3>Kiểm chứng query expansion</h3><p>Q0 dùng câu gốc; Q1 thêm entity/alias. Q1 giảm Recall@10 từ 0,65845 xuống 0,64501 và harm rate lớn hơn rescue rate, nên runtime giữ Q0. Q2 không được mở rộng tiếp sau khi Q1 fail.</p></div><div class="done"><b>Kết quả</b>Giữ query gốc; đây là negative result có stop rule.</div></div>
+      <div class="step"><div class="step-no">BƯỚC 5</div><div><h3>Kết nối và kiểm tra PrimeKG</h3><p>Compatibility smoke chỉ đạt 3%, thấp hơn gate 99%; vì vậy execution accuracy = N/A. PrimeKGQA chỉ còn vai trò descriptive normalized-pattern fallback. Với BioASQ, exact entity linker → PrimeKG path 1–2 hop.</p></div><div class="done"><b>Kết quả</b>Gate fail được giữ lại; không claim executable KGQA.</div></div>
       <div class="step"><div class="step-no">BƯỚC 6</div><div><h3>Fusion text và graph</h3><p>Mỗi câu lấy actual word count của B3 làm budget. G2, X1 extra-text và X2 random-path phải đúng cùng tổng words; hybrid có tối đa 8 text + 5 control/graph slots.</p></div><div class="done"><b>Hoàn thành khi</b>Bốn arms có cùng actual budget, generator và prompt.</div></div>
       <div class="step"><div class="step-no">BƯỚC 7</div><div><h3>LLM sinh và kiểm tra answer</h3><p>Giai đoạn phát triển dùng mock để test flow. Inference thật gọi gateway OpenAI-compatible: DeepSeek V3.2 sinh answer, Cerebras GPT-OSS-120B chấm độc lập. Validator chặn citation ID bịa và ghi nhận unsupported claims/abstention.</p></div><div class="done"><b>Hoàn thành khi</b>Một question tạo answer + citations + raw artifact.</div></div>
-      <div class="step"><div class="step-no">BƯỚC 8</div><div><h3>Backend và frontend</h3><p>FastAPI cung cấp pipeline registry/submit/stream/result; React hiển thị chat, PubMed citations, PrimeKG paths và màn so sánh B3/G2.</p></div><div class="done"><b>Hoàn thành khi</b>UI dùng đúng pipeline/evidence như evaluator.</div></div>
+      <div class="step"><div class="step-no">BƯỚC 8</div><div><h3>Backend và frontend</h3><p>FastAPI cung cấp pipeline registry, submit, SSE status snapshots và terminal result; React hiển thị chat, PubMed citations, PrimeKG paths và màn xem B3/G2 cạnh nhau.</p></div><div class="done"><b>Hoàn thành khi</b>UI dùng đúng runtime pipeline; scientific E5 vẫn chạy bằng frozen CLI harness.</div></div>
       <div class="step"><div class="step-no">BƯỚC 9</div><div><h3>Chạy dev → freeze → locked test</h3><p>Tune trên dev tối đa 300 câu. Sau khi chốt B3/G2, hash config/prompt/data rồi chạy locked test đúng một lần, không sửa theo kết quả test.</p></div><div class="done"><b>Hoàn thành khi</b>Có metrics, CI, human audit và error analysis.</div></div>
     </section>
 
@@ -92,7 +92,7 @@ Ví dụ evidence hợp nhất:
         <tr><td class="id">G1</td><td>Không</td><td>PrimeKG</td><td>Đo graph coverage và graph-only limitations.</td></tr>
         <tr><td class="id">G2</td><td>Giống B3</td><td>PrimeKG</td><td>Hybrid hoàn chỉnh; đo giá trị tăng thêm của graph.</td></tr>
       </tbody></table></div>
-      <div class="callout"><strong>So sánh quan trọng nhất là B3 với G2.</strong> Cả hai phải dùng cùng questions, generator, prompt và tổng evidence tokens. Nếu G2 tốt hơn B3 và tốt hơn extra-text/random-path controls, mới có căn cứ nói graph giúp.</div>
+      <div class="callout"><strong>So sánh quan trọng nhất là B3 với G2.</strong> B3/G2/X1/X2 dùng cùng questions, generator, prompt và tổng whitespace words thực tế. Chỉ claim graph giúp nếu G2 vượt cả ba controls theo ITT, vượt complete-X2 sensitivity và không tăng harm trong human review.</div>
     </section>
 
     <section id="metrics">
@@ -104,7 +104,7 @@ Ví dụ evidence hợp nhất:
         <tr><td>Graph usefulness thực tế</td><td>100 BioASQ questions human audit</td><td>Useful/misleading path rate</td><td>Graph có hỗ trợ final answer trên câu hỏi tự nhiên không?</td></tr>
         <tr><td>Final answer</td><td>BioASQ ideal answer + evidence</td><td>Correctness/completeness 0–2</td><td>Nội dung y khoa có đúng/đủ không?</td></tr>
         <tr><td>Citation</td><td>Atomic claims + cited evidence</td><td>Precision/recall</td><td>Citation có support claim và claim có citation không?</td></tr>
-        <tr><td>Hiệu năng</td><td>Run logs</td><td>p50/p95 latency, tokens, cost</td><td>Graph cải thiện có đáng chi phí không?</td></tr>
+        <tr><td>Hiệu năng</td><td>Run logs</td><td>p50/p95 latency, API calls, prompt/completion tokens</td><td>Graph cải thiện có đáng thêm call/context không?</td></tr>
         <tr><td>B3 vs G2</td><td>Paired locked outputs</td><td>Mean difference + 95% CI</td><td>Graph cải thiện bao nhiêu và có ổn định không?</td></tr>
       </tbody></table></div>
     </section>
@@ -113,11 +113,11 @@ Ví dụ evidence hợp nhất:
       <div class="head"><div class="num">07 · SẢN PHẨM</div><div><h2>Frontend và backend dùng chung pipeline nghiên cứu</h2><p>Không làm một chatbot demo riêng rồi evaluation bằng code khác.</p></div></div>
       <div class="flow"><pre>React frontend
 ├── ô nhập câu hỏi + chọn B0…G2
-├── answer streaming
+├── SSE status snapshots + terminal answer
 ├── PubMed citation panel
 ├── PrimeKG path panel
 └── B3/G2 comparison
-          ↓ HTTP/SSE
+          ↓ HTTP + SSE status snapshots
 FastAPI backend
 ├── query processor
 ├── BM25 / MedCPT / reranker
@@ -136,7 +136,7 @@ BM25 index · FAISS · PrimeKG adjacency · SQLite · JSONL artifacts</pre></div
         <article class="card"><div class="tag">Text result</div><h3>B3 thắng retrieval</h3><p>Recall@10 B1 0,6585; B2 0,6612; B3 0,7347 trên cùng dev-300.</p></article>
         <article class="card"><div class="tag">Graph result</div><h3>Chưa chứng minh lợi ích</h3><p>PrimeKGQA test fallback F1 0,0700; random-path control còn hơn full scorer trên dev.</p></article>
       </div>
-      <div class="callout"><strong>Kết luận dựa trên số thật:</strong> hybrid text retrieval là improvement đáng tin cậy. Graph có tín hiệu tốt hơn ở 2-node so với 4-node nhưng path scorer chưa thắng controls, nên không được nói Graph-RAG tốt hơn B3. Locked BioASQ B3/G2 chờ API key và hai medical reviewers.</div>
+      <div class="callout"><strong>Kết luận hiện tại:</strong> hybrid text retrieval là improvement đáng tin cậy. Evidence extraction P1 tăng any-gold visibility từ 0,800 lên 0,920. PrimeKG accepted-path coverage là 45,67% trên dev-300, nhưng đó không phải gold graph-answerability. E5-v8 dev-80 hoàn tất nhưng bị hạ thành design pilot vì 10/43 graph-positive X2 có path bị truncate; atomic-path v9 phải pass trước locked eval. Hai reviewer y khoa vẫn là external gate bắt buộc.</div>
     </section>
   </main>
   <footer><div class="wrap">Bản đọc nhanh bằng tiếng Việt. Execution protocol chi tiết nằm trong <code>KE_HOACH_NGHIEN_CUU_MedicalGraphRAG.html</code>.</div></footer>

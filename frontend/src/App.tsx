@@ -9,6 +9,11 @@ const pipelines = [
   ["G1", "PrimeKG only"],
   ["G2", "Text + PrimeKG"],
 ];
+const sampleQuestions = [
+  "Can levothyroxine therapy be associated with insomnia?",
+  "What biological pathways are associated with Alzheimer disease?",
+  "Can propranolol worsen asthma, and why?",
+];
 
 function ResultPanel({ id, result }: { id: "B3" | "G2"; result: Result }) {
   return <article>
@@ -25,6 +30,7 @@ function ResultPanel({ id, result }: { id: "B3" | "G2"; result: Result }) {
     </ol>
     {result.details.generator && <p>Generator: {result.details.generator.provider}/{result.details.generator.model}</p>}
     {result.details.budget && <p>Budget: text {result.details.budget.text_words_actual ?? 0}, graph {result.details.budget.graph_words_actual ?? 0} / {result.details.budget.word_budget ?? 0} whitespace words.</p>}
+    {result.provenance?.pipeline_config_hash && <p>Provenance: pipeline config {result.provenance.pipeline_config_hash.slice(0, 12)}… · prompt {result.provenance.prompt_hash?.slice(0, 12)}…</p>}
   </article>;
 }
 
@@ -62,17 +68,20 @@ export default function App() {
     setDetails({});
     setError("");
     setStatus("loading");
+    let timedOut = false;
+    const timeout = window.setTimeout(() => { timedOut = true; controller.current?.abort(); }, 120_000);
     try {
       if (compare) {
-        const b3 = await streamAnswer(cleanQuestion, "B3", controller.current.signal, () => undefined);
-        setComparison({ B3: b3 });
-        const g2 = await streamAnswer(cleanQuestion, "G2", controller.current.signal, () => undefined);
+        const [b3, g2] = await Promise.all([
+          streamAnswer(cleanQuestion, "B3", controller.current.signal, () => undefined),
+          streamAnswer(cleanQuestion, "G2", controller.current.signal, () => undefined),
+        ]);
         setComparison({ B3: b3, G2: g2 });
         setStatus("done");
         return;
       }
       const result = await streamAnswer(cleanQuestion, pipeline, controller.current.signal, (message) => {
-        if (message.type === "token") setAnswer((current) => current + message.text);
+        if (message.type === "answer") setAnswer(message.text);
         if (message.type === "citations") setCitations(message.citations);
         if (message.type === "details") setDetails(message.details);
         if (message.type === "error") throw new Error(message.message);
@@ -80,9 +89,15 @@ export default function App() {
       setEvidence(result.evidence);
       setStatus("done");
     } catch (reason) {
+      if ((reason as Error).name === "AbortError" && timedOut) {
+        setError("The local pipeline exceeded the 120-second demo timeout.");
+        return setStatus("error");
+      }
       if ((reason as Error).name === "AbortError") return setStatus("idle");
       setError(friendlyError(reason instanceof Error ? reason.message : "Something went wrong."));
       setStatus("error");
+    } finally {
+      window.clearTimeout(timeout);
     }
   }
 
@@ -107,16 +122,21 @@ export default function App() {
           onChange={(event) => setQuestion(event.target.value)}
           placeholder="Can propranolol worsen asthma, and why?"
           maxLength={2000}
+          minLength={3}
           rows={4}
           required
         />
+        <div className="controls" aria-label="Sample questions">
+          {sampleQuestions.map((sample) => <button className="secondary" type="button" key={sample}
+            disabled={status === "loading"} onClick={() => setQuestion(sample)}>{sample}</button>)}
+        </div>
         <div className="controls">
           <label htmlFor="pipeline">Pipeline</label>
           <select id="pipeline" value={pipeline} onChange={(event) => setPipeline(event.target.value)}>
             {pipelines.map(([value, label]) => <option key={value} value={value} disabled={readiness ? !readiness.pipelines[value] : false}>{label}</option>)}
           </select>
           <label className="compare-toggle"><input type="checkbox" checked={compare} onChange={(event) => setCompare(event.target.checked)} /> Compare B3/G2</label>
-          <button type="submit" disabled={status === "loading" || !question.trim() || Boolean(readiness && (
+          <button type="submit" disabled={status === "loading" || question.trim().length < 3 || Boolean(readiness && (
             compare ? (!readiness.pipelines.B3 || !readiness.pipelines.G2) : !readiness.pipelines[pipeline]
           ))}>
             {status === "loading" ? "Retrieving…" : "Ask"}
@@ -126,7 +146,8 @@ export default function App() {
       </form>
 
       {Object.keys(comparison).length > 0 && <section aria-live="polite">
-        <h2>B3/G2 matched comparison</h2>
+        <h2>B3/G2 side-by-side demo</h2>
+        <p className="muted">This UI view is not the scientific E5 ablation; the frozen CLI harness supplies matched evidence, counterbalanced order, X1/X2 controls and paired statistics.</p>
         <div className="comparison">
           {(["B3", "G2"] as const).map((id) => comparison[id] &&
             <ResultPanel key={id} id={id} result={comparison[id]} />)}

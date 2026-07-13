@@ -13,11 +13,25 @@ def test_evidence_budget_is_bounded_and_text_first_interleaved():
 
 def test_e5_arms_match_actual_word_budget_and_control_slots(monkeypatch):
     texts = [{"id": f"t{i}", "type": "text", "snippet": "text " * 10} for i in range(13)]
-    target = [{"id": "g1", "type": "graph", "hop_count": 1, "snippet": "a links b"},
-              {"id": "g2", "type": "graph", "hop_count": 2, "snippet": "a links b links c"}]
+    target = [{"id": "g1", "type": "graph", "hop_count": 1, "snippet": "a —r→ b",
+               "nodes": [{"id": 1, "name": "a"}, {"id": 2, "name": "b"}],
+               "edges": [{"source_id": 1, "target_id": 2, "relation": "r"}]},
+              {"id": "g2", "type": "graph", "hop_count": 2,
+               "snippet": "a —r→ b · b —s→ c",
+               "nodes": [{"id": 1, "name": "a"}, {"id": 2, "name": "b"},
+                         {"id": 3, "name": "c"}],
+               "edges": [{"source_id": 1, "target_id": 2, "relation": "r"},
+                         {"source_id": 2, "target_id": 3, "relation": "s"}]}]
     candidates = target + [
-        {"id": "r1", "type": "graph", "hop_count": 1, "snippet": "x links y"},
-        {"id": "r2", "type": "graph", "hop_count": 2, "snippet": "x links y links z"},
+        {"id": "r1", "type": "graph", "hop_count": 1, "snippet": "x —r→ y",
+         "nodes": [{"id": 4, "name": "x"}, {"id": 5, "name": "y"}],
+         "edges": [{"source_id": 4, "target_id": 5, "relation": "r"}]},
+        {"id": "r2", "type": "graph", "hop_count": 2,
+         "snippet": "x —r→ y · y —s→ z",
+         "nodes": [{"id": 4, "name": "x"}, {"id": 5, "name": "y"},
+                   {"id": 6, "name": "z"}],
+         "edges": [{"source_id": 4, "target_id": 5, "relation": "r"},
+                   {"source_id": 5, "target_id": 6, "relation": "s"}]},
     ]
     monkeypatch.setattr("app.pipelines.text_evidence", lambda *args, **kwargs: texts)
     monkeypatch.setattr("app.pipelines.graph_evidence",
@@ -30,3 +44,5 @@ def test_e5_arms_match_actual_word_budget_and_control_slots(monkeypatch):
     assert len(set(totals.values())) == 1
     assert len(arms["G2"]["evidence"]) == len(arms["X1"]["evidence"]) == len(arms["X2"]["evidence"])
     assert not {"g1", "g2"} & {item["id"] for item in arms["X2"]["evidence"]}
+    assert arms["X1"]["control_complete"] is True
+    assert arms["X2"]["control_complete"] is True
