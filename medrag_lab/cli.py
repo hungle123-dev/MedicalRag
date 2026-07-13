@@ -172,6 +172,7 @@ def parser() -> argparse.ArgumentParser:
     )
     context.add_argument("--limit", type=int)
     context.add_argument("--retrieval-predictions", type=Path)
+    context.add_argument("--evidence-predictions", type=Path)
     context_generation = experiment_commands.add_parser("generate-contexts")
     context_generation.add_argument("--family", required=True)
     context_generation.add_argument("--arm", required=True)
@@ -375,6 +376,7 @@ def main() -> None:
                     diversity=args.diversity,
                     evidence_strategy=args.evidence_strategy,
                     retrieval_predictions=args.retrieval_predictions,
+                    evidence_predictions=args.evidence_predictions,
                     limit=args.limit,
                 ),
                 indent=2,

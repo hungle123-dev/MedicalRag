@@ -16,6 +16,7 @@ from medrag_lab.data.manifests import sha256, stable_hash
 from medrag_lab.evaluation.bioasq import rouge_su4
 from medrag_lab.evaluation.semantic import bertscore, rouge2
 from medrag_lab.evaluation.statistics import nearest_rank_percentile
+from medrag_lab.evidence.snippets import Snippet
 from medrag_lab.experiments.runner import _write_jsonl, git_sha
 from medrag_lab.generation.gateway import GatewayClient
 from medrag_lab.generation.prompts import (
@@ -67,6 +68,29 @@ def _prompt(style: PromptStyle, gold_type: str | None = None) -> str:
     }[style]
 
 
+def _frozen_snippets(
+    annotations: list[dict[str, Any]], corpus: dict[str, dict[str, Any]]
+) -> list[Snippet]:
+    snippets = []
+    for rank, annotation in enumerate(annotations, 1):
+        pmid = str(annotation["document"]).rstrip("/").rsplit("/", 1)[-1]
+        if pmid not in corpus:
+            raise ValueError(f"Evidence PMID {pmid} is not in the frozen corpus")
+        snippets.append(
+            Snippet(
+                pmid=pmid,
+                title=str(corpus[pmid].get("title", "")),
+                text=str(annotation["text"]),
+                score=float(len(annotations) - rank + 1),
+                url=str(corpus[pmid].get("url") or f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"),
+                section=str(annotation.get("beginSection", "abstract")),
+                begin=annotation.get("offsetInBeginSection"),
+                end=annotation.get("offsetInEndSection"),
+            )
+        )
+    return snippets
+
+
 def prepare_contexts(
     family: str,
     arm: str,
@@ -78,6 +102,7 @@ def prepare_contexts(
     diversity: str = "none",
     evidence_strategy: str = "sentence3",
     retrieval_predictions: Path | None = None,
+    evidence_predictions: Path | None = None,
     limit: int | None = None,
 ) -> dict[str, Any]:
     """Create a sealed gold-free context artifact that multiple generation arms can reuse."""
@@ -97,9 +122,12 @@ def prepare_contexts(
         "diversity": diversity,
         "evidence_strategy": evidence_strategy,
     }
-    runtime_overrides = overrides | ({"retriever": "bm25"} if retrieval_predictions else {})
+    runtime_overrides = overrides | (
+        {"retriever": "bm25"} if retrieval_predictions or evidence_predictions else {}
+    )
     pipeline = MedicalRAGPipeline(pipeline_id, config_override=runtime_overrides)
     frozen_retrieval: dict[str, dict[str, Any]] = {}
+    frozen_evidence: dict[str, dict[str, Any]] = {}
     corpus: dict[str, dict[str, Any]] = {}
     if retrieval_predictions is not None:
         frozen_retrieval = {
@@ -109,6 +137,15 @@ def prepare_contexts(
         }
         if set(frozen_retrieval) != {question.question_id for question in questions}:
             raise ValueError("Frozen retrieval artifact does not cover context questions exactly")
+    if evidence_predictions is not None:
+        frozen_evidence = {
+            str(row["question_id"]): row
+            for row in iter_jsonl(evidence_predictions)
+            if str(row["question_id"]) in {question.question_id for question in questions}
+        }
+        if set(frozen_evidence) != {question.question_id for question in questions}:
+            raise ValueError("Frozen evidence artifact does not cover context questions exactly")
+    if frozen_retrieval or frozen_evidence:
         corpus = {
             str(row["id"]): row for row in iter_jsonl(config.medrag_data_dir / "corpus.jsonl")
         }
@@ -122,6 +159,9 @@ def prepare_contexts(
         "overrides": overrides,
         "retrieval_source_sha256": sha256(retrieval_predictions)
         if retrieval_predictions
+        else "live_pipeline",
+        "evidence_source_sha256": sha256(evidence_predictions)
+        if evidence_predictions
         else "live_pipeline",
         "split_freeze_hash": splits["freeze_hash"],
         "git_sha": git_sha(),
@@ -138,6 +178,7 @@ def prepare_contexts(
         for question in questions:
             try:
                 documents_override = None
+                evidence_override = None
                 if frozen_retrieval:
                     pmids = list(
                         map(
@@ -163,8 +204,13 @@ def prepare_contexts(
                         for rank, pmid in enumerate(pmids, 1)
                         if pmid in corpus
                     ]
+                if frozen_evidence:
+                    annotations = list(frozen_evidence[question.question_id]["snippets"])
+                    evidence_override = _frozen_snippets(annotations, corpus)
                 prepared = pipeline.prepare_context(
-                    question.question, documents_override=documents_override
+                    question.question,
+                    documents_override=documents_override,
+                    evidence_override=evidence_override,
                 )
                 evidence_set = sorted(
                     (item.pmid, item.section, item.begin, item.end, item.text)

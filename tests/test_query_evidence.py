@@ -6,6 +6,7 @@ from medrag_lab.evidence.chunking import fixed_token_chunks
 from medrag_lab.evidence.packing import source_diverse, strongest_in_middle
 from medrag_lab.evidence.snippets import Snippet, sentence_windows
 from medrag_lab.experiments import evidence
+from medrag_lab.experiments.generation import _frozen_snippets
 from medrag_lab.query.mesh import MeshExpander
 from medrag_lab.schemas import RetrievedDocument
 
@@ -87,3 +88,19 @@ def test_merge_evidence_shards_requires_exact_coverage(tmp_path, monkeypatch) ->
     result = evidence.merge_evidence_shards(paths, "selection4849", "sentence3_cross_encoder")
     assert result["metrics"]["questions"] == 2
     assert Path(result["artifacts"]["predictions"]).name == "predictions.jsonl"
+
+
+def test_frozen_e04_annotations_preserve_order_and_offsets() -> None:
+    annotations = [
+        {
+            "document": "https://pubmed.ncbi.nlm.nih.gov/123/",
+            "text": "evidence",
+            "beginSection": "abstract",
+            "offsetInBeginSection": 4,
+            "offsetInEndSection": 12,
+        }
+    ]
+    snippets = _frozen_snippets(annotations, {"123": {"title": "Title", "url": "u"}})
+    assert [(item.pmid, item.text, item.begin, item.end) for item in snippets] == [
+        ("123", "evidence", 4, 12)
+    ]
