@@ -1,0 +1,16 @@
+{
+  "gate_id": "E02_RRF_RERANK",
+  "quality_comparison_hash": "9bcace2e532d2b19af8edc7a34347faad71c23ac7172a60b08c3889cc9b62bd4",
+  "efficiency_runs": [
+    "reports\\runs\\E02-rrf-smoke40-c31bc95810.json",
+    "reports\\runs\\E02-rrf_rerank-smoke40-a7a6b54c1a.json"
+  ],
+  "passed": true,
+  "checks": {
+    "minimum_effect": true,
+    "positive_paired_ci": true,
+    "failure_guard": true,
+    "latency_guard": true
+  },
+  "gate_hash": "5755be8ed08db103fa948eff579d09cac85da67999fb236fc8424dfb0d62bada"
+}

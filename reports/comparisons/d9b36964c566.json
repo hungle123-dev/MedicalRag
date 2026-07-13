@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E04-full_document_fields-selection4849-54e5a968f7\\predictions.jsonl",
+  "right": "artifacts\\runs\\E04-sentence3_bm25-selection4849-238fb00df2\\predictions.jsonl",
+  "metric": "metrics.f1",
+  "require_equal_evidence": false,
+  "rows": 4849,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.03754251868054702,
+    "ci95_low": 0.0349031347727112,
+    "ci95_high": 0.0402537836674122
+  },
+  "paired_effect_size": 0.4005124442376864,
+  "paired_permutation_p": 9.999000099990002e-05,
+  "normal_approx_mde_80": 0.003777658527018205,
+  "comparison_hash": "d9b36964c5669051a17c18f6cb3ef5406f0c16a02c5027310034151025353d07"
+}

@@ -1,0 +1,15 @@
+{
+  "gate_id": "E04_SENTENCE3_VS_FULL",
+  "family": "E04",
+  "comparison_hash": "d9b36964c5669051a17c18f6cb3ef5406f0c16a02c5027310034151025353d07",
+  "baseline": "reports\\runs\\E04-full_document_fields-selection4849-54e5a968f7.json",
+  "candidate": "reports\\runs\\E04-sentence3_bm25-selection4849-238fb00df2.json",
+  "checks": {
+    "minimum_effect": true,
+    "positive_paired_ci": true,
+    "failure_guard": true,
+    "same_population_size": true
+  },
+  "passed": true,
+  "gate_hash": "9749cbcbd6c84971786608a8a5528f13db1510dfd7a2dc11d8d123fdd58ee7b9"
+}

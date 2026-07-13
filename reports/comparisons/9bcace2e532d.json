@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E02-rrf-selection4849-7851f55c34\\predictions.jsonl",
+  "right": "artifacts\\runs\\E02-rrf_rerank_recovered-selection4849-0e2697da63\\predictions.jsonl",
+  "metric": "metrics.ap",
+  "require_equal_evidence": false,
+  "rows": 4849,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.044237109257136704,
+    "ci95_low": 0.03839372154169037,
+    "ci95_high": 0.05011014901443679
+  },
+  "paired_effect_size": 0.21269268483087433,
+  "paired_permutation_p": 9.999000099990002e-05,
+  "normal_approx_mde_80": 0.00837600708831633,
+  "comparison_hash": "9bcace2e532d2b19af8edc7a34347faad71c23ac7172a60b08c3889cc9b62bd4"
+}
