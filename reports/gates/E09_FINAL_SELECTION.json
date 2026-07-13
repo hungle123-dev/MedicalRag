@@ -1,0 +1,58 @@
+{
+  "gate_id": "E09_FINAL_SELECTION",
+  "family": "E09",
+  "status": "complete",
+  "decision": "predicted_type_schema",
+  "selection_rule": "Prefer zero-failure deployable prompts; among them retain the highest observed answer and question-type scores. Treat confidence intervals crossing zero as inconclusive, not superiority.",
+  "population": "generation160",
+  "controls": [
+    "cerebras/gpt-oss-120b",
+    "byte-identical contexts",
+    "temperature 0",
+    "JSON object response format",
+    "shared parser and scorer",
+    "two workers"
+  ],
+  "arms": {
+    "generic_structured": {
+      "rouge_su4_f1": 0.13325615087671433,
+      "question_type_accuracy": 0.79375,
+      "failure_rate": 0.0
+    },
+    "citation_constraint": {
+      "rouge_su4_f1": 0.13509135843062964,
+      "question_type_accuracy": 0.775,
+      "failure_rate": 0.01875
+    },
+    "predicted_type_schema": {
+      "rouge_su4_f1": 0.14268583853532052,
+      "question_type_accuracy": 0.825,
+      "failure_rate": 0.0
+    },
+    "gold_type_oracle": {
+      "rouge_su4_f1": 0.14000863070631453,
+      "question_type_accuracy": 0.98125,
+      "failure_rate": 0.01875,
+      "deployable": false
+    }
+  },
+  "paired_findings": {
+    "citation_minus_generic": {
+      "delta": 0.0018352075539152881,
+      "ci95": [-0.00748781006003825, 0.011047129496930663]
+    },
+    "predicted_type_minus_citation": {
+      "delta": 0.007594480104690916,
+      "ci95": [-0.0031342440217008586, 0.018810220751085]
+    },
+    "predicted_type_minus_generic": {
+      "delta": 0.009429687658606203,
+      "ci95": [-0.0015435990658841975, 0.02169195245039291]
+    },
+    "gold_type_oracle_minus_predicted_type": {
+      "delta": -0.002677207829006001,
+      "ci95": [-0.011505106828000744, 0.006336048170531805]
+    }
+  },
+  "interpretation": "Predicted-type schema is the best observed deployable arm, but its ROUGE advantage is not statistically resolved on 160 questions. Gold type nearly eliminates type mistakes yet does not improve answer ROUGE, so question-type inference is not the dominant bottleneck."
+}

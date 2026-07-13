@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E09-predicted_type_schema-generation160-5cdcb61d50\\scored.jsonl",
+  "right": "artifacts\\runs\\E09-gold_type_oracle-generation160-d2bbdb570f\\scored.jsonl",
+  "metric": "rouge_su4.f1",
+  "require_equal_evidence": true,
+  "rows": 160,
+  "bootstrap": {
+    "mean_delta_right_minus_left": -0.002677207829006001,
+    "ci95_low": -0.011505106828000744,
+    "ci95_high": 0.006336048170531805
+  },
+  "paired_effect_size": -0.045689803138702155,
+  "paired_permutation_p": 0.5689431056894311,
+  "normal_approx_mde_80": 0.01297796640131988,
+  "comparison_hash": "912ac798dfdd313a424a7d221d3329a480e212a123a2f7193ea5db6b0a9ea9f2"
+}

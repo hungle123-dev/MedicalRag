@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E09-citation_constraint-generation160-b45011aede\\scored.jsonl",
+  "right": "artifacts\\runs\\E09-predicted_type_schema-generation160-5cdcb61d50\\scored.jsonl",
+  "metric": "rouge_su4.f1",
+  "require_equal_evidence": true,
+  "rows": 160,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.007594480104690916,
+    "ci95_low": -0.0031342440217008586,
+    "ci95_high": 0.018810220751085
+  },
+  "paired_effect_size": 0.10788065268430855,
+  "paired_permutation_p": 0.1728827117288271,
+  "normal_approx_mde_80": 0.015591874461660443,
+  "comparison_hash": "e32891a0de321f06831cdc11ee9f488a0125be7cc37af573abfc9d2d96e994f1"
+}

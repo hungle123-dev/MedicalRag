@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E09-generic_structured-generation160-b1088d2789\\scored.jsonl",
+  "right": "artifacts\\runs\\E09-predicted_type_schema-generation160-5cdcb61d50\\scored.jsonl",
+  "metric": "rouge_su4.f1",
+  "require_equal_evidence": true,
+  "rows": 160,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.009429687658606203,
+    "ci95_low": -0.0015435990658841975,
+    "ci95_high": 0.02169195245039291
+  },
+  "paired_effect_size": 0.1261078654722404,
+  "paired_permutation_p": 0.1070892910708929,
+  "normal_approx_mde_80": 0.01656147368708277,
+  "comparison_hash": "bf91afd7c86c9d4a3a02d013be7df73895b42f57bcfecb002aa287b48ab27525"
+}
