@@ -6,24 +6,23 @@ from typing import Any
 from medrag_lab.schemas import RetrievedDocument
 
 CROSS_ENCODER = "ncbi/MedCPT-Cross-Encoder"
+CROSS_ENCODER_REVISION = "71caf65d4927987813984f54c284405a13fcca49"
 
 
 class MedCPTReranker:
     def __init__(self, device: str | None = None):
         import torch
-        from huggingface_hub import model_info
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-        revision = model_info(CROSS_ENCODER).sha
-        if not revision:
-            raise RuntimeError("Could not resolve MedCPT cross-encoder revision")
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        self.tokenizer = AutoTokenizer.from_pretrained(CROSS_ENCODER, revision=revision)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            CROSS_ENCODER, revision=CROSS_ENCODER_REVISION
+        )
         self.model: Any = AutoModelForSequenceClassification.from_pretrained(
-            CROSS_ENCODER, revision=revision
+            CROSS_ENCODER, revision=CROSS_ENCODER_REVISION
         ).to(self.device)
         self.model.eval()
-        self.revision = revision
+        self.revision = CROSS_ENCODER_REVISION
         self.last_effective_batch_size = 0
 
     def rerank(

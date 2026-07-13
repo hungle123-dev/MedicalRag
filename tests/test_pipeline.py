@@ -5,6 +5,7 @@ import pytest
 from medrag_lab.generation.schemas import GatewayResult, GeneratedAnswer
 from medrag_lab.indexing.bm25 import BM25Index
 from medrag_lab.pipeline import MedicalRAGPipeline, load_pipeline_config
+from medrag_lab.retrieval.reranker import CROSS_ENCODER_REVISION
 from medrag_lab.schemas import AnswerRequest
 from medrag_lab.tracking.traces import TraceStore
 
@@ -34,6 +35,7 @@ class FailingGateway:
 
 def test_reranker_batch_size_is_frozen_to_measured_value() -> None:
     assert load_pipeline_config("rrf_rerank_rag")["rerank_batch_size"] == 64
+    assert CROSS_ENCODER_REVISION == "71caf65d4927987813984f54c284405a13fcca49"
 
 
 def test_shared_pipeline_filters_hallucinated_citations(tmp_path: Path) -> None:
