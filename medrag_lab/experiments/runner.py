@@ -810,6 +810,9 @@ def run_query_retrieval(
     predictions = []
     latencies = []
     transform_latencies: list[float] = []
+    transform_cached = [False] * len(questions)
+    transform_input_tokens = [0] * len(questions)
+    transform_output_tokens = [0] * len(questions)
     transformed: list[str | None] = [None] * len(questions)
     transform_errors: dict[int, str] = {}
     if strategy == "original":
@@ -822,10 +825,16 @@ def run_query_retrieval(
             transform_latencies.append((time.perf_counter() - started) * 1_000)
     elif hyde:
 
-        def expand(index: int) -> tuple[int, str, float]:
-            started = time.perf_counter()
-            value = hyde.expand(str(questions[index]["question"])).expanded
-            return index, value, (time.perf_counter() - started) * 1_000
+        def expand(index: int) -> tuple[int, str, float, bool, int, int]:
+            value = hyde.expand(str(questions[index]["question"]))
+            return (
+                index,
+                value.expanded,
+                value.latency_ms,
+                value.cached,
+                value.input_tokens,
+                value.output_tokens,
+            )
 
         measured = [0.0] * len(questions)
         with ThreadPoolExecutor(max_workers=workers) as executor:
@@ -833,9 +842,12 @@ def run_query_retrieval(
             for future in as_completed(futures):
                 index = futures[future]
                 try:
-                    _, value, latency = future.result()
+                    _, value, latency, cached, input_tokens, output_tokens = future.result()
                     transformed[index] = value
                     measured[index] = latency
+                    transform_cached[index] = cached
+                    transform_input_tokens[index] = input_tokens
+                    transform_output_tokens[index] = output_tokens
                 except Exception as exc:
                     transform_errors[index] = type(exc).__name__
         transform_latencies = measured
@@ -867,6 +879,7 @@ def run_query_retrieval(
                         "ranked_pmids": ranked,
                         "latency_ms": latency,
                         "query_transform_ms": transform_latencies[index],
+                        "query_transform_cached": transform_cached[index],
                         "metrics": top10 | {"recall_at_100": top100["recall"]},
                         "failed": False,
                     }
@@ -902,6 +915,11 @@ def run_query_retrieval(
             "query_transform_ms_p50": statistics.median(transform_latencies)
             if transform_latencies
             else 0,
+            "query_transform_cache_rate": statistics.fmean(map(float, transform_cached))
+            if transform_cached
+            else 0,
+            "query_transform_input_tokens": sum(transform_input_tokens),
+            "query_transform_output_tokens": sum(transform_output_tokens),
         }
         summary = {
             "created_at": datetime.now(UTC).isoformat(),

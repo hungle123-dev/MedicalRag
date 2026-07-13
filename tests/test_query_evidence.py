@@ -7,6 +7,8 @@ from medrag_lab.evidence.packing import source_diverse, strongest_in_middle
 from medrag_lab.evidence.snippets import Snippet, document_snippet_candidates, sentence_windows
 from medrag_lab.experiments import evidence
 from medrag_lab.experiments.generation import _frozen_snippets
+from medrag_lab.generation.schemas import GatewayResult, GeneratedAnswer
+from medrag_lab.query.hyde import HyDEExpander
 from medrag_lab.query.mesh import MeshExpander
 from medrag_lab.schemas import RetrievedDocument
 
@@ -124,3 +126,37 @@ def test_frozen_e04_annotations_preserve_order_and_offsets() -> None:
     assert [(item.pmid, item.text, item.begin, item.end) for item in snippets] == [
         ("123", "evidence", 4, 12)
     ]
+
+
+def test_hyde_preserves_original_gateway_cost_when_cached() -> None:
+    result = GatewayResult(
+        answer=GeneratedAnswer(
+            predicted_type="summary",
+            exact_answer=None,
+            ideal_answer="A hypothetical abstract.",
+            citation_pmids=[],
+        ),
+        model="test",
+        provider="test",
+        latency_ms=123,
+        cached=True,
+        input_tokens=7,
+        output_tokens=9,
+    )
+
+    class FakeGateway:
+        def generate(self, **_):
+            return result
+
+    expanded = HyDEExpander(FakeGateway()).expand("Question?")  # type: ignore[arg-type]
+    assert (
+        expanded.latency_ms,
+        expanded.cached,
+        expanded.input_tokens,
+        expanded.output_tokens,
+    ) == (
+        123,
+        True,
+        7,
+        9,
+    )

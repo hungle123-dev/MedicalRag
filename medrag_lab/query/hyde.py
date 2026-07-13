@@ -14,6 +14,10 @@ citation_pmids=[], abstained=false, and evidence_support_score=null."""
 class HyDEQuery:
     original: str
     hypothetical_document: str
+    latency_ms: float
+    cached: bool
+    input_tokens: int
+    output_tokens: int
 
     @property
     def expanded(self) -> str:
@@ -32,4 +36,11 @@ class HyDEExpander:
             model=self.model,
             max_output_tokens=300,
         )
-        return HyDEQuery(question, result.answer.ideal_answer)
+        return HyDEQuery(
+            question,
+            result.answer.ideal_answer,
+            result.latency_ms,
+            result.cached,
+            result.input_tokens,
+            result.output_tokens,
+        )
