@@ -1,0 +1,9 @@
+{
+  "invariant_id": "E05_CANDIDATES_600_1200",
+  "key": "candidate_evidence_hash",
+  "rows": 160,
+  "mismatches": 0,
+  "mismatch_examples": [],
+  "passed": true,
+  "invariant_hash": "c32ca11d6ad3daa686dc2bb2ad22e55b89af77df1296fc56768f373abd5f1a24"
+}
