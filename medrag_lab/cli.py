@@ -167,7 +167,7 @@ def parser() -> argparse.ArgumentParser:
     context.add_argument("--diversity", choices=("none", "one_per_pmid"), default="none")
     context.add_argument(
         "--evidence-strategy",
-        choices=("full_abstract", "fixed256", "sentence3"),
+        choices=("full_abstract", "fixed256", "sentence3", "sentence3_cross_encoder"),
         default="sentence3",
     )
     context.add_argument("--limit", type=int)

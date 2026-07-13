@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 from medrag_lab.evidence.chunking import fixed_token_chunks
 from medrag_lab.evidence.packing import source_diverse, strongest_in_middle
-from medrag_lab.evidence.snippets import Snippet, sentence_windows
+from medrag_lab.evidence.snippets import Snippet, document_snippet_candidates, sentence_windows
 from medrag_lab.experiments import evidence
 from medrag_lab.experiments.generation import _frozen_snippets
 from medrag_lab.query.mesh import MeshExpander
@@ -58,6 +58,26 @@ def test_evidence_chunks_preserve_bioasq_character_offsets() -> None:
     for chunk in fixed_token_chunks([document], size=32, overlap=8):
         assert chunk.begin is not None and chunk.end is not None
         assert text[chunk.begin : chunk.end] == chunk.text
+
+
+def test_e04_candidate_pool_is_title_first() -> None:
+    documents = [
+        RetrievedDocument(
+            pmid=str(index),
+            title=f"Title {index}",
+            text="First sentence. Second sentence.",
+            url="u",
+            score=1,
+            rank=index,
+            retriever="test",
+        )
+        for index in (1, 2)
+    ]
+    candidates = document_snippet_candidates(documents)
+    assert [(item.pmid, item.section) for item in candidates[:2]] == [
+        ("1", "title"),
+        ("2", "title"),
+    ]
 
 
 def test_merge_evidence_shards_requires_exact_coverage(tmp_path, monkeypatch) -> None:

@@ -13,7 +13,11 @@ from medrag_lab.data.loaders import iter_jsonl
 from medrag_lab.data.manifests import sha256, stable_hash
 from medrag_lab.evaluation.bioasq import snippet_span_f1
 from medrag_lab.evidence.chunking import fixed_token_chunks
-from medrag_lab.evidence.snippets import Snippet, sentence_windows
+from medrag_lab.evidence.snippets import (
+    Snippet,
+    document_snippet_candidates,
+    rank_snippets_cross_encoder,
+)
 from medrag_lab.experiments.runner import _write_jsonl, git_sha
 from medrag_lab.indexing.bm25 import tokenize
 from medrag_lab.schemas import RetrievedDocument
@@ -62,29 +66,6 @@ def _rank_bm25(question: str, candidates: list[Snippet], limit: int) -> list[Sni
         key=lambda pair: (-float(scores[pair[0]]), -pair[1].score, pair[0]),
     )[:limit]
     return [Snippet(**(vars(item) | {"score": float(scores[index])})) for index, item in ranked]
-
-
-def _rank_cross(
-    question: str, candidates: list[Snippet], reranker: Any, limit: int
-) -> tuple[list[Snippet], float]:
-    documents = [
-        RetrievedDocument(
-            pmid=item.pmid,
-            title=item.title,
-            text=item.text,
-            url=f"snippet://{index}",
-            score=item.score,
-            rank=index + 1,
-            retriever="snippet_candidate",
-        )
-        for index, item in enumerate(candidates)
-    ]
-    ranked, latency = reranker.rerank(question, documents, limit)
-    selected = []
-    for row in ranked:
-        index = int(row.url.removeprefix("snippet://"))
-        selected.append(Snippet(**(vars(candidates[index]) | {"score": row.score})))
-    return selected, latency
 
 
 def _annotation(snippet: Snippet) -> dict[str, Any]:
@@ -197,14 +178,12 @@ def run_evidence_retrieval(
                     )
                     latency = 0.0
                 else:
-                    candidates = title_candidates + [
-                        snippet for document in documents for snippet in sentence_windows(document)
-                    ]
+                    candidates = document_snippet_candidates(documents)
                     if arm == "sentence3_bm25":
                         selected = _rank_bm25(str(row["question"]), candidates, 20)
                         latency = 0.0
                     else:
-                        selected, latency = _rank_cross(
+                        selected, latency = rank_snippets_cross_encoder(
                             str(row["question"]), candidates, reranker, 20
                         )
                 predicted = [_annotation(item) for item in selected]

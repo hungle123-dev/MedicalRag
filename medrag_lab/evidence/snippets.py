@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Any
 
 from medrag_lab.indexing.bm25 import tokenize
 from medrag_lab.schemas import RetrievedDocument
@@ -81,3 +82,44 @@ def rank_snippets(
             )
     candidates.sort(key=lambda item: (-item.score, item.pmid, item.text))
     return candidates[:limit]
+
+
+def document_snippet_candidates(documents: list[RetrievedDocument]) -> list[Snippet]:
+    """Build the exact title-first, then three-sentence candidate pool used by E04."""
+    titles = [
+        Snippet(
+            pmid=document.pmid,
+            title=document.title,
+            text=document.title,
+            score=document.score,
+            url=document.url,
+            section="title",
+            begin=0,
+            end=len(document.title),
+        )
+        for document in documents
+    ]
+    return titles + [snippet for document in documents for snippet in sentence_windows(document)]
+
+
+def rank_snippets_cross_encoder(
+    question: str, candidates: list[Snippet], reranker: Any, limit: int
+) -> tuple[list[Snippet], float]:
+    documents = [
+        RetrievedDocument(
+            pmid=item.pmid,
+            title=item.title,
+            text=item.text,
+            url=f"snippet://{index}",
+            score=item.score,
+            rank=index + 1,
+            retriever="snippet_candidate",
+        )
+        for index, item in enumerate(candidates)
+    ]
+    ranked, latency = reranker.rerank(question, documents, limit)
+    selected = []
+    for row in ranked:
+        index = int(row.url.removeprefix("snippet://"))
+        selected.append(Snippet(**(vars(candidates[index]) | {"score": row.score})))
+    return selected, latency

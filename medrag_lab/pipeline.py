@@ -14,7 +14,12 @@ from medrag_lab.evidence.packing import (
     source_diverse,
     strongest_in_middle,
 )
-from medrag_lab.evidence.snippets import Snippet, rank_snippets
+from medrag_lab.evidence.snippets import (
+    Snippet,
+    document_snippet_candidates,
+    rank_snippets,
+    rank_snippets_cross_encoder,
+)
 from medrag_lab.generation.gateway import GatewayClient
 from medrag_lab.generation.prompts import SYSTEM_PROMPT, answer_prompt, prompt_hash
 from medrag_lab.indexing.bm25 import BM25Index
@@ -58,7 +63,10 @@ class MedicalRAGPipeline:
             from medrag_lab.retrieval.dense import MedCPTRetriever
 
             self.dense = MedCPTRetriever()
-        if retriever == "rrf_rerank":
+        if (
+            retriever == "rrf_rerank"
+            or self.config.get("evidence_strategy") == "sentence3_cross_encoder"
+        ):
             from medrag_lab.retrieval.reranker import MedCPTReranker
 
             self.reranker = MedCPTReranker()
@@ -213,6 +221,10 @@ class MedicalRAGPipeline:
         limit = int(self.config["snippet_limit"])
         if strategy == "sentence3":
             return rank_snippets(question, documents, limit)
+        if strategy == "sentence3_cross_encoder" and self.reranker:
+            return rank_snippets_cross_encoder(
+                question, document_snippet_candidates(documents), self.reranker, limit
+            )[0]
         if strategy == "fixed256":
             chunks = fixed_token_chunks(documents)
             terms = set(question.casefold().split())
