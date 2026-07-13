@@ -47,7 +47,7 @@ def main() -> None:
     load_dotenv(ROOT)
     id_manifest = ROOT / f"data/manifests/bioasq_{'dev' if args.split == 'dev' else 'eval'}_question_ids.json"
     frozen = json.loads(id_manifest.read_text(encoding="utf-8"))
-    excluded = args.exclude_first if args.exclude_first is not None else (5 if args.split == "dev" else 0)
+    excluded = args.exclude_first if args.exclude_first is not None else (20 if args.split == "dev" else 0)
     available_ids = frozen["ids"][excluded:]
     count = args.questions if args.questions is not None else (50 if args.split == "dev" else len(available_ids))
     ids = available_ids[:count]

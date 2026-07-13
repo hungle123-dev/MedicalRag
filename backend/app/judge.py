@@ -44,7 +44,8 @@ def validate_judgement(task: str, parsed: dict) -> None:
                 "confidence": (0, 1)})
     required = {"claims", "justification", *numeric}
     if not isinstance(parsed, dict) or not required.issubset(parsed):
-        raise ValueError("Judge response is missing required fields")
+        keys = sorted(parsed) if isinstance(parsed, dict) else [type(parsed).__name__]
+        raise ValueError(f"Judge response is missing required fields; keys={keys}")
     for key, (minimum, maximum) in numeric.items():
         if not isinstance(parsed[key], (int, float)) or not minimum <= float(parsed[key]) <= maximum:
             raise ValueError(f"Judge field {key} is outside its rubric")
@@ -89,4 +90,4 @@ class GatewayJudge:
                 last_error = exc
                 if attempt < 2:
                     time.sleep(2 ** attempt)
-        raise RuntimeError(f"Judge failed after 3 attempts: {type(last_error).__name__}")
+        raise RuntimeError(f"Judge failed after 3 attempts: {type(last_error).__name__}: {last_error}")

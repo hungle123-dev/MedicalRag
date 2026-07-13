@@ -60,7 +60,7 @@ npm run dev
 
 Copy `.env.example` to `.env`, set `OPENAI_API_KEY`, and switch `MEDICAL_RAG_GENERATOR=gateway` for real generation. Keep `mock` for quota-free flow tests. Keys are loaded only by the backend, never accepted by the frontend, logged or committed.
 
-The frozen 5-question dev calibration selected `deepseek-v3.2` as generator and `cerebras/gpt-oss-120b` as the independent structured judge. Qwen and DeepSeek tied on the recorded judge/citation metrics; DeepSeek won only the predeclared latency tie-break, so this is an operational choice rather than a medical-quality claim.
+The frozen 20-question dev calibration selected `deepseek-v3.2` as generator and `cerebras/gpt-oss-120b` as the independent structured judge. DeepSeek scored higher on correctness/completeness; Qwen had fewer unsupported claims. The next E5 population excludes all 20 selection questions.
 
 ## Experiments and checks
 

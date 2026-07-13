@@ -285,7 +285,7 @@ Frozen QA IDs + gold PMID/snippets/ideal answer → shared harness
         <article class="card"><h3>Matched controls</h3><p>A3: extra text cùng token · A4: random path match relation/hop/degree; fallback adjacent degree bucket → same relation/hop. Không match được vẫn giữ câu và báo unmatched.</p></article>
         <article class="card"><h3>Fairness control</h3><p>B3 và G2 dùng cùng generator, prompt, test set và tổng evidence token budget.</p></article>
       </div>
-      <div class="table-wrap" style="margin-top:14px"><table><caption>Generator robustness — dev-only, cùng evidence cache.</caption><thead><tr><th>ID</th><th>Generator</th><th>Sample</th><th>Mục đích</th></tr></thead><tbody><tr><td class="id">M1</td><td>DeepSeek V3.2</td><td>Frozen dev IDs</td><td>Generator core được chọn sau calibration.</td></tr><tr><td class="id">M2</td><td>Qwen 3.5 397B-A17B</td><td>Đúng evidence của M1</td><td>Kiểm tra độ nhạy theo model; không mở rộng full factorial.</td></tr></tbody></table></div>
+      <div class="table-wrap" style="margin-top:14px"><table><caption>Generator robustness — dev-only, cùng evidence cache.</caption><thead><tr><th>ID</th><th>Generator</th><th>Sample</th><th>Mục đích</th></tr></thead><tbody><tr><td class="id">M1</td><td>DeepSeek V3.2</td><td>20 frozen dev IDs</td><td>Generator core được chọn bằng quality-first rule.</td></tr><tr><td class="id">M2</td><td>Qwen 3.5 397B-A17B</td><td>Đúng 20 IDs/evidence của M1</td><td>Robustness; ít unsupported claim hơn nhưng correctness/completeness thấp hơn.</td></tr></tbody></table></div>
     </section>
 
     <section id="evaluation">
@@ -481,7 +481,7 @@ Evaluator          reads only frozen experiment IDs from registry</pre></div>
         <li><a href="https://aclanthology.org/2024.bionlp-1.13/">KG-Rank paper</a></li>
         <li><a href="https://github.com/ImprintLab/Medical-Graph-RAG">Medical Graph RAG repository</a></li>
         <li><a href="https://api.futureppo.top/">Gateway OpenAI-compatible đang dùng (model-list cần credential)</a></li>
-        <li><code>data/manifests/generator_calibration_dev_5_20260713.json</code> — quyết định model có thể replay</li>
+        <li><code>data/manifests/generator_calibration_dev_20_20260713.json</code> — quyết định model có thể replay</li>
         <li><a href="https://github.com/plannotator/effective-html">effective-html style source</a></li>
       </ul>
     </section>
