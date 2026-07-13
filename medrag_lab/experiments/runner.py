@@ -727,6 +727,7 @@ def run_query_retrieval(
     bm25_recipe: Recipe = "boosted_title_abstract_mesh",
     retriever: str = "rrf",
     workers: int = 4,
+    query_model: str = "gemini-2.5-flash-lite",
 ) -> dict[str, Any]:
     if strategy not in {"original", "mesh", "hyde"}:
         raise ValueError("strategy must be original, mesh, or hyde")
@@ -754,7 +755,7 @@ def run_query_retrieval(
     sparse = BM25Index.load(build_bm25(bm25_recipe))
     dense = MedCPTRetriever()
     mesh = MeshExpander(config.medrag_data_dir / "corpus.jsonl") if strategy == "mesh" else None
-    hyde = HyDEExpander(GatewayClient()) if strategy == "hyde" else None
+    hyde = HyDEExpander(GatewayClient(), model=query_model) if strategy == "hyde" else None
     reranker = None
     if retriever == "rrf_rerank":
         from medrag_lab.retrieval.reranker import MedCPTReranker
@@ -775,7 +776,7 @@ def run_query_retrieval(
         from medrag_lab.query.hyde import HYDE_SYSTEM
 
         run_config |= {
-            "query_generator_model": settings().gateway_generator_model,
+            "query_generator_model": query_model,
             "hyde_prompt_hash": stable_hash(HYDE_SYSTEM),
         }
     if reranker:
