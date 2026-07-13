@@ -47,7 +47,7 @@ families:
     population: selection4849
     primary_metric: snippet_span_f1
     gate: superiority
-    depends_on: [E03, E12.C]
+    depends_on: [E03]
     arms:
       - {id: E04.C01, variant: full_abstract, tier: core}
       - {id: E04.C02, variant: chunk_256_overlap_64_bm25, tier: core}
