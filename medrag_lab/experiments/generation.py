@@ -25,6 +25,7 @@ from medrag_lab.generation.prompts import (
     prompt_hash,
 )
 from medrag_lab.pipeline import MedicalRAGPipeline
+from medrag_lab.schemas import RetrievedDocument
 from medrag_lab.settings import ROOT, settings
 from medrag_lab.tracking.mlflow_tracking import log_artifact, tracked_run
 
@@ -71,6 +72,7 @@ def prepare_contexts(
     context_order: str = "relevance_descending",
     diversity: str = "none",
     evidence_strategy: str = "sentence3",
+    retrieval_predictions: Path | None = None,
     limit: int | None = None,
 ) -> dict[str, Any]:
     """Create a sealed gold-free context artifact that multiple generation arms can reuse."""
@@ -90,7 +92,21 @@ def prepare_contexts(
         "diversity": diversity,
         "evidence_strategy": evidence_strategy,
     }
-    pipeline = MedicalRAGPipeline(pipeline_id, config_override=overrides)
+    runtime_overrides = overrides | ({"retriever": "bm25"} if retrieval_predictions else {})
+    pipeline = MedicalRAGPipeline(pipeline_id, config_override=runtime_overrides)
+    frozen_retrieval: dict[str, dict[str, Any]] = {}
+    corpus: dict[str, dict[str, Any]] = {}
+    if retrieval_predictions is not None:
+        frozen_retrieval = {
+            str(row["question_id"]): row
+            for row in iter_jsonl(retrieval_predictions)
+            if str(row["question_id"]) in {question.question_id for question in questions}
+        }
+        if set(frozen_retrieval) != {question.question_id for question in questions}:
+            raise ValueError("Frozen retrieval artifact does not cover context questions exactly")
+        corpus = {
+            str(row["id"]): row for row in iter_jsonl(config.medrag_data_dir / "corpus.jsonl")
+        }
     run_config = {
         "family": family,
         "arm": arm,
@@ -99,6 +115,9 @@ def prepare_contexts(
         "population": population,
         "rows": len(questions),
         "overrides": overrides,
+        "retrieval_source_sha256": sha256(retrieval_predictions)
+        if retrieval_predictions
+        else "live_pipeline",
         "split_freeze_hash": splits["freeze_hash"],
         "git_sha": git_sha(),
         "purpose": "feasibility_only" if limit is not None else "candidate_evaluation",
@@ -113,7 +132,35 @@ def prepare_contexts(
     with tracked_run(run_name, run_config):
         for question in questions:
             try:
-                prepared = pipeline.prepare_context(question.question)
+                documents_override = None
+                if frozen_retrieval:
+                    pmids = list(
+                        map(
+                            str,
+                            frozen_retrieval[question.question_id]["ranked_pmids"][
+                                : int(pipeline.config["retrieval_k"])
+                            ],
+                        )
+                    )
+                    documents_override = [
+                        RetrievedDocument(
+                            pmid=pmid,
+                            title=str(corpus[pmid].get("title", "")),
+                            text=str(corpus[pmid].get("text", "")),
+                            url=str(
+                                corpus[pmid].get("url")
+                                or f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+                            ),
+                            score=1.0 / rank,
+                            rank=rank,
+                            retriever="frozen_prediction_artifact",
+                        )
+                        for rank, pmid in enumerate(pmids, 1)
+                        if pmid in corpus
+                    ]
+                prepared = pipeline.prepare_context(
+                    question.question, documents_override=documents_override
+                )
                 evidence_set = sorted(
                     (item.pmid, item.section, item.begin, item.end, item.text)
                     for item in prepared.packed

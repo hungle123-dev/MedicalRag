@@ -21,6 +21,7 @@ from medrag_lab.evaluation.statistics import (
     nearest_rank_percentile,
     paired_effect_size,
     paired_group_bootstrap,
+    paired_mde_80,
     paired_permutation_p,
 )
 from medrag_lab.indexing.bm25 import BM25Index, Recipe
@@ -615,6 +616,7 @@ def compare_prediction_files(
         "bootstrap": paired_group_bootstrap(left_values, right_values, groups),
         "paired_effect_size": paired_effect_size(left_values, right_values),
         "paired_permutation_p": paired_permutation_p(left_values, right_values),
+        "normal_approx_mde_80": paired_mde_80(left_values, right_values, groups),
     }
     comparison_hash = stable_hash(result)
     result["comparison_hash"] = comparison_hash
@@ -868,4 +870,64 @@ def run_query_retrieval(
         mlflow.log_metrics({key: float(value) for key, value in metrics.items()})
         log_artifact(prediction_path)
         log_artifact(summary_path)
+    return summary
+
+
+def subset_retrieval_predictions(
+    source_path: Path,
+    population: str,
+    family: str,
+    arm: str,
+) -> dict[str, Any]:
+    """Reuse a frozen superset prediction artifact without rerunning an unchanged baseline."""
+    config = settings()
+    splits = json.loads((ROOT / "data" / "manifests" / "splits.json").read_text("utf-8"))
+    allowed = set(map(str, splits[population]))
+    rows = [row for row in iter_jsonl(source_path) if str(row["question_id"]) in allowed]
+    rows.sort(key=lambda row: str(row["question_id"]))
+    if {str(row["question_id"]) for row in rows} != allowed:
+        raise ValueError("Source prediction file does not cover the requested population")
+    run_config = {
+        "family": family,
+        "arm": arm,
+        "population": population,
+        "rows": len(rows),
+        "source_prediction_sha256": sha256(source_path),
+        "reuse_policy": "exact_frozen_superset_subset_no_reinference",
+        "split_freeze_hash": splits["freeze_hash"],
+        "git_sha": git_sha(),
+        "purpose": "candidate_evaluation",
+    }
+    run_config["config_hash"] = stable_hash(run_config)
+    run_name = f"{family}-{arm}-{population}-{run_config['config_hash'][:10]}"
+    output_dir = config.medrag_artifact_dir / run_name
+    predictions_path, summary_path = output_dir / "predictions.jsonl", output_dir / "summary.json"
+    _write_jsonl(predictions_path, rows)
+    names = ("ap", "recall", "mrr", "ndcg", "hit", "recall_at_100")
+    metrics = {
+        name: statistics.fmean(float(row["metrics"][name]) for row in rows) for name in names
+    }
+    metrics["map_at_10"] = metrics["ap"]
+    failures = sum(bool(row.get("failed")) for row in rows)
+    latencies = [float(row.get("latency_ms", 0.0)) for row in rows]
+    metrics |= {
+        "questions": len(rows),
+        "failures": failures,
+        "failure_rate": failures / len(rows) if rows else 0.0,
+        "latency_ms_p50": statistics.median(latencies) if latencies else 0.0,
+        "latency_ms_p95": nearest_rank_percentile(latencies, 0.95) if latencies else 0.0,
+    }
+    summary = {
+        "created_at": datetime.now(UTC).isoformat(),
+        "status": "observed_real_data_reused_predictions",
+        "scope": "closed-world positive-only gold-conditioned candidate pool",
+        "config": run_config,
+        "metrics": metrics,
+        "artifacts": {"predictions": str(predictions_path.relative_to(ROOT))},
+    }
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    report_path = ROOT / "reports" / "runs" / f"{run_name}.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return summary

@@ -38,22 +38,86 @@ uv run medrag experiment bm25 --recipe boosted_title_abstract_mesh --population 
 
 uv run medrag index build-medcpt --batch-size 16
 uv run medrag experiment retrieval --method medcpt --population selection4849
-uv run medrag experiment retrieval --method rrf --population selection4849
-uv run medrag experiment retrieval --method rrf_rerank --population selection4849
+uv run medrag experiment retrieval --method rrf --population selection4849 `
+  --bm25-recipe boosted_title_abstract_mesh
+uv run medrag experiment retrieval --method rrf_rerank --population selection4849 `
+  --bm25-recipe boosted_title_abstract_mesh
 ```
 
 Primary metric là BioASQ MAP@10; Recall@10/100, MRR, nDCG, latency và failure rate là secondary.
 Chỉ thay đúng retriever hoặc indexed field trong từng contrast. MedCPT revision được pin trong
 `artifacts/indexes/medcpt/metadata.json`.
 
-## 4. Generation và oracle
+## 4. Query và evidence tournament
+
+Chỉ chạy E03 sau khi E02 đã có paired gate. `--retriever` phải đúng champion E02:
 
 ```powershell
-uv run medrag experiment generation --pipeline bm25_gpt41nano --population smoke40
-uv run medrag experiment generation --pipeline bm25_gemini_flash_lite --population smoke40
-uv run medrag experiment generation --pipeline bm25_deepseek --population smoke40
-uv run medrag experiment generation --pipeline bm25_qwen --population smoke40
-uv run medrag experiment oracle --population validation200
+uv run medrag experiment query --strategy original --population query800 --retriever rrf_rerank
+uv run medrag experiment query --strategy mesh --population query800 --retriever rrf_rerank
+uv run medrag experiment query --strategy hyde --population query800 --retriever rrf_rerank --workers 4
+```
+
+E04 luôn nhận **cùng một prediction file** để bốn arm thấy cùng ranked PMIDs:
+
+```powershell
+$retrieval = "artifacts/runs/E02-CHAMPION/predictions.jsonl"
+uv run medrag experiment evidence --arm full_document_fields `
+  --retrieval-predictions $retrieval --population selection4849
+uv run medrag experiment evidence --arm fixed256_bm25 `
+  --retrieval-predictions $retrieval --population selection4849
+uv run medrag experiment evidence --arm sentence3_bm25 `
+  --retrieval-predictions $retrieval --population selection4849
+uv run medrag experiment evidence --arm sentence3_cross_encoder `
+  --retrieval-predictions $retrieval --population selection4849
+```
+
+Snippet F1 dùng character offsets chính thức. Gold snippet chỉ được mở sau khi arm đã chọn evidence.
+
+## 5. Context, generation, prompt và oracle
+
+E05–E07 tạo artifact context gold-free trước. Thay đúng **một** flag mỗi contrast:
+
+```powershell
+uv run medrag experiment prepare-contexts --family E05 --arm budget600 `
+  --pipeline rrf_rerank_rag --population generation160 --context-budget 600
+uv run medrag experiment prepare-contexts --family E05 --arm budget1200 `
+  --pipeline rrf_rerank_rag --population generation160 --context-budget 1200
+uv run medrag experiment prepare-contexts --family E05 --arm budget2400 `
+  --pipeline rrf_rerank_rag --population generation160 --context-budget 2400
+uv run medrag experiment prepare-contexts --family E06 --arm strongest_middle `
+  --pipeline rrf_rerank_rag --population generation160 --context-order strongest_middle
+uv run medrag experiment prepare-contexts --family E07 --arm one_per_pmid `
+  --pipeline rrf_rerank_rag --population generation160 --diversity one_per_pmid
+```
+
+Generator E08 dùng lại đúng một context file; `evidence_hash` phải bằng nhau trước paired comparison:
+
+```powershell
+$context = "artifacts/runs/E05-CHAMPION/contexts.jsonl"
+uv run medrag experiment generate-contexts --family E08 --arm gpt41nano `
+  --contexts $context --population generation160 --model gpt-4.1-nano --workers 4
+uv run medrag experiment generate-contexts --family E08 --arm gemini_flash_lite `
+  --contexts $context --population generation160 --model gemini-2.5-flash-lite --workers 4
+uv run medrag experiment generate-contexts --family E08 --arm deepseek_v32 `
+  --contexts $context --population generation160 --model deepseek-v3.2 --workers 4
+uv run medrag experiment generate-contexts --family E08 --arm qwen35 `
+  --contexts $context --population generation160 --model qwen3.5-122b-a10b --workers 4
+
+uv run medrag experiment generate-contexts --family E09 --arm generic `
+  --contexts $context --population generation160 --model MODEL_CHAMPION `
+  --prompt-style generic_structured
+uv run medrag experiment generate-contexts --family E09 --arm citation `
+  --contexts $context --population generation160 --model MODEL_CHAMPION `
+  --prompt-style citation_constraint
+uv run medrag experiment generate-contexts --family E09 --arm predicted_type `
+  --contexts $context --population generation160 --model MODEL_CHAMPION `
+  --prompt-style predicted_type_schema
+uv run medrag experiment generate-contexts --family E09 --arm gold_type_oracle `
+  --contexts $context --population generation160 --model MODEL_CHAMPION `
+  --prompt-style gold_type_oracle
+
+uv run medrag experiment oracle --population validation200 --pipeline best_rag
 ```
 
 Sau smoke, các generator qua gate mới chạy `generation160`, rồi finalists chạy `validation200`.
@@ -66,13 +130,22 @@ Khi so generator, serialized evidence, prompt, parser, output budget và IDs ph�
 
 Oracle chỉ định vị bottleneck, không phải pipeline deployable.
 
-## 5. Statistics và held-out
+## 6. Statistics, panel, interaction và held-out
 
 ```powershell
 uv run medrag experiment compare --left artifacts/runs/LEFT/predictions.jsonl `
   --right artifacts/runs/RIGHT/predictions.jsonl --metric metrics.ap
+uv run medrag experiment compare --left artifacts/runs/MODEL_A/scored.jsonl `
+  --right artifacts/runs/MODEL_B/scored.jsonl --metric rouge_su4.f1 `
+  --require-equal-evidence
+uv run medrag experiment interaction --id retriever_x_query `
+  --a0b0 A0B0.jsonl --a0b1 A0B1.jsonl --a1b0 A1B0.jsonl --a1b1 A1B1.jsonl `
+  --metric metrics.ap
+uv run medrag experiment panel-direct --generation SCORED.jsonl --contexts CONTEXTS.jsonl `
+  --population validation200 --workers 2
 uv run medrag experiment freeze-final
 uv run medrag experiment freeze-final --verify
+uv run medrag experiment final-holm --comparison C1.json --comparison C2.json --comparison C3.json
 ```
 
 So sánh dùng paired normalized-group bootstrap CI, paired effect size và permutation p-value.
@@ -80,13 +153,17 @@ Final chỉ có đúng ba contrast preregistered và Holm family size 3. Chỉ c
 five arms, pipeline configs, model inventory, judges và contrasts đã được freeze. Sau khi xem final
 result không được sửa pipeline.
 
-## 6. Product và observability
+Panel ba model là proxy tự động, phải ghi đúng tên; không được gọi là human/physician review.
+
+## 7. Product và observability
 
 ```powershell
 uv run uvicorn apps.api.main:app --reload
 cd apps/web
 npm ci
 npm run dev
+cd ../..
+docker compose up --build
 ```
 
 Mỗi answer có trace ID, ranked PMIDs, packed evidence, prompt hash, model, token, latency, retry và

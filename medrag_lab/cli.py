@@ -10,7 +10,11 @@ from medrag_lab.data.splits import freeze_splits, verify_splits
 from medrag_lab.evaluation.error_audit import build_error_audit
 from medrag_lab.evaluation.panel_runner import run_panel_direct, run_panel_pairwise
 from medrag_lab.evaluation.report import build_report
-from medrag_lab.experiments.analysis import analyze_two_by_two_interaction
+from medrag_lab.experiments.analysis import (
+    analyze_two_by_two_interaction,
+    evaluate_query_strategy_gate,
+    verify_context_invariant,
+)
 from medrag_lab.experiments.evidence import run_evidence_retrieval
 from medrag_lab.experiments.final import apply_final_holm, freeze_finalists, verify_final_freeze
 from medrag_lab.experiments.generation import prepare_contexts, run_context_generation
@@ -25,6 +29,7 @@ from medrag_lab.experiments.runner import (
     run_judge_sanity,
     run_oracle,
     run_query_retrieval,
+    subset_retrieval_predictions,
 )
 from medrag_lab.indexing.medcpt import build_index as build_medcpt
 
@@ -137,6 +142,7 @@ def parser() -> argparse.ArgumentParser:
         default="sentence3",
     )
     context.add_argument("--limit", type=int)
+    context.add_argument("--retrieval-predictions", type=Path)
     context_generation = experiment_commands.add_parser("generate-contexts")
     context_generation.add_argument("--family", required=True)
     context_generation.add_argument("--arm", required=True)
@@ -181,6 +187,25 @@ def parser() -> argparse.ArgumentParser:
     panel_pairwise.add_argument("--population", default="judge160")
     panel_pairwise.add_argument("--limit", type=int)
     panel_pairwise.add_argument("--workers", type=int, default=2)
+    query_gate = experiment_commands.add_parser("query-gate")
+    query_gate.add_argument("--id", required=True)
+    query_gate.add_argument("--baseline", type=Path, required=True)
+    query_gate.add_argument("--candidate", type=Path, required=True)
+    query_gate.add_argument("--comparison", type=Path, required=True)
+    invariant = experiment_commands.add_parser("verify-context-invariant")
+    invariant.add_argument("--id", required=True)
+    invariant.add_argument("--left", type=Path, required=True)
+    invariant.add_argument("--right", type=Path, required=True)
+    invariant.add_argument(
+        "--key",
+        choices=("candidate_evidence_hash", "evidence_set_hash", "context_hash"),
+        required=True,
+    )
+    subset = experiment_commands.add_parser("subset-retrieval")
+    subset.add_argument("--source", type=Path, required=True)
+    subset.add_argument("--population", required=True)
+    subset.add_argument("--family", required=True)
+    subset.add_argument("--arm", required=True)
     commands.add_parser("report")
     return root
 
@@ -287,6 +312,7 @@ def main() -> None:
                     context_order=args.context_order,
                     diversity=args.diversity,
                     evidence_strategy=args.evidence_strategy,
+                    retrieval_predictions=args.retrieval_predictions,
                     limit=args.limit,
                 ),
                 indent=2,
@@ -352,6 +378,26 @@ def main() -> None:
                     limit=args.limit,
                     workers=args.workers,
                 ),
+                indent=2,
+            )
+        )
+    elif args.command == "experiment" and args.action == "query-gate":
+        print(
+            json.dumps(
+                evaluate_query_strategy_gate(
+                    args.baseline, args.candidate, args.comparison, args.id
+                ),
+                indent=2,
+            )
+        )
+    elif args.command == "experiment" and args.action == "verify-context-invariant":
+        print(
+            json.dumps(verify_context_invariant(args.left, args.right, args.key, args.id), indent=2)
+        )
+    elif args.command == "experiment" and args.action == "subset-retrieval":
+        print(
+            json.dumps(
+                subset_retrieval_predictions(args.source, args.population, args.family, args.arm),
                 indent=2,
             )
         )

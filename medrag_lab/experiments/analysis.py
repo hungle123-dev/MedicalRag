@@ -7,7 +7,7 @@ from typing import Any
 from medrag_lab.data.loaders import iter_jsonl
 from medrag_lab.data.manifests import stable_hash
 from medrag_lab.data.splits import normalize_question
-from medrag_lab.evaluation.statistics import paired_group_bootstrap
+from medrag_lab.evaluation.statistics import nearest_rank_percentile, paired_group_bootstrap
 from medrag_lab.settings import ROOT, settings
 
 
@@ -57,6 +57,87 @@ def analyze_two_by_two_interaction(
     }
     result["analysis_hash"] = stable_hash(result)
     destination = ROOT / "reports" / "interactions" / f"{interaction_id}.json"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    return result
+
+
+def evaluate_query_strategy_gate(
+    baseline_path: Path,
+    candidate_path: Path,
+    comparison_path: Path,
+    gate_id: str,
+) -> dict[str, Any]:
+    baseline = {str(row["question_id"]): row for row in iter_jsonl(baseline_path)}
+    candidate = {str(row["question_id"]): row for row in iter_jsonl(candidate_path)}
+    if set(baseline) != set(candidate):
+        raise ValueError("Query gate requires identical question IDs")
+    comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
+    identifiers = sorted(baseline)
+    severe = sum(
+        (baseline[item]["metrics"]["hit"] == 1 and candidate[item]["metrics"]["hit"] == 0)
+        or baseline[item]["metrics"]["ap"] - candidate[item]["metrics"]["ap"] >= 0.20
+        for item in identifiers
+    )
+    rescued = sum(
+        baseline[item]["metrics"]["hit"] == 0 and candidate[item]["metrics"]["hit"] == 1
+        for item in identifiers
+    )
+    baseline_failures = sum(bool(baseline[item].get("failed")) for item in identifiers)
+    candidate_failures = sum(bool(candidate[item].get("failed")) for item in identifiers)
+    left_latency = [float(baseline[item].get("latency_ms", 0.0)) for item in identifiers]
+    right_latency = [float(candidate[item].get("latency_ms", 0.0)) for item in identifiers]
+    latency_ratio = nearest_rank_percentile(right_latency, 0.95) / max(
+        nearest_rank_percentile(left_latency, 0.95), 1e-9
+    )
+    bootstrap = comparison["bootstrap"]
+    checks = {
+        "minimum_effect": bootstrap["mean_delta_right_minus_left"] >= 0.01,
+        "positive_paired_ci": bootstrap["ci95_low"] > 0,
+        "severe_harm_below_5_percent": severe / len(identifiers) < 0.05,
+        "failure_guard": (candidate_failures - baseline_failures) / len(identifiers) <= 0.005,
+        "latency_guard": latency_ratio <= 2.0,
+    }
+    result = {
+        "gate_id": gate_id,
+        "rows": len(identifiers),
+        "comparison_hash": comparison["comparison_hash"],
+        "rescue_rate": rescued / len(identifiers),
+        "severe_harm_rate": severe / len(identifiers),
+        "p95_latency_ratio": latency_ratio,
+        "checks": checks,
+        "passed": all(checks.values()),
+    }
+    result["gate_hash"] = stable_hash(result)
+    destination = ROOT / "reports" / "gates" / f"{gate_id}.json"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    return result
+
+
+def verify_context_invariant(
+    left_path: Path,
+    right_path: Path,
+    key: str,
+    invariant_id: str,
+) -> dict[str, Any]:
+    if key not in {"candidate_evidence_hash", "evidence_set_hash", "context_hash"}:
+        raise ValueError("Unsupported context invariant key")
+    left = {str(row["question_id"]): row for row in iter_jsonl(left_path)}
+    right = {str(row["question_id"]): row for row in iter_jsonl(right_path)}
+    if set(left) != set(right):
+        raise ValueError("Context invariant requires identical question IDs")
+    mismatches = [item for item in sorted(left) if left[item].get(key) != right[item].get(key)]
+    result = {
+        "invariant_id": invariant_id,
+        "key": key,
+        "rows": len(left),
+        "mismatches": len(mismatches),
+        "mismatch_examples": mismatches[:10],
+        "passed": not mismatches,
+    }
+    result["invariant_hash"] = stable_hash(result)
+    destination = ROOT / "reports" / "invariants" / f"{invariant_id}.json"
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return result

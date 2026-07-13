@@ -16,6 +16,24 @@ def nearest_rank_percentile(values: Sequence[float], probability: float) -> floa
     return ordered[math.ceil(probability * len(ordered)) - 1]
 
 
+def paired_mde_80(
+    left: Sequence[float], right: Sequence[float], groups: Sequence[str], alpha: float = 0.05
+) -> float:
+    """Normal-approximation two-sided MDE using independent normalized-question groups."""
+    if not left or not (len(left) == len(right) == len(groups)):
+        raise ValueError("left, right and groups must be non-empty and equally sized")
+    from scipy.stats import norm
+
+    grouped: dict[str, list[float]] = defaultdict(list)
+    for left_value, right_value, group in zip(left, right, groups, strict=True):
+        grouped[str(group)].append(right_value - left_value)
+    group_differences = [statistics.fmean(values) for values in grouped.values()]
+    if len(group_differences) < 2:
+        return 0.0
+    critical = norm.ppf(1 - alpha / 2) + norm.ppf(0.8)
+    return float(critical * statistics.stdev(group_differences) / math.sqrt(len(group_differences)))
+
+
 def paired_group_bootstrap(
     left: Sequence[float],
     right: Sequence[float],

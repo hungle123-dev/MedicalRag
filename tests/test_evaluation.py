@@ -7,6 +7,7 @@ from medrag_lab.evaluation.statistics import (
     nearest_rank_percentile,
     paired_effect_size,
     paired_group_bootstrap,
+    paired_mde_80,
     paired_permutation_p,
 )
 from medrag_lab.experiments.gates import noninferiority_gate, superiority_gate
@@ -59,3 +60,4 @@ def test_effect_size_and_gates():
     assert noninferiority_gate(-0.005, -0.009)["passed"] is True
     assert paired_permutation_p([0] * 8, [1] * 8, resamples=1_000) < 0.02
     assert nearest_rank_percentile([10, 20], 0.95) == 20
+    assert paired_mde_80([0, 0, 0], [0.1, 0.2, 0.3], ["a", "b", "c"]) > 0
