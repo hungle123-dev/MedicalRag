@@ -120,6 +120,14 @@ def main() -> None:
                     "prompt": ROOT / "configs/prompts/answer_v1.txt",
                     "data": ROOT / "data/manifests/files.json", "population": id_manifest}
     config_hashes = {name: sha(path) for name, path in config_paths.items()}
+    runtime_paths = {"runner": Path(__file__),
+                     "pipelines": ROOT / "backend/app/pipelines.py",
+                     "controls": ROOT / "backend/app/controls.py",
+                     "graph": ROOT / "backend/app/graph.py",
+                     "retrieval": ROOT / "backend/app/retrieval.py",
+                     "medcpt": ROOT / "backend/app/medcpt.py",
+                     "generator": ROOT / "backend/app/generator.py"}
+    runtime_code_hashes = {name: sha(path) for name, path in runtime_paths.items()}
     index_fingerprints = {path.name: file_fingerprint(path) for path in index_files}
 
     # Freeze and validate the entire evidence population before observing any
@@ -135,6 +143,7 @@ def main() -> None:
                     "design_audit": design_audit,
                     "experiment_config_hash": config_hashes["experiments"],
                     "frozen_input_hashes": {"configs": config_hashes,
+                                            "runtime_code": runtime_code_hashes,
                                             "indexes": index_fingerprints}}
         snapshot_text = json.dumps(snapshot, ensure_ascii=False, sort_keys=True)
         snapshot_hash = hashlib.sha256(snapshot_text.encode()).hexdigest()
@@ -187,6 +196,8 @@ def main() -> None:
         print(f"completed_questions={completed_questions}/{len(ids)} records={len(records)}", flush=True)
     if {name: sha(path) for name, path in config_paths.items()} != config_hashes:
         raise RuntimeError("A frozen config or population file changed during the run")
+    if {name: sha(path) for name, path in runtime_paths.items()} != runtime_code_hashes:
+        raise RuntimeError("Frozen runtime code changed during the run")
     if {path.name: file_fingerprint(path) for path in index_files} != index_fingerprints:
         raise RuntimeError("A frozen index changed during the run")
     completed = [record for record in records if record["status"] == "completed"]
@@ -203,6 +214,7 @@ def main() -> None:
         "working_tree_dirty_at_start": dirty, "order": "latin_rotation_by_question_index",
         "warmup": "one unmeasured out-of-population dev B3 question",
         "config_hashes": config_hashes,
+        "runtime_code_hashes": runtime_code_hashes,
         "index_fingerprints": index_fingerprints,
         "evidence_population_hash": hashlib.sha256("".join(snapshot_hashes).encode()).hexdigest(),
         "started_at": started, "ended_at": datetime.now(timezone.utc).isoformat(),

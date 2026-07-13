@@ -83,13 +83,15 @@ def main() -> None:
     args = parser.parse_args()
     run = args.run.resolve()
     manifest = json.loads((run / "run_manifest.json").read_text(encoding="utf-8"))
+    evaluation_commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, check=True,
+                                       text=True, capture_output=True).stdout.strip()
+    evaluation_dirty = bool(subprocess.run(["git", "status", "--porcelain"], cwd=ROOT,
+                                            check=True, text=True, capture_output=True).stdout)
     locked = manifest.get("split") == "eval" or manifest.get("locked_execution", False)
     if locked and args.force:
         raise SystemExit("Locked evaluation forbids --force")
     if locked:
-        dirty = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, check=True,
-                               text=True, capture_output=True).stdout
-        if dirty:
+        if evaluation_dirty:
             raise SystemExit("Locked evaluation requires a clean worktree")
     arms = manifest["arms"]
     judge = GatewayJudge(ROOT)
@@ -271,6 +273,9 @@ def main() -> None:
         "observed_judge_system_fingerprints": observed_judge_fingerprints,
         "judge_method": "reference-based direct scoring; IDs and modality cues masked",
         "questions": len(manifest["question_ids"]),
+        "evaluation_code_commit": evaluation_commit,
+        "evaluation_script_sha256": sha(Path(__file__)),
+        "evaluation_worktree_dirty_at_start": evaluation_dirty,
         "graph_retrieval_positive_questions": len(graph_ids),
         "aggregate": aggregate, "overall_comparisons": overall,
         "graph_retrieval_positive_secondary": retrieval_positive,
