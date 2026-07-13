@@ -17,6 +17,7 @@ from medrag_lab.evaluation.report import build_report
 from medrag_lab.experiments.analysis import (
     analyze_two_by_two_interaction,
     audit_failure_sequence,
+    evaluate_diversity_gate,
     evaluate_evidence_gate,
     evaluate_query_strategy_gate,
     verify_context_invariant,
@@ -230,6 +231,12 @@ def parser() -> argparse.ArgumentParser:
     evidence_gate.add_argument("--baseline-summary", type=Path, required=True)
     evidence_gate.add_argument("--candidate-summary", type=Path, required=True)
     evidence_gate.add_argument("--comparison", type=Path, required=True)
+    diversity_gate = experiment_commands.add_parser("diversity-gate")
+    diversity_gate.add_argument("--id", required=True)
+    diversity_gate.add_argument("--baseline-summary", type=Path, required=True)
+    diversity_gate.add_argument("--candidate-summary", type=Path, required=True)
+    diversity_gate.add_argument("--answer-comparison", type=Path, required=True)
+    diversity_gate.add_argument("--recall-comparison", type=Path, required=True)
     invariant = experiment_commands.add_parser("verify-context-invariant")
     invariant.add_argument("--id", required=True)
     invariant.add_argument("--left", type=Path, required=True)
@@ -463,6 +470,19 @@ def main() -> None:
             json.dumps(
                 evaluate_evidence_gate(
                     args.baseline_summary, args.candidate_summary, args.comparison, args.id
+                ),
+                indent=2,
+            )
+        )
+    elif args.command == "experiment" and args.action == "diversity-gate":
+        print(
+            json.dumps(
+                evaluate_diversity_gate(
+                    args.baseline_summary,
+                    args.candidate_summary,
+                    args.answer_comparison,
+                    args.recall_comparison,
+                    args.id,
                 ),
                 indent=2,
             )

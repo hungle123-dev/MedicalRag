@@ -1,0 +1,35 @@
+{
+  "created_at": "2026-07-13T19:54:31.757095+00:00",
+  "status": "observed_real_data_gold_free",
+  "config": {
+    "family": "E07",
+    "arm": "one_per_pmid",
+    "stage": "gold_free_context_preparation",
+    "pipeline": "rrf_rerank_rag",
+    "population": "generation160",
+    "rows": 160,
+    "overrides": {
+      "context_token_budget": 600,
+      "context_order": "relevance_descending",
+      "diversity": "one_per_pmid",
+      "evidence_strategy": "sentence3_cross_encoder"
+    },
+    "retrieval_source_sha256": "live_pipeline",
+    "evidence_source_sha256": "40b6647ba205fbbd796ba07bb781d1468c1f9d40b3a7a2154eb33aa892496861",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "2c40dfa38795fc377c2d5c7eb3e541d1769f28a7",
+    "purpose": "candidate_evaluation",
+    "config_hash": "eac4378139ca9232b962b72b931e057933bf3339f1dae4a035b8be0ae25dd21c"
+  },
+  "metrics": {
+    "questions": 160,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "packed_snippets_mean": 4.7125,
+    "packed_context_gold_pmid_recall": 0.5472357851089227
+  },
+  "artifacts": {
+    "contexts": "artifacts\\runs\\E07-one_per_pmid-contexts-generation160-eac4378139\\contexts.jsonl",
+    "scored_contexts": "artifacts\\runs\\E07-one_per_pmid-contexts-generation160-eac4378139\\scored_contexts.jsonl"
+  }
+}

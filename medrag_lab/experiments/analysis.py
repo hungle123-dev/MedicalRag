@@ -155,6 +155,55 @@ def evaluate_evidence_gate(
     return result
 
 
+def evaluate_diversity_gate(
+    baseline_summary: Path,
+    candidate_summary: Path,
+    answer_comparison_path: Path,
+    recall_comparison_path: Path,
+    gate_id: str,
+    *,
+    answer_noninferiority_margin: float = -0.02,
+) -> dict[str, Any]:
+    """Apply E07's recall-gain gate with answer and reliability safeguards."""
+    baseline = json.loads(baseline_summary.read_text(encoding="utf-8"))
+    candidate = json.loads(candidate_summary.read_text(encoding="utf-8"))
+    answer = json.loads(answer_comparison_path.read_text(encoding="utf-8"))
+    recall = json.loads(recall_comparison_path.read_text(encoding="utf-8"))
+    answer_bootstrap = answer["bootstrap"]
+    recall_bootstrap = recall["bootstrap"]
+    baseline_metrics = baseline["metrics"]
+    candidate_metrics = candidate["metrics"]
+    checks = {
+        "recall_gain_at_least_0_05": recall_bootstrap["mean_delta_right_minus_left"] >= 0.05,
+        "recall_positive_paired_ci": recall_bootstrap["ci95_low"] > 0,
+        "answer_noninferiority": answer_bootstrap["ci95_low"] >= answer_noninferiority_margin,
+        "failure_guard": (
+            candidate_metrics["failure_rate"] - baseline_metrics["failure_rate"] <= 0.005
+        ),
+        "citation_validity_guard": (
+            candidate_metrics["citation_validity"]
+            >= baseline_metrics["citation_validity"] - 0.01
+        ),
+        "same_population_size": answer["rows"] == recall["rows"],
+    }
+    result = {
+        "gate_id": gate_id,
+        "family": "E07",
+        "answer_noninferiority_margin": answer_noninferiority_margin,
+        "answer_comparison_hash": answer["comparison_hash"],
+        "recall_comparison_hash": recall["comparison_hash"],
+        "baseline": str(baseline_summary),
+        "candidate": str(candidate_summary),
+        "checks": checks,
+        "passed": all(checks.values()),
+    }
+    result["gate_hash"] = stable_hash(result)
+    destination = ROOT / "reports" / "gates" / f"{gate_id}.json"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    return result
+
+
 def verify_context_invariant(
     left_path: Path,
     right_path: Path,

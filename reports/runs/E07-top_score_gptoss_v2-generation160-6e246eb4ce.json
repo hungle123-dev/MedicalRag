@@ -1,0 +1,46 @@
+{
+  "created_at": "2026-07-13T19:54:52.884475+00:00",
+  "status": "observed_real_data_real_gateway",
+  "config": {
+    "family": "E07",
+    "arm": "top_score_gptoss_v2",
+    "stage": "sealed_context_generation",
+    "population": "generation160",
+    "rows": 160,
+    "model": "cerebras/gpt-oss-120b",
+    "provider": "api.futureppo.top",
+    "contexts_sha256": "01955916577dc56a375a9f4f3fd92d99e49a5dce001f6b00d9addc428b894aa9",
+    "prompt_style": "predicted_type_schema",
+    "system_prompt_hash": "b684efc5c76d5a7b102d98050726d612984613bcefafd2180c0a2cde51b0e9fa",
+    "response_format": "json_object",
+    "pre_inference_gold_access": "none",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "2c40dfa38795fc377c2d5c7eb3e541d1769f28a7",
+    "purpose": "candidate_evaluation",
+    "config_hash": "6e246eb4ce2eb5a6db0525acce369baf0f025ec2d7b587d73f9149f8569da756"
+  },
+  "metrics": {
+    "rouge_su4_f1": 0.14268583853532052,
+    "rouge2_f1": 0.15784527313708227,
+    "question_type_accuracy": 0.825,
+    "citation_validity": 1.0,
+    "citation_coverage": 0.95,
+    "abstention_rate": 0.09375,
+    "retry_rate": 0.0125,
+    "questions": 160,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "input_tokens": 148211,
+    "output_tokens": 57407,
+    "latency_ms_p50": 670.1737999974284,
+    "latency_ms_p95": 1637.548800004879
+  },
+  "resolved_models": [
+    "gpt-oss-120b"
+  ],
+  "pricing_status": "USD cost unavailable from gateway; token and latency totals reported",
+  "artifacts": {
+    "inference": "artifacts\\runs\\E07-top_score_gptoss_v2-generation160-6e246eb4ce\\inference.jsonl",
+    "scored": "artifacts\\runs\\E07-top_score_gptoss_v2-generation160-6e246eb4ce\\scored.jsonl"
+  }
+}

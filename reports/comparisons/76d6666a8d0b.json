@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E07-top_score_reference-contexts-generation160-a48a97fb9b\\scored_contexts.jsonl",
+  "right": "artifacts\\runs\\E07-one_per_pmid-contexts-generation160-eac4378139\\scored_contexts.jsonl",
+  "metric": "packed_context_gold_pmid_recall",
+  "require_equal_evidence": false,
+  "rows": 160,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.16281407587126887,
+    "ci95_low": 0.1302216388648083,
+    "ci95_high": 0.19795633232515533
+  },
+  "paired_effect_size": 0.7489561448622786,
+  "paired_permutation_p": 9.999000099990002e-05,
+  "normal_approx_mde_80": 0.0481481279723658,
+  "comparison_hash": "76d6666a8d0b97765cd69d7a52d492e8637db12e99535cb98783e41aa13d6084"
+}

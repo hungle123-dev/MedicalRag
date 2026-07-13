@@ -1,0 +1,19 @@
+{
+  "gate_id": "E07_ONE_PER_PMID",
+  "family": "E07",
+  "answer_noninferiority_margin": -0.02,
+  "answer_comparison_hash": "953fac06fbd4eeedd8802c455a4bb5b0136737361e2894f8028df3268e1a94ab",
+  "recall_comparison_hash": "76d6666a8d0b97765cd69d7a52d492e8637db12e99535cb98783e41aa13d6084",
+  "baseline": "reports\\runs\\E07-top_score_gptoss_v2-generation160-6e246eb4ce.json",
+  "candidate": "reports\\runs\\E07-one_per_pmid_gptoss_v2-generation160-2118da159e.json",
+  "checks": {
+    "recall_gain_at_least_0_05": true,
+    "recall_positive_paired_ci": true,
+    "answer_noninferiority": true,
+    "failure_guard": false,
+    "citation_validity_guard": true,
+    "same_population_size": true
+  },
+  "passed": false,
+  "gate_hash": "b79b9c4ef42ca60c1c9ad18bd346d1e297104091930249f2afdaddab8b11e475"
+}

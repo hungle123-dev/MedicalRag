@@ -115,3 +115,39 @@ def test_evidence_gate_checks_effect_failures_and_population(tmp_path, monkeypat
         summaries.append(path)
     result = analysis.evaluate_evidence_gate(*summaries, comparison, "E04_TEST")
     assert result["passed"] is True
+
+
+def test_diversity_gate_requires_recall_noninferiority_and_reliability(tmp_path, monkeypatch):
+    monkeypatch.setattr(analysis, "ROOT", tmp_path)
+    baseline = tmp_path / "baseline.json"
+    candidate = tmp_path / "candidate.json"
+    baseline.write_text(
+        json.dumps({"metrics": {"failure_rate": 0.0, "citation_validity": 1.0}})
+    )
+    candidate.write_text(
+        json.dumps({"metrics": {"failure_rate": 0.0, "citation_validity": 1.0}})
+    )
+    answer = tmp_path / "answer.json"
+    recall = tmp_path / "recall.json"
+    answer.write_text(
+        json.dumps(
+            {
+                "comparison_hash": "a",
+                "rows": 10,
+                "bootstrap": {"mean_delta_right_minus_left": -0.005, "ci95_low": -0.015},
+            }
+        )
+    )
+    recall.write_text(
+        json.dumps(
+            {
+                "comparison_hash": "r",
+                "rows": 10,
+                "bootstrap": {"mean_delta_right_minus_left": 0.1, "ci95_low": 0.04},
+            }
+        )
+    )
+    result = analysis.evaluate_diversity_gate(
+        baseline, candidate, answer, recall, "E07_TEST"
+    )
+    assert result["passed"] is True
