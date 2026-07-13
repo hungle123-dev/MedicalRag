@@ -1,0 +1,17 @@
+{
+  "gate_id": "E03_MESH",
+  "rows": 800,
+  "comparison_hash": "1dc7b005637d3c33d2718c12189d5079a27604a34dac6d0d78ff67d4d33915ea",
+  "rescue_rate": 0.0075,
+  "severe_harm_rate": 0.03125,
+  "p95_latency_ratio": 0.8687780316692626,
+  "checks": {
+    "minimum_effect": false,
+    "positive_paired_ci": false,
+    "severe_harm_below_5_percent": true,
+    "failure_guard": true,
+    "latency_guard": true
+  },
+  "passed": false,
+  "gate_hash": "ad62795387f62abaad1ba0f9653e22e58b9b568c0cc9914bcbcc55cd5aa0bf39"
+}

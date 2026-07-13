@@ -1,0 +1,16 @@
+{
+  "gate_id": "E01",
+  "quality_comparison_hash": "f8962592d9dc77f99cedb6ab2ebe1214bbec92387cb8fe5656b84a759b2ce735",
+  "efficiency_runs": [
+    "reports\\runs\\E01-title_abstract-smoke40-574f829426.json",
+    "reports\\runs\\E01-boosted_title_abstract_mesh-smoke40-95ea582bf6.json"
+  ],
+  "passed": true,
+  "checks": {
+    "minimum_effect": true,
+    "positive_paired_ci": true,
+    "failure_guard": true,
+    "latency_guard": true
+  },
+  "gate_hash": "422ad2a5a1a950ae9519329b7648acdedf166d03e463065199cc4dc9ea2c06f0"
+}

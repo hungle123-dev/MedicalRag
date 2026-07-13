@@ -1,0 +1,14 @@
+{
+  "left": "artifacts\\runs\\E01-title_abstract-selection4849-a4332899b3\\predictions.jsonl",
+  "right": "artifacts\\runs\\E01-boosted_title_abstract_mesh-selection4849-adea462560\\predictions.jsonl",
+  "metric": "metrics.ap",
+  "rows": 4849,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.013832209256456033,
+    "ci95_low": 0.010956720234179616,
+    "ci95_high": 0.016723700211974488
+  },
+  "paired_effect_size": 0.1353054769379393,
+  "paired_permutation_p": 9.999000099990002e-05,
+  "comparison_hash": "f8962592d9dc77f99cedb6ab2ebe1214bbec92387cb8fe5656b84a759b2ce735"
+}

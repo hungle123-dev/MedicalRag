@@ -1,0 +1,31 @@
+{
+  "created_at": "2026-07-13T13:58:51.951545+00:00",
+  "status": "observed_real_data",
+  "scope": "gold snippet offsets are used only after evidence selection",
+  "config": {
+    "family": "E04",
+    "arm": "fixed256_bm25",
+    "population": "selection4849",
+    "rows": 5,
+    "retrieval_predictions_hash": "3e9b2fa417f73fa9fd714a1db91cdd4dac9b4f990c720a0930394d92134c5e9e",
+    "document_count": 10,
+    "snippet_count": 20,
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "73a7d70d2902381eead7638153cec59fa82867ea",
+    "purpose": "feasibility_only",
+    "config_hash": "3eee1684ab31b1ed57b594185c3af3da1231a25aacc23af3a38caadfa59ea879"
+  },
+  "metrics": {
+    "snippet_span_precision": 0.0021772505233775296,
+    "snippet_span_recall": 0.008184679958027283,
+    "snippet_span_f1": 0.003439532576342189,
+    "gold_pmid_recall": 0.4808791208791209,
+    "questions": 5,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "latency_ms_p50": 0.0
+  },
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E04-fixed256_bm25-selection4849-3eee1684ab\\predictions.jsonl"
+  }
+}

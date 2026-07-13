@@ -1,0 +1,17 @@
+{
+  "gate_id": "E03_HYDE_SMOKE",
+  "rows": 10,
+  "comparison_hash": "71b1c6ae8be53f4af947957640bc4b1b0178658c15a2f7d13424557770112b4e",
+  "rescue_rate": 0.0,
+  "severe_harm_rate": 0.5,
+  "p95_latency_ratio": 6.030439842465168,
+  "checks": {
+    "minimum_effect": false,
+    "positive_paired_ci": false,
+    "severe_harm_below_5_percent": false,
+    "failure_guard": false,
+    "latency_guard": false
+  },
+  "passed": false,
+  "gate_hash": "357dcaee9c4b76d327c39e0800dbf78426694656d41141f85ba704cb0deba3e0"
+}

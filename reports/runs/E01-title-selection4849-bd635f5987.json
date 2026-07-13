@@ -1,0 +1,35 @@
+{
+  "created_at": "2026-07-13T13:00:07.706305+00:00",
+  "status": "observed_real_data",
+  "scope": "closed-world positive-only gold-conditioned candidate pool",
+  "config": {
+    "family": "E01",
+    "arm": "bm25_title",
+    "population": "selection4849",
+    "rows": 4849,
+    "candidate_depth": 100,
+    "submit_depth": 10,
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "corpus_sha256": "1e992bd761413d17b3fbb410a368532227d4bc28d0ef27817dde98ef3ecb2ca0",
+    "dev_sha256": "19378f4c5eb4957753bdd7ce67fc570d6d709b6b738b9e0d5ca179e354e0510d",
+    "git_sha": "73a7d70d2902381eead7638153cec59fa82867ea",
+    "config_hash": "bd635f5987acbd7400f368e776b22b5a3f0a1a9e54bc4e5a02c52ee9d451a0ed"
+  },
+  "metrics": {
+    "ap": 0.31984678971609265,
+    "recall": 0.34973190850508473,
+    "mrr": 0.5528772910140203,
+    "ndcg": 0.40370058819048893,
+    "hit": 0.7259228706949886,
+    "recall_at_100": 0.5809383256744991,
+    "map_at_10": 0.31984678971609265,
+    "questions": 4849,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "latency_ms_p50": 130.3217000022414,
+    "latency_ms_p95": 248.80210000264924
+  },
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E01-title-selection4849-bd635f5987\\predictions.jsonl"
+  }
+}

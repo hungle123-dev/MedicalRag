@@ -1,0 +1,18 @@
+{
+  "created_at": "2026-07-13T14:54:07.470586+00:00",
+  "status": "observed_real_gateway_sanity_suite",
+  "population": "smoke40",
+  "questions": 40,
+  "models": [
+    "gemini-2.5-flash",
+    "cerebras/gpt-oss-120b",
+    "deepseek-v3.2"
+  ],
+  "pass_rate": 0.925,
+  "failure_rate": 0.0,
+  "required_pass_rate": 0.9,
+  "passed": true,
+  "limitation": "Direction/format calibration only; not physician validation",
+  "analysis_hash": "28cf961837881d0f253e2335e42d67f372b7833439ae6378488c6096f8f4892b",
+  "predictions": "artifacts\\panel\\28cf96183788\\sanity.jsonl"
+}

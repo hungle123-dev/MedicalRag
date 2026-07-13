@@ -1,0 +1,49 @@
+{
+  "status": "deterministic_exploratory_error_audit",
+  "population": "generation160",
+  "questions": 2,
+  "thresholds": {
+    "G2_rouge_su4_f1_below": 0.1
+  },
+  "counts": {
+    "R2": 2
+  },
+  "taxonomy": {
+    "R1": "Gold document was not retrieved",
+    "R2": "Correct document but wrong snippet",
+    "CTX1": "Evidence removed by the context budget",
+    "CTX2": "Noisy or contradictory context",
+    "G1": "Unsupported generated claim",
+    "G2": "Incomplete answer",
+    "G3": "Wrong question-type output format",
+    "CIT1": "Citation does not support its claim",
+    "CIT2": "Invalid PMID citation",
+    "S1": "Unsafe or overconfident language",
+    "SYS1": "Timeout, parse or provider failure"
+  },
+  "unassigned_without_llm_panel": [
+    "G1",
+    "CIT1",
+    "S1",
+    "CTX2"
+  ],
+  "rows": [
+    {
+      "question_id": "511a20f3df1ebcce7d00000c",
+      "codes": [
+        "R2"
+      ],
+      "snippet_span_f1": 0.0,
+      "rouge_su4_f1": 0.11805555555555557
+    },
+    {
+      "question_id": "513711055274a5fb0700000e",
+      "codes": [
+        "R2"
+      ],
+      "snippet_span_f1": 0.0,
+      "rouge_su4_f1": 0.10091743119266053
+    }
+  ],
+  "audit_hash": "d09476e7f246a151654b605bb54b89fe5b57896b3daf3cde53a8b1fed585d95e"
+}

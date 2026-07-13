@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-07-13T14:21:13.978950+00:00",
+  "status": "observed_real_gateway_automated_proxy",
+  "population": "generation160",
+  "questions": 1,
+  "failures": 0,
+  "median_panel_score_0_4": 1.75,
+  "mean_unsupported_atomic_claim_rate": 0.5,
+  "disagreement_rate": 0.0,
+  "limitation": "Automated multi-LLM proxy; not human or physician review",
+  "analysis_hash": "7d438b860954edfb6e7573cda040e375bea343e923744c52dd48f2e3d5f1279e",
+  "predictions": "artifacts\\panel\\7d438b860954\\direct.jsonl"
+}

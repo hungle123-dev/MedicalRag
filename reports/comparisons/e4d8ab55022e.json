@@ -1,0 +1,14 @@
+{
+  "left": "artifacts\\runs\\E01-boosted_title_abstract_mesh-selection4849-adea462560\\predictions.jsonl",
+  "right": "artifacts\\runs\\E02-rrf-selection4849-7851f55c34\\predictions.jsonl",
+  "metric": "metrics.ap",
+  "rows": 4849,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.010560516960922297,
+    "ci95_low": 0.004593759498601259,
+    "ci95_high": 0.016665541255695922
+  },
+  "paired_effect_size": 0.049630623046496944,
+  "paired_permutation_p": 0.0007999200079992001,
+  "comparison_hash": "e4d8ab55022e6414e056416322a2c84bc8304c81dc623220dfcb0ad4d9bcecf0"
+}

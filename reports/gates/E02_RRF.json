@@ -1,0 +1,16 @@
+{
+  "gate_id": "E02_RRF",
+  "quality_comparison_hash": "e4d8ab55022e6414e056416322a2c84bc8304c81dc623220dfcb0ad4d9bcecf0",
+  "efficiency_runs": [
+    "reports\\runs\\E01-boosted_title_abstract_mesh-smoke40-95ea582bf6.json",
+    "reports\\runs\\E02-rrf-smoke40-9384f940c4.json"
+  ],
+  "passed": true,
+  "checks": {
+    "minimum_effect": true,
+    "positive_paired_ci": true,
+    "failure_guard": true,
+    "latency_guard": true
+  },
+  "gate_hash": "482dcc290ae8f033a3464377ebf62cf54f418dbb0b2bacea3a20824ec2989a1a"
+}

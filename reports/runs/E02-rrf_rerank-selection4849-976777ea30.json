@@ -1,0 +1,39 @@
+{
+  "created_at": "2026-07-13T14:46:35.665743+00:00",
+  "status": "observed_real_data",
+  "scope": "closed-world positive-only gold-conditioned candidate pool",
+  "config": {
+    "family": "E02",
+    "arm": "rrf_rerank",
+    "population": "selection4849",
+    "rows": 4849,
+    "candidate_depth": 100,
+    "latency_mode": "batched_throughput_amortized",
+    "bm25_recipe": "boosted_title_abstract_mesh",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "corpus_sha256": "1e992bd761413d17b3fbb410a368532227d4bc28d0ef27817dde98ef3ecb2ca0",
+    "article_revision": "d05a736da4bb84ee4057b7f7999485be6ed85465",
+    "query_revision": "d83a36cc6b8e3a5c5e9d9d6ba156808c1643dcbc",
+    "git_sha": "73a7d70d2902381eead7638153cec59fa82867ea",
+    "purpose": "candidate_evaluation",
+    "cross_encoder_revision": "71caf65d4927987813984f54c284405a13fcca49",
+    "config_hash": "976777ea30125ee529d9654c2b8c78039b596f2b0bb985a78c7fed2db9983a3b"
+  },
+  "metrics": {
+    "ap": 0.15486282448254232,
+    "recall": 0.14055543104203755,
+    "mrr": 0.20335235214591782,
+    "ndcg": 0.17724431122081835,
+    "hit": 0.23406888018148073,
+    "recall_at_100": 0.22176963367440347,
+    "map_at_10": 0.15486282448254232,
+    "questions": 4849,
+    "failures": 3696,
+    "failure_rate": 0.7622190142297381,
+    "latency_ms_p50": 1468.4016531308544,
+    "latency_ms_p95": 1748.9929734364296
+  },
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E02-rrf_rerank-selection4849-976777ea30\\predictions.jsonl"
+  }
+}

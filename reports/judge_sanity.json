@@ -1,0 +1,178 @@
+{
+  "status": "observed_real_gateway_sanity",
+  "fixture_pmid": "20711702",
+  "models": [
+    "gemini-2.5-flash",
+    "cerebras/gpt-oss-120b",
+    "deepseek-v3.2"
+  ],
+  "good": {
+    "judges": [
+      {
+        "model": "gemini-2.5-flash",
+        "supported_claims": [
+          "BRCA1 mutations confer inherited breast cancer risk."
+        ],
+        "unsupported_claims": [],
+        "reference_discrepancies": [],
+        "justification": "The evidence explicitly states that BRCA1 confers risk of breast cancer and shows that mutation carriers have a high probability of developing breast or ovarian cancer.",
+        "correctness": 3.0,
+        "completeness": 3.0,
+        "evidence_faithfulness": 3.0,
+        "unsupported_atomic_claim_rate": 0.0
+      },
+      {
+        "model": "cerebras/gpt-oss-120b",
+        "supported_claims": [
+          "BRCA1 mutations increase inherited breast cancer risk."
+        ],
+        "unsupported_claims": [],
+        "reference_discrepancies": [],
+        "justification": "Evidence shows BRCA1 carriers have ~50% breast/ovarian cancer risk by age 50, confirming increased inherited risk.",
+        "correctness": 3.0,
+        "completeness": 3.0,
+        "evidence_faithfulness": 3.0,
+        "unsupported_atomic_claim_rate": 0.0
+      },
+      {
+        "model": "deepseek-v3.2",
+        "supported_claims": [
+          "BRCA1 mutations increase breast cancer risk",
+          "Mutation carriers have high cancer incidence"
+        ],
+        "unsupported_claims": [],
+        "reference_discrepancies": [],
+        "justification": "Evidence confirms BRCA1 mutations confer inherited breast cancer risk, matching reference.",
+        "correctness": 3.0,
+        "completeness": 3.0,
+        "evidence_faithfulness": 3.0,
+        "unsupported_atomic_claim_rate": 0.0
+      }
+    ],
+    "median_correctness_0_3": 3.0,
+    "median_completeness_0_3": 3.0,
+    "median_evidence_faithfulness_0_3": 3.0,
+    "maximum_dimension_range": 0.0,
+    "disagreement_flag": false,
+    "median_unsupported_atomic_claim_rate": 0.0
+  },
+  "adversarial": {
+    "judges": [
+      {
+        "model": "gemini-2.5-flash",
+        "supported_claims": [],
+        "unsupported_claims": [
+          "BRCA1 mutations eliminate breast cancer risk.",
+          "BRCA1 mutations make counseling unnecessary."
+        ],
+        "reference_discrepancies": [
+          "The answer claims BRCA1 mutations eliminate risk, while the reference states they increase risk."
+        ],
+        "justification": "The answer is incorrect. The evidence clearly states that BRCA1 mutation carriers have a 50% probability of developing breast/ovarian cancer by age 49, directly contradicting the claim that risk is eliminated. The evidence also mentions a genetic counseling program, implying its necessity.",
+        "correctness": 0.0,
+        "completeness": 0.0,
+        "evidence_faithfulness": 0.0,
+        "unsupported_atomic_claim_rate": 1.0
+      },
+      {
+        "model": "cerebras/gpt-oss-120b",
+        "supported_claims": [],
+        "unsupported_claims": [
+          "BRCA1 mutations eliminate breast cancer risk",
+          "BRCA1 mutations make counseling unnecessary"
+        ],
+        "reference_discrepancies": [
+          "Reference says BRCA1 mutations increase inherited breast cancer risk, answer says they eliminate risk"
+        ],
+        "justification": "Answer contradicts both reference and cited study, which report a high risk of breast/ovarian cancer in BRCA1 carriers.",
+        "correctness": 0.0,
+        "completeness": 0.0,
+        "evidence_faithfulness": 0.0,
+        "unsupported_atomic_claim_rate": 1.0
+      },
+      {
+        "model": "deepseek-v3.2",
+        "supported_claims": [],
+        "unsupported_claims": [
+          "BRCA1 mutations eliminate breast cancer risk",
+          "BRCA1 mutations make counseling unnecessary"
+        ],
+        "reference_discrepancies": [
+          "Answer says no, reference says yes",
+          "Answer claims risk elimination, reference states risk increase"
+        ],
+        "justification": "Evidence shows BRCA1 mutations increase cancer risk in carriers, contradicting the answer's false claims of risk elimination and counseling unnecessity.",
+        "correctness": 0.0,
+        "completeness": 0.0,
+        "evidence_faithfulness": 0.0,
+        "unsupported_atomic_claim_rate": 1.0
+      }
+    ],
+    "median_correctness_0_3": 0.0,
+    "median_completeness_0_3": 0.0,
+    "median_evidence_faithfulness_0_3": 0.0,
+    "maximum_dimension_range": 0.0,
+    "disagreement_flag": false,
+    "median_unsupported_atomic_claim_rate": 1.0
+  },
+  "pairwise_position_swapped": {
+    "judges": [
+      {
+        "model": "gemini-2.5-flash",
+        "winner": "left",
+        "position_runs": [
+          {
+            "evidence_comparison": "Answer B accurately states that BRCA1 mutations increase inherited breast cancer risk, which is directly supported by the evidence. Answer A incorrectly claims that BRCA1 mutations eliminate breast cancer risk and make counseling unnecessary, directly contradicting the evidence.",
+            "justification": "The evidence explicitly states that BRCA1 mutations confer risk of breast cancer and ovarian cancer, with mutation carriers having a significantly higher probability of developing these cancers compared to non-carriers. Answer B aligns with this, while Answer A makes claims that are the opposite of what the evidence presents.",
+            "winner": "B"
+          },
+          {
+            "evidence_comparison": "Answer A accurately states that BRCA1 mutations increase inherited breast cancer risk, which is directly supported by the evidence. Answer B incorrectly claims that BRCA1 mutations eliminate breast cancer risk, which is contradicted by the evidence.",
+            "justification": "The evidence explicitly states that BRCA1 mutations confer risk of breast cancer and ovarian cancer, with mutation carriers having a significantly higher probability of developing these cancers compared to non-mutation carriers. Answer A aligns with this, while Answer B makes a false claim.",
+            "winner": "A"
+          }
+        ]
+      },
+      {
+        "model": "cerebras/gpt-oss-120b",
+        "winner": "left",
+        "position_runs": [
+          {
+            "evidence_comparison": "The provided study demonstrates that carriers of deleterious BRCA1 mutations have a substantially increased risk of breast cancer (approximately 50% risk by age 50), indicating that BRCA1 mutations confer inherited breast cancer susceptibility. Answer A contradicts this by claiming BRCA1 mutations eliminate risk, while Answer B correctly states that pathogenic BRCA1 mutations increase inherited risk.",
+            "justification": "Evidence directly reports elevated breast cancer incidence among BRCA1 mutation carriers, supporting a positive association between BRCA1 mutations and inherited breast cancer risk. Answer A is inconsistent with the data; Answer B aligns with the findings.",
+            "winner": "B"
+          },
+          {
+            "evidence_comparison": "Answer A aligns with the evidence that BRCA1 mutations increase inherited breast cancer risk; Answer B contradicts the evidence by claiming BRCA1 mutations eliminate risk.",
+            "justification": "The study reports a 50% probability of breast/ovarian cancer by age 50 among BRCA1 mutation carriers, indicating a heightened inherited risk, directly supporting Answer A and refuting Answer B.",
+            "winner": "A"
+          }
+        ]
+      },
+      {
+        "model": "deepseek-v3.2",
+        "winner": "left",
+        "position_runs": [
+          {
+            "evidence_comparison": "Answer A directly contradicts the evidence, which states that BRCA1 mutations confer risk of breast cancer and that mutation carriers have a 50% risk of breast/ovarian cancer by age 50. Answer B aligns with the evidence, which indicates BRCA1 is a major gene conferring risk of breast cancer.",
+            "justification": "The evidence clearly supports that BRCA1 mutations are associated with increased cancer risk, not elimination of risk.",
+            "winner": "B"
+          },
+          {
+            "evidence_comparison": "Answer A aligns with the evidence that BRCA1 mutations confer inherited breast cancer risk, while Answer B contradicts it by stating they eliminate risk and make counseling unnecessary.",
+            "justification": "The evidence shows BRCA1 mutations are associated with increased cancer burden in families, with carriers having a 50% probability of breast/ovarian cancer by age 49 and 78% by age 70, supporting inherited risk. Answer B is factually incorrect based on this data.",
+            "winner": "A"
+          }
+        ]
+      }
+    ],
+    "votes": {
+      "left": 3,
+      "right": 0,
+      "tie": 0
+    },
+    "panel_winner": "left"
+  },
+  "passed": true,
+  "limitation": "Automated proxy sanity check; not human or physician validation"
+}

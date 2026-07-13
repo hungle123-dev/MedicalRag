@@ -1,0 +1,15 @@
+{
+  "incident_id": "E02_CUDA_CONTEXT_LOSS",
+  "predictions": "artifacts\\runs\\E02-rrf_rerank-selection4849-976777ea30\\predictions.jsonl",
+  "rows": 4849,
+  "failures": 3696,
+  "failure_rate": 0.7622190142297381,
+  "error_types": {
+    "AcceleratorError": 3696
+  },
+  "first_failure_index_zero_based": 1153,
+  "successes_after_first_failure": 0,
+  "contiguous_terminal_failure": true,
+  "interpretation": "A contiguous AcceleratorError tail is consistent with process-level device/context loss, not independent per-question model errors; recover via bounded process shards.",
+  "incident_hash": "7c9ea6392255be924411dd76d1fa7993fd77843e31fd5e6b56ec4b4849476c1f"
+}

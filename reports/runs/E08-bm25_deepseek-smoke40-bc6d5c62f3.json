@@ -1,0 +1,30 @@
+{
+  "created_at": "2026-07-13T12:55:38.423756+00:00",
+  "status": "observed_real_data_real_gateway",
+  "scope": "closed-world positive-only gold-conditioned candidate pool",
+  "config": {
+    "family": "E08",
+    "arm": "bm25_deepseek",
+    "population": "smoke40",
+    "rows": 5,
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "generator_model": "deepseek-v3.2",
+    "pipeline_config_hash": "bca37412a9306236d7e0d6d2aab15a36633b8856b0d82097d6a72638689b1859",
+    "git_sha": "73a7d70d2902381eead7638153cec59fa82867ea",
+    "config_hash": "bc6d5c62f3d5b27d8526fd62bfdf9fb80994bf45504282e90393a332d6b697a3"
+  },
+  "metrics": {
+    "rouge_su4_f1": 0.10208210900480934,
+    "questions": 5,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "input_tokens": 6529,
+    "output_tokens": 786,
+    "latency_ms_p50": 7953.437699994538,
+    "latency_ms_p95": 9659.07480000169
+  },
+  "artifacts": {
+    "inference": "artifacts\\runs\\E08-bm25_deepseek-smoke40-bc6d5c62f3\\inference.jsonl",
+    "scored": "artifacts\\runs\\E08-bm25_deepseek-smoke40-bc6d5c62f3\\scored.jsonl"
+  }
+}

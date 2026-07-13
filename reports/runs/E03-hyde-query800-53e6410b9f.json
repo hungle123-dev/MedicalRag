@@ -1,0 +1,37 @@
+{
+  "created_at": "2026-07-13T15:17:11.805723+00:00",
+  "status": "observed_real_data",
+  "scope": "closed-world positive-only gold-conditioned candidate pool",
+  "config": {
+    "family": "E03",
+    "arm": "hyde",
+    "population": "query800",
+    "rows": 10,
+    "retriever_control": "rrf",
+    "bm25_recipe": "boosted_title_abstract_mesh",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "6986e0f5d5755c43481ac703f99c4ae0b11eb14a",
+    "purpose": "feasibility_only",
+    "query_generator_model": "gemini-2.5-flash-lite",
+    "hyde_prompt_hash": "7326eec82afae0b3da30790bb276ddc3ab06d0eadd4699c596ebbad9072498fb",
+    "config_hash": "53e6410b9fba3daf392050814981881d5de502735aea9b8e08d7df8ba68e731c"
+  },
+  "metrics": {
+    "ap": 0.27698809523809526,
+    "recall": 0.16363636363636364,
+    "mrr": 0.31,
+    "ndcg": 0.2984254632336438,
+    "hit": 0.4,
+    "recall_at_100": 0.3936363636363637,
+    "map_at_10": 0.27698809523809526,
+    "questions": 10,
+    "failures": 6,
+    "failure_rate": 0.6,
+    "retrieval_latency_ms_p50": 12677.594189999218,
+    "retrieval_latency_ms_p95": 14693.473139993876,
+    "query_transform_ms_p50": 0.0
+  },
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E03-hyde-query800-53e6410b9f\\predictions.jsonl"
+  }
+}
