@@ -1,6 +1,6 @@
 {
-  "frozen_at": "2026-07-13T23:33:42.615704+00:00",
-  "git_sha": "1ebc5e16279809f8eabe294f7c84a90d651422f4",
+  "frozen_at": "2026-07-13T23:37:28.104013+00:00",
+  "git_sha": "817ccd378bc51c062502d5e441af423999e644b9",
   "pipeline_ids": [
     "closed_book",
     "bm25_rag",
@@ -24,5 +24,5 @@
   "judge_config_sha256": "a9f3f0e1cec956257d720cc54aaab1f7aa7f7365f74472cc1a37435e130a1556",
   "model_inventory_sha256": "87efc9e69ebda0bf7cf586f7a77e1a44114ede3abca222a2548ddcef4b32d056",
   "heldout_seen": false,
-  "freeze_hash": "cc9da9bc4fcdf259a4b23caedf03a2ff6984fad64677e223ecea78f22ac6698b"
+  "freeze_hash": "30887bed045c346ef46d80b3be255a687e7e7b114d63b08474feed84dbd27eae"
 }
