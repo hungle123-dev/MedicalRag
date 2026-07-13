@@ -34,7 +34,7 @@ MedicalRag/
 ## Naming
 
 - Pipeline IDs: `B0`, `B1`, `B2`, `B3`, `G1`, `G2`.
-- Request IDs and run IDs: UUIDs.
+- Demo request IDs are UUIDs; research run IDs are descriptive slugs containing split, protocol version, population size and commit hash.
 - Graph evidence IDs: `primekg:path:<sha256>` over canonical ordered path JSON.
 - Text evidence IDs: stable corpus identifiers such as `PMID:<id>`.
 - Experiment output: `artifacts/experiments/<run_id>/`.

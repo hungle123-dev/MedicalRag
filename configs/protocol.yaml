@@ -1,4 +1,4 @@
-version: "1.2-dev"
+version: "1.3-e5-freeze-candidate"
 seed: 20260712
 
 tracks:
@@ -18,7 +18,7 @@ tracks:
     files: [train_call_bioLLM.json, val_call_bioLLM.json, test_call_bioLLM.json]
     expected_release_pairs: 85368
     count_must_be_recomputed_from_files: true
-    role: component_confirmatory
+    role: descriptive_normalized_pattern_fallback
     locked_split: test
     primary_metric: answer_set_f1
     report_by_node_count: [2, 3, 4]
@@ -91,8 +91,11 @@ graph_strategy:
   compatibility_mode: normalized_pattern_fallback
 
 evidence_budget:
-  total_tokens: 1800
-  max_items: 8
+  maximum_words_proxy: 1800
+  actual_budget: match_each_question_B3_context
+  text_max_items: 8
+  hybrid_max_items: 13
+  graph_max_items: 5
   graph_max_tokens: 540
   graph_shortfall: backfill_ranked_text
 
@@ -105,8 +108,9 @@ sampling:
 
 locked_tests:
   bioasq:
-    pipelines: [B3, G2]
+    pipelines: [B3, G2, X1, X2]
     executions: 1
+    locked_definition: labels_and_output_scores_never_used_for_tuning
     retune_after_access: false
     statistic: paired_question_bootstrap_10000
   primekgqa:

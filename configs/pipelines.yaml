@@ -31,7 +31,7 @@ defaults:
   medcpt_fetch_k: 50
   rrf_k: 60
   rerank_pool_k: 30
-  final_k: 8
+  text_final_k: 8
   entity_confidence_threshold: 0.80
   max_seed_entities: 5
   bioasq_graph_hops: 2
@@ -40,8 +40,11 @@ defaults:
   final_paths: 5
   graph_path_quality_threshold: 0.80
   evidence_total_tokens: 1800
-  evidence_max_items: 8
+  text_max_items: 8
+  hybrid_max_items: 13
+  graph_max_items: 5
   graph_max_tokens: 540
+  hybrid_actual_budget: match_each_question_B3_whitespace_words
   evidence_ordering: rank_interleave_text_first_v1
   generator: ${MEDICAL_RAG_GENERATOR:-mock}
 

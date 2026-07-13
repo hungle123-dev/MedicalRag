@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 from threading import BoundedSemaphore
 from contextlib import asynccontextmanager
@@ -13,6 +14,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .pipelines import PIPELINES, list_pipelines
 from .store import JobStore
+from .env import load_dotenv
+
+
+ROOT = Path(__file__).parents[2]
+load_dotenv(ROOT)
+logger = logging.getLogger(__name__)
 
 
 class QuestionRequest(BaseModel):
@@ -54,12 +61,19 @@ def create_app(database: Path | None = None, artifacts: Path | None = None) -> F
         bm25_ready = (root / "indexes" / "bm25_c0.pkl").exists()
         graph_ready = (root / "indexes" / "primekg.sqlite3").exists()
         dense_ready = (root / "indexes" / "medcpt" / "articles.faiss").exists()
-        ready = bm25_ready and graph_ready and dense_ready
-        availability = {"B0": True, "B1": bm25_ready, "B2": dense_ready,
-                        "B3": bm25_ready and dense_ready, "G1": graph_ready,
-                        "G2": bm25_ready and dense_ready and graph_ready}
+        selected_generator = os.getenv("MEDICAL_RAG_GENERATOR", "mock").casefold()
+        generator_ready = selected_generator == "mock" or (
+            selected_generator == "gateway" and bool(os.getenv("OPENAI_API_KEY"))
+            and bool(os.getenv("OPENAI_BASE_URL")) and bool(os.getenv("GATEWAY_GENERATOR_MODEL")))
+        ready = bm25_ready and graph_ready and dense_ready and generator_ready
+        availability = {"B0": generator_ready, "B1": bm25_ready and generator_ready,
+                        "B2": dense_ready and generator_ready,
+                        "B3": bm25_ready and dense_ready and generator_ready,
+                        "G1": graph_ready and generator_ready,
+                        "G2": bm25_ready and dense_ready and graph_ready and generator_ready}
         return JSONResponse({"status": "ready" if ready else "degraded", "pipelines": availability,
-                "dependencies": {"bm25": bm25_ready, "primekg": graph_ready, "medcpt": dense_ready}},
+                "dependencies": {"bm25": bm25_ready, "primekg": graph_ready, "medcpt": dense_ready,
+                                 "generator": generator_ready, "generator_provider": selected_generator}},
                 status_code=200 if ready else 503)
 
     @app.get("/api/v1/pipelines")
@@ -79,6 +93,7 @@ def create_app(database: Path | None = None, artifacts: Path | None = None) -> F
             if store.get(job_id)["status"] != "cancelled":
                 store.set_status(job_id, "completed", result=result)
         except Exception as exc:  # boundary: persist failures for reproducible runs
+            logger.exception("Pipeline execution failed for job_id=%s pipeline_id=%s", job_id, pipeline_id)
             store.set_status(job_id, "failed", error=f"PIPELINE_FAILED:{type(exc).__name__}")
         finally:
             capacity.release()

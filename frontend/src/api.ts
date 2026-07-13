@@ -18,6 +18,7 @@ export type Details = {
 };
 
 export type Result = { answer: string; citations: Citation[]; evidence: Citation[]; details: Details };
+export type Readiness = { status: string; pipelines: Record<string, boolean>; dependencies: Record<string, unknown> };
 
 export type StreamEvent =
   | { type: "token"; text: string }
@@ -74,4 +75,9 @@ export function safePubMedUrl(value?: string): string | undefined {
     const url = new URL(value);
     return url.protocol === "https:" && url.hostname === "pubmed.ncbi.nlm.nih.gov" ? url.href : undefined;
   } catch { return undefined; }
+}
+
+export async function fetchReadiness(): Promise<Readiness> {
+  const response = await fetch("/api/v1/ready");
+  return await response.json() as Readiness;
 }

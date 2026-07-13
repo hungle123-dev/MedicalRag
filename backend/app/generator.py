@@ -45,6 +45,9 @@ class Generation:
     model: str
     provider: str
     cached: bool = False
+    response_model: str | None = None
+    system_fingerprint: str | None = None
+    usage: dict | None = None
 
 
 class MockGenerator:
@@ -135,8 +138,11 @@ class GatewayGenerator:
         key = stable_hash(json.dumps({"model": self.model, "prompt": prompt}, sort_keys=True))
         target = self.cache / f"{key}.json"
         if target.exists():
-            return Generation(json.loads(target.read_text(encoding="utf-8"))["answer"], self.model,
-                              self.provider, cached=True)
+            cached = json.loads(target.read_text(encoding="utf-8"))
+            raw = cached.get("raw", {})
+            return Generation(cached["answer"], self.model, self.provider, cached=True,
+                              response_model=raw.get("model"), system_fingerprint=raw.get("system_fingerprint"),
+                              usage=raw.get("usage"))
         body = {"model": self.model, "temperature": 0, "max_tokens": 512,
                 "messages": [{"role": "user", "content": prompt}]}
         last_error = None
@@ -151,7 +157,8 @@ class GatewayGenerator:
                 temporary = target.with_suffix(".json.tmp")
                 temporary.write_text(json.dumps({"answer": answer, "raw": raw}), encoding="utf-8")
                 os.replace(temporary, target)
-                return Generation(answer, self.model, self.provider)
+                return Generation(answer, self.model, self.provider, response_model=raw.get("model"),
+                                  system_fingerprint=raw.get("system_fingerprint"), usage=raw.get("usage"))
             except (httpx.HTTPError, KeyError, IndexError, AttributeError) as exc:
                 last_error = exc
                 if attempt < 2:

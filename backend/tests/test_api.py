@@ -5,9 +5,18 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.generator import MockGenerator
+import app.pipelines as pipeline_state
 
 
 class ApiTest(unittest.TestCase):
+    def setUp(self):
+        self.generator = pipeline_state._generator
+        pipeline_state._generator = MockGenerator()
+
+    def tearDown(self):
+        pipeline_state._generator = self.generator
+
     def test_question_lifecycle(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

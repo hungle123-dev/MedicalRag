@@ -10,6 +10,7 @@
   "primekgqa_locked_fallback": {"answer_set_f1": 0.069993, "exact_match": 0.018022, "entity_link_f1": 0.694486, "relation_f1": 0.110063},
   "clean_smoke": {"run_id": "bioasq_dev_b3_g2_mock_warmed_counterbalanced_v5_50_20260712", "paired_questions": 50, "result_files": 100, "working_tree_dirty_during_run": false, "graph_evidence_rate_g2": 0.44},
   "verification": {"backend_tests": "16 passed before clean smoke; 17 including harness check before final handoff", "frontend_build": "passed", "html_yaml_validation": "passed", "git_diff_check": "passed"},
-  "external_blockers": ["GEMINI_API_KEY and exact generator model availability", "GROQ_API_KEY and judge calibration", "two qualified medical reviewers"],
+  "external_blockers": ["two qualified medical reviewers", "judge-human calibration before confirmatory judge claims"],
+  "gateway_status": "DeepSeek generator and Cerebras judge verified 2026-07-13; key remains local and gitignored",
   "claim_boundary": "Text hybrid improvement is supported. Graph improvement over B3 final-answer correctness is not established."
 }

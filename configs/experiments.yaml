@@ -19,13 +19,14 @@ experiments:
     primary_metric: document_recall_at_10
   E4_graph_component:
     hypothesis: Rule-based entity linking and bounded traversal recover PrimeKGQA answers/patterns.
-    change: [full, one_hop, no_path_reranker]
+    change: [full, one_hop, no_path_reranker, matched_random_path]
     fixed: [PrimeKG revision, PrimeKGQA IDs, max candidates]
     primary_metric: answer_set_f1
     gate: Gold SPARQL non-empty executable rate must be at least 0.99; otherwise normalized-pattern fallback only.
   E5_graph_value:
     hypothesis: Relevant PrimeKG paths improve answer correctness beyond equal-budget text.
-    change: [B3, G2, extra_text, random_path]
-    fixed: [question IDs, generator, prompt, total evidence budget, output limit, retries]
+    change: [B3, G2, X1_extra_text_sham, X2_seed_matched_random_path]
+    fixed: [question IDs, generator, prompt, actual whitespace-word budget, output limit, retries]
     primary_metric: paired_mean_correctness_0_2
-    decision_rule: Claim benefit only when CI excludes zero and extra-text/random-path controls do not explain it.
+    sampling: frozen BioASQ dev IDs excluding the first 5 generator-calibration IDs
+    decision_rule: Claim benefit only when all three G2-minus-control CIs exclude zero and human review finds no harm increase.

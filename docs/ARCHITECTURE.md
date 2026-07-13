@@ -84,9 +84,9 @@ Each result records pipeline/config/prompt/model/data/KG revisions and hashes. B
 | Track | Data | Purpose | Primary metrics |
 |---|---|---|---|
 | End-to-end | BioASQ `question-answer-passages` + `text-corpus` | Compare frozen B3 with G2 | Human paired correctness 0–2; calibrated full-set judge; citation metrics |
-| Graph component | PrimeKGQA official test + matching PrimeKG RDF schema | Test linking, query/traversal and KG reasoning | Answer-set EM/F1, executable-query rate, execution accuracy by 2/3/4-node |
+| Graph component | PrimeKGQA release + pinned PrimeKG tables | Descriptive linking/path-pattern fallback | Answer-set EM/F1 and path validity by 2/3/4-node; execution accuracy N/A |
 
-PrimeKG is the graph being queried; PrimeKGQA is a QA benchmark generated from it. Gold SPARQL is evaluation-only. Exact SPARQL string match is not a primary metric because equivalent queries may differ syntactically. Before graph-component evaluation, 100 gold queries must reach at least 99% executable rate against the pinned RDF/IRI schema.
+PrimeKG is the graph being queried; PrimeKGQA is a QA benchmark generated from it. The required 99% compatibility gate reached only 3%, so current PrimeKGQA results are normalized-pattern fallback metrics and cannot support executable-query claims.
 
 ## Persistence and failure semantics
 

@@ -1,5 +1,5 @@
-import { FormEvent, useRef, useState } from "react";
-import { Citation, Details, Result, safePubMedUrl, streamAnswer } from "./api";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { Citation, Details, Readiness, Result, fetchReadiness, safePubMedUrl, streamAnswer } from "./api";
 
 const pipelines = [
   ["B0", "Closed-book LLM"],
@@ -9,6 +9,30 @@ const pipelines = [
   ["G1", "PrimeKG only"],
   ["G2", "Text + PrimeKG"],
 ];
+
+function ResultPanel({ id, result }: { id: "B3" | "G2"; result: Result }) {
+  return <article>
+    <h3>{id}: {id === "B3" ? "Text RAG" : "Text + PrimeKG"}</h3>
+    <p className="answer-text">{result.answer}</p>
+    <small>{result.details.latency_ms?.toLocaleString()} ms · {result.evidence.length} evidence items</small>
+    <ol className="citations">
+      {result.evidence.map((item) => <li key={item.id}>
+        <span className="badge">{item.type === "graph" ? "Graph" : "Text"}</span>
+        {result.citations.some((citation) => citation.id === item.id) && <span className="badge cited">Cited</span>}
+        {safePubMedUrl(item.url) ? <a href={safePubMedUrl(item.url)} target="_blank" rel="noreferrer">{item.title || item.id}</a> : <strong>{item.title || item.id}</strong>}
+        {item.snippet && <p>{item.snippet}</p>}
+      </li>)}
+    </ol>
+    {result.details.generator && <p>Generator: {result.details.generator.provider}/{result.details.generator.model}</p>}
+    {result.details.budget && <p>Budget: text {result.details.budget.text_tokens_actual ?? 0}, graph {result.details.budget.graph_tokens_actual ?? 0} / {result.details.budget.token_budget ?? 0} words.</p>}
+  </article>;
+}
+
+function friendlyError(message: string): string {
+  if (message.includes("PIPELINE_BUSY")) return "The local model is busy. Try again in a moment.";
+  if (message.includes("PIPELINE_FAILED")) return "The pipeline failed. Check backend logs and readiness.";
+  return message;
+}
 
 export default function App() {
   const [question, setQuestion] = useState("");
@@ -21,7 +45,10 @@ export default function App() {
   const [details, setDetails] = useState<Details>({});
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [error, setError] = useState("");
+  const [readiness, setReadiness] = useState<Readiness | null>(null);
   const controller = useRef<AbortController | null>(null);
+
+  useEffect(() => { void fetchReadiness().then(setReadiness).catch(() => setReadiness(null)); }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -37,10 +64,8 @@ export default function App() {
     setStatus("loading");
     try {
       if (compare) {
-        const [b3, g2] = await Promise.all([
-          streamAnswer(cleanQuestion, "B3", controller.current.signal, () => undefined),
-          streamAnswer(cleanQuestion, "G2", controller.current.signal, () => undefined),
-        ]);
+        const b3 = await streamAnswer(cleanQuestion, "B3", controller.current.signal, () => undefined);
+        const g2 = await streamAnswer(cleanQuestion, "G2", controller.current.signal, () => undefined);
         setComparison({ B3: b3, G2: g2 });
         setStatus("done");
         return;
@@ -55,7 +80,7 @@ export default function App() {
       setStatus("done");
     } catch (reason) {
       if ((reason as Error).name === "AbortError") return setStatus("idle");
-      setError(reason instanceof Error ? reason.message : "Something went wrong.");
+      setError(friendlyError(reason instanceof Error ? reason.message : "Something went wrong."));
       setStatus("error");
     }
   }
@@ -71,6 +96,7 @@ export default function App() {
       <aside className="warning" role="note">
         <strong>Research use only.</strong> Answers may be incomplete or incorrect and are not medical advice. Do not enter identifiable patient data. Seek a qualified clinician for care decisions.
       </aside>
+      {readiness?.status === "degraded" && <p className="error" role="alert">Backend is degraded. Unavailable pipelines are disabled.</p>}
 
       <form onSubmit={submit}>
         <label htmlFor="question">Medical question</label>
@@ -86,10 +112,10 @@ export default function App() {
         <div className="controls">
           <label htmlFor="pipeline">Pipeline</label>
           <select id="pipeline" value={pipeline} onChange={(event) => setPipeline(event.target.value)}>
-            {pipelines.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            {pipelines.map(([value, label]) => <option key={value} value={value} disabled={readiness ? !readiness.pipelines[value] : false}>{label}</option>)}
           </select>
           <label className="compare-toggle"><input type="checkbox" checked={compare} onChange={(event) => setCompare(event.target.checked)} /> Compare B3/G2</label>
-          <button type="submit" disabled={status === "loading" || !question.trim()}>
+          <button type="submit" disabled={status === "loading" || !question.trim() || Boolean(readiness && !readiness.pipelines[pipeline])}>
             {status === "loading" ? "Retrieving…" : "Ask"}
           </button>
           {status === "loading" && <button className="secondary" type="button" onClick={() => controller.current?.abort()}>Stop</button>}
@@ -99,23 +125,20 @@ export default function App() {
       {Object.keys(comparison).length > 0 && <section aria-live="polite">
         <h2>B3/G2 matched comparison</h2>
         <div className="comparison">
-          {(["B3", "G2"] as const).map((id) => <article key={id}>
-            <h3>{id}: {id === "B3" ? "Text RAG" : "Text + PrimeKG"}</h3>
-            <p className="answer-text">{comparison[id]?.answer}</p>
-            <small>{comparison[id]?.details.latency_ms?.toLocaleString()} ms · {comparison[id]?.evidence.length} evidence items</small>
-          </article>)}
+          {(["B3", "G2"] as const).map((id) => comparison[id] &&
+            <ResultPanel key={id} id={id} result={comparison[id]} />)}
         </div>
       </section>}
 
-      <section className="answer" aria-live="polite" aria-busy={status === "loading"}>
+      {!compare && <section className="answer" aria-live="polite" aria-busy={status === "loading"}>
         <h2>Answer</h2>
         {status === "idle" && !answer && <p className="muted">Your grounded answer will appear here.</p>}
         {answer && <p className="answer-text">{answer}</p>}
         {status === "loading" && <span className="status">Searching evidence and generating an answer…</span>}
         {error && <p className="error" role="alert">{error}</p>}
-      </section>
+      </section>}
 
-      {(evidence.length > 0 || citations.length > 0) && (
+      {!compare && (evidence.length > 0 || citations.length > 0) && (
         <section>
           <h2>PubMed evidence and citations</h2>
           <ol className="citations">
@@ -135,7 +158,7 @@ export default function App() {
         </section>
       )}
 
-      {(details.latency_ms !== undefined || details.graph_paths?.length) && (
+      {!compare && (details.latency_ms !== undefined || details.graph_paths?.length) && (
         <details>
           <summary>Retrieval details</summary>
           {details.degraded && <p className="error">Degraded pipeline: {details.degraded_reason}</p>}

@@ -28,6 +28,13 @@ def weighted_kappa(left: list[int], right: list[int], categories: int = 3) -> fl
     return 1.0 - float((weights * observed).sum()) / denominator if denominator else 1.0
 
 
+def confusion_matrix(left: list[int], right: list[int], categories: int = 3) -> list[list[int]]:
+    if len(left) != len(right) or not left: raise ValueError("Reviewer arrays must be paired")
+    matrix = [[0 for _ in range(categories)] for _ in range(categories)]
+    for a, b in zip(left, right): matrix[a][b] += 1
+    return matrix
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("labels", type=Path, help="JSONL with b3_correctness, g2_correctness, reviewer_a, reviewer_b")

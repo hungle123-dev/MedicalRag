@@ -17,7 +17,7 @@ for path in yaml_files: yaml.safe_load(path.read_text(encoding="utf-8"))
 protocol = yaml.safe_load((ROOT / "configs/protocol.yaml").read_text(encoding="utf-8"))
 pipelines = yaml.safe_load((ROOT / "configs/pipelines.yaml").read_text(encoding="utf-8"))
 assert set(pipelines["pipelines"]) == {"B0", "B1", "B2", "B3", "G1", "G2"}
-assert protocol["locked_tests"]["bioasq"]["pipelines"] == ["B3", "G2"]
+assert protocol["locked_tests"]["bioasq"]["pipelines"] == ["B3", "G2", "X1", "X2"]
 for path in [ROOT / "README.md", ROOT / "configs/protocol.yaml", *html_files]:
     text = path.read_text(encoding="utf-8")
     assert "MUST_VERIFY" not in text and "TBD_COMMIT" not in text, f"stale placeholder in {path}"

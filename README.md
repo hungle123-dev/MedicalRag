@@ -5,7 +5,7 @@ Research prototype for English medical QA. Input is one text question; output is
 ## What is implemented
 
 - B0 closed-book diagnostic; B1 BM25; B2 MedCPT dense; B3 BM25 + MedCPT RRF + MedCPT Cross-Encoder.
-- G1 PrimeKG-only diagnostic; G2 B3 plus 1–2 hop PrimeKG evidence under the same 1,800-token/8-item budget.
+- G1 PrimeKG-only diagnostic; E5 compares B3, G2, equal-budget extra-text X1 and matched-random-path X2. Every arm matches B3's actual per-question word budget.
 - BioASQ end-to-end track and PrimeKGQA graph-component track. PrimeKGQA is QA evaluation data; PrimeKG is the one queried graph.
 - FastAPI/SQLite/JSON-artifact backend and React/TypeScript UI with SSE, cancellation, evidence panels and B3/G2 comparison.
 - Deterministic offline generator for tests; cached OpenAI-compatible gateway generator and blinded two-pass independent judge for real inference.

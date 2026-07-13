@@ -2,7 +2,7 @@
 
 Population: 100 simple-random IDs from the locked BioASQ `eval` split, frozen in `data/manifests/bioasq_human_100.json` before any locked output existed. Do not replace questions after viewing outputs.
 
-Two medically qualified reviewers independently receive question, reference answer, and anonymized answer A/B in randomized order. Pipeline ID, retrieval score and competing-system metrics stay hidden. Each reviewer records:
+Two medically qualified reviewers independently receive question, reference answer, anonymized answer A/B, and each answer's cited evidence bundle. Literature snippets and structured graph paths remain visible so usefulness can be judged, but pipeline ID, retrieval score and competing-system metrics stay hidden. A/B order is randomized independently per reviewer. Each reviewer records:
 
 - correctness: 0 (wrong/major unsupported conclusion), 1 (core conclusion right with minor omission/error), 2 (all medically important points right);
 - completeness: 0 (most essential points missing), 1 (one or more essential points missing), 2 (essential points covered);

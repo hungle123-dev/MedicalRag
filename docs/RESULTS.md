@@ -63,7 +63,7 @@ Dev controls do not support the path scorer: full F1 0.058013, one-hop 0.045791,
 
 ## End-to-end and product status
 
-B3/G2 share one backend pipeline contract, generator/prompt/model settings, 1,800-token/8-item budget, text-first interleaving, retry policy and evidence registry. The generator never receives gold labels, pipeline ID, competing output or metrics. Gateway model-list and structured-output probes verified `deepseek-v3.2` and the independent `cerebras/gpt-oss-120b` judge on 2026-07-13. The key remains local and gitignored.
+B3/G2 share one backend pipeline contract, generator/prompt/model settings, retry policy and evidence registry. The original five-question smoke used an eight-item maximum and exposed an actual-budget confound; protocol v1.3 therefore matches every E5 arm to B3's per-question whitespace-word count and adds X1/X2 controls. Gateway model-list and structured-output probes verified `deepseek-v3.2` and the independent `cerebras/gpt-oss-120b` judge on 2026-07-13. The key remains local and gitignored.
 
 The clean-commit dev smoke `bioasq_dev_b3_g2_mock_warmed_counterbalanced_v5_50_20260712` replayed 50 paired questions / 100 results with one config/prompt hash. After unmeasured warm-up and counterbalanced ordering, mean latency was 1,113.8 ms for B3 and 1,199.7 ms for G2; paired median G2−B3 was +26.5 ms. G2 returned graph evidence for 44% of questions. These are product-flow/coverage numbers only because the mock makes no medical claim.
 

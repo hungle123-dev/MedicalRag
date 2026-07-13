@@ -3,11 +3,13 @@ import time
 import hashlib
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from threading import Lock
 
 from .retrieval import BM25Index
 from .graph import PrimeKGIndex
 from .medcpt import MedCPTIndex, MedCPTReranker, reciprocal_rank_fusion
 from .generator import create_generator, validate_citations
+from .controls import matched_extra_text, matched_random_paths
 
 
 _bm25: BM25Index | None = None
@@ -15,6 +17,7 @@ _graph: PrimeKGIndex | None = None
 _medcpt: MedCPTIndex | None = None
 _reranker: MedCPTReranker | None = None
 _generator = None
+_init_lock = Lock()
 
 
 def project_root() -> Path:
@@ -24,45 +27,55 @@ def project_root() -> Path:
 def bm25() -> BM25Index:
     global _bm25
     if _bm25 is None:
-        root = project_root()
-        path = Path(os.getenv("MEDICAL_RAG_BM25_INDEX", root / "indexes" / "bm25_c0.pkl"))
-        if not path.exists():
-            raise RuntimeError(f"BM25 index unavailable: run python scripts/build_indexes.py ({path})")
-        _bm25 = BM25Index.load(path)
+        with _init_lock:
+            if _bm25 is None:
+                root = project_root()
+                path = Path(os.getenv("MEDICAL_RAG_BM25_INDEX", root / "indexes" / "bm25_c0.pkl"))
+                if not path.exists():
+                    raise RuntimeError(f"BM25 index unavailable: run python scripts/build_indexes.py ({path})")
+                _bm25 = BM25Index.load(path)
     return _bm25
 
 
 def graph() -> PrimeKGIndex:
     global _graph
     if _graph is None:
-        path = Path(os.getenv("MEDICAL_RAG_GRAPH_INDEX", project_root() / "indexes" / "primekg.sqlite3"))
-        if not path.exists():
-            raise RuntimeError(f"PrimeKG index unavailable: run python scripts/build_graph_index.py ({path})")
-        _graph = PrimeKGIndex(path)
+        with _init_lock:
+            if _graph is None:
+                path = Path(os.getenv("MEDICAL_RAG_GRAPH_INDEX", project_root() / "indexes" / "primekg.sqlite3"))
+                if not path.exists():
+                    raise RuntimeError(f"PrimeKG index unavailable: run python scripts/build_graph_index.py ({path})")
+                _graph = PrimeKGIndex(path)
     return _graph
 
 
 def medcpt() -> MedCPTIndex:
     global _medcpt
     if _medcpt is None:
-        path = Path(os.getenv("MEDICAL_RAG_MEDCPT_INDEX", project_root() / "indexes" / "medcpt"))
-        if not (path / "articles.faiss").exists():
-            raise RuntimeError(f"MedCPT index unavailable: run python scripts/build_medcpt_index.py ({path})")
-        _medcpt = MedCPTIndex(path)
+        with _init_lock:
+            if _medcpt is None:
+                path = Path(os.getenv("MEDICAL_RAG_MEDCPT_INDEX", project_root() / "indexes" / "medcpt"))
+                if not (path / "articles.faiss").exists():
+                    raise RuntimeError(f"MedCPT index unavailable: run python scripts/build_medcpt_index.py ({path})")
+                _medcpt = MedCPTIndex(path)
     return _medcpt
 
 
 def reranker() -> MedCPTReranker:
     global _reranker
     if _reranker is None:
-        _reranker = MedCPTReranker()
+        with _init_lock:
+            if _reranker is None:
+                _reranker = MedCPTReranker()
     return _reranker
 
 
 def generator():
     global _generator
     if _generator is None:
-        _generator = create_generator(project_root())
+        with _init_lock:
+            if _generator is None:
+                _generator = create_generator(project_root())
     return _generator
 
 
@@ -76,22 +89,24 @@ def trim_item(item: dict, token_limit: int) -> tuple[dict, int]:
     return item | {"snippet": " ".join(words[:used])}, used
 
 
-def evidence_budget(texts: list[dict], graphs: list[dict]) -> tuple[list[dict], dict]:
-    """Apply the frozen 1,800-token/8-item fusion budget using a logged whitespace proxy."""
+def evidence_budget(texts: list[dict], graphs: list[dict], *, token_budget: int = 1800,
+                    max_items: int = 8, graph_budget: int = 540) -> tuple[list[dict], dict]:
+    """Apply an explicit word-proxy budget; hybrid arms may use extra evidence slots."""
     # ponytail: provider tokenizers are unavailable offline; replace proxy when the generator API exposes countTokens.
     selected_graphs: list[dict] = []
     selected_texts: list[dict] = []
     graph_used = text_used = 0
+    graph_limit = min(graph_budget, token_budget)
     for item in graphs[:5]:
-        if len(selected_graphs) == 8 or graph_used >= 540:
+        if len(selected_graphs) == max_items or graph_used >= graph_limit:
             break
-        trimmed, used = trim_item(item, min(540 - graph_used, 180))
+        trimmed, used = trim_item(item, min(graph_limit - graph_used, 180))
         if used:
             selected_graphs.append(trimmed); graph_used += used
     for item in texts:
-        if len(selected_graphs) + len(selected_texts) == 8 or graph_used + text_used >= 1800:
+        if len(selected_graphs) + len(selected_texts) == max_items or graph_used + text_used >= token_budget:
             break
-        trimmed, used = trim_item(item, 1800 - graph_used - text_used)
+        trimmed, used = trim_item(item, token_budget - graph_used - text_used)
         if used:
             selected_texts.append(trimmed); text_used += used
     selected = []
@@ -99,9 +114,10 @@ def evidence_budget(texts: list[dict], graphs: list[dict]) -> tuple[list[dict], 
         if index < len(selected_texts): selected.append(selected_texts[index])
         if index < len(selected_graphs): selected.append(selected_graphs[index])
     return selected, {
-        "token_count_method": "whitespace_proxy_v1", "token_budget": 1800,
+        "token_count_method": "whitespace_proxy_v1", "token_budget": token_budget,
+        "max_items": max_items,
         "ordering": "rank_interleave_text_first_v1",
-        "graph_tokens_requested": 540 if graphs else 0, "graph_tokens_actual": graph_used,
+        "graph_tokens_requested": graph_limit if graphs else 0, "graph_tokens_actual": graph_used,
         "text_tokens_actual": text_used, "evidence_items": len(selected),
     }
 
@@ -119,38 +135,112 @@ def rows_to_text_evidence(rows: list[dict]) -> list[dict]:
     ]
 
 
-def text_evidence(question: str, strategy: str = "bm25") -> list[dict]:
+def text_evidence(question: str, strategy: str = "bm25", k: int = 8) -> list[dict]:
     if strategy == "bm25":
-        rows = bm25().search(question, k=8)
+        rows = bm25().search(question, k=k)
     elif strategy == "medcpt":
-        rows = medcpt().search(question, k=8)
+        rows = medcpt().search(question, k=k)
     elif strategy == "hybrid":
         candidates = reciprocal_rank_fusion(
             bm25().search(question, k=50), medcpt().search(question, k=50), k=60
         )[:30]
-        rows = reranker().rerank(question, candidates, k=8)
+        rows = reranker().rerank(question, candidates, k=k)
     else:
         raise ValueError(f"Unknown text retrieval strategy: {strategy}")
     return rows_to_text_evidence(rows)
 
 
-def graph_evidence(question: str) -> tuple[list[dict], list[dict]]:
+def path_to_evidence(path: dict) -> dict:
+    verbalized = " · ".join(
+        f"{next(node['name'] for node in path['nodes'] if node['id'] == edge['source_id'])}"
+        f" —{edge['relation']}→ "
+        f"{next(node['name'] for node in path['nodes'] if node['id'] == edge['target_id'])}"
+        for edge in path["edges"]
+    )
+    return {
+        "id": path["id"], "type": "graph", "title": "PrimeKG path",
+        "snippet": verbalized, "score": path["score"], "hop_count": path["hop_count"],
+        "nodes": path["nodes"], "edges": path["edges"],
+        "provenance": {"kg": "PrimeKG", "revision": "Dataverse files 6180616/6180617"},
+    }
+
+
+def graph_evidence(question: str, *, limit: int = 5, threshold: float | None = 0.8) -> tuple[list[dict], list[dict]]:
     seeds = graph().link(question)
-    paths = [path for path in graph().paths(seeds, question=question) if path["score"] >= 0.8]
-    evidence = []
-    for path in paths:
-        verbalized = " · ".join(
-            f"{next(node['name'] for node in path['nodes'] if node['id'] == edge['source_id'])}"
-            f" —{edge['relation']}→ "
-            f"{next(node['name'] for node in path['nodes'] if node['id'] == edge['target_id'])}"
-            for edge in path["edges"]
-        )
-        evidence.append({
-            "id": path["id"], "type": "graph", "title": "PrimeKG path",
-            "snippet": verbalized, "score": path["score"], "nodes": path["nodes"], "edges": path["edges"],
-            "provenance": {"kg": "PrimeKG", "revision": "Dataverse files 6180616/6180617"},
-        })
-    return evidence, seeds
+    paths = graph().paths(seeds, question=question, limit=limit)
+    if threshold is not None:
+        paths = [path for path in paths if path["score"] >= threshold]
+    return [path_to_evidence(path) for path in paths], seeds
+
+
+def evidence_words(items: list[dict]) -> int:
+    return sum(len(item.get("snippet", "").split()) for item in items)
+
+
+def build_e5_arms(question: str, seed: int) -> dict[str, dict]:
+    """Build B3/G2 and two matched controls once, before any answer is generated."""
+    texts = text_evidence(question, "hybrid", k=13)
+    base_texts = texts[:8]
+    target_budget = min(1800, evidence_words(base_texts))
+    b3, b3_budget = evidence_budget(base_texts, [], token_budget=target_budget, max_items=8)
+    relevant, seeds = graph_evidence(question)
+    g2, g2_budget = evidence_budget(base_texts, relevant, token_budget=target_budget,
+                                    max_items=13, graph_budget=min(540, target_budget))
+    selected_graphs = [item for item in g2 if item["type"] == "graph"]
+    graph_words = evidence_words(selected_graphs)
+    if not selected_graphs:
+        return {arm: {"evidence": b3, "budget": b3_budget, "linked": seeds,
+                      "graph_positive": False, "control_complete": True}
+                for arm in ("B3", "G2", "X1", "X2")}
+    extra = matched_extra_text(texts[8:13], selected_graphs)
+    x1, x1_budget = evidence_budget(base_texts, extra, token_budget=target_budget,
+                                    max_items=13, graph_budget=graph_words)
+    candidates, _ = graph_evidence(question, limit=100, threshold=None)
+    random_paths = matched_random_paths(candidates, selected_graphs, seed)
+    x2, x2_budget = evidence_budget(base_texts, random_paths, token_budget=target_budget,
+                                    max_items=13, graph_budget=graph_words)
+    return {
+        "B3": {"evidence": b3, "budget": b3_budget, "linked": [], "graph_positive": True,
+               "control_complete": True},
+        "G2": {"evidence": g2, "budget": g2_budget, "linked": seeds, "graph_positive": True,
+               "control_complete": True},
+        "X1": {"evidence": x1, "budget": x1_budget, "linked": seeds, "graph_positive": True,
+               "control_complete": len(extra) == len(selected_graphs)},
+        "X2": {"evidence": x2, "budget": x2_budget, "linked": seeds, "graph_positive": True,
+               "control_complete": len(random_paths) == len(selected_graphs)},
+    }
+
+
+def generate_from_evidence(question: str, pipeline_id: str, arm: dict, started: float | None = None) -> dict:
+    started = started or time.perf_counter()
+    evidence, budget, linked = arm["evidence"], arm["budget"], arm["linked"]
+    generation = generator().generate(question, evidence, closed_book=pipeline_id == "B0")
+    prompt_name = "answer_closed_book_v1.txt" if pipeline_id == "B0" else "answer_v1.txt"
+    integrity = validate_citations(generation.answer, evidence)
+    registry = {item["id"]: item for item in evidence}
+    cited = [registry[item_id] for item_id in integrity["valid_ids"]]
+    answer = generation.answer
+    if integrity["invented_ids"]:
+        answer = "The generated answer failed citation-integrity validation; no medical answer is shown."
+        cited = []
+    return {
+        "answer": answer, "citations": cited, "evidence": evidence,
+        "details": {"pipeline": pipeline_id, "linked_entities": linked,
+                    "graph_paths": [item["snippet"] for item in evidence if item["type"] == "graph"],
+                    "degraded": False, "degraded_reason": None, "budget": budget,
+                    "graph_positive": arm.get("graph_positive"),
+                    "control_complete": arm.get("control_complete", True),
+                    "citation_integrity": integrity,
+                    "generator": {"provider": generation.provider, "model": generation.model,
+                                  "cached": generation.cached, "response_model": generation.response_model,
+                                  "system_fingerprint": generation.system_fingerprint,
+                                  "usage": generation.usage},
+                    "latency_ms": round((time.perf_counter() - started) * 1000)},
+        "provenance": {"pipeline_id": pipeline_id,
+            "pipeline_config_hash": file_hash(project_root() / "configs/pipelines.yaml"),
+            "prompt_hash": file_hash(project_root() / "configs/prompts" / prompt_name),
+            "data_manifest_hash": file_hash(project_root() / "data/manifests/files.json")},
+    }
 
 
 @dataclass(frozen=True)
@@ -164,40 +254,30 @@ class Pipeline:
         if self.id == "B0":
             evidence, budget = evidence_budget([], [])
             linked = []
-        if self.id in {"B1", "B2", "B3"}:
-            strategy = {"B1": "bm25", "B2": "medcpt", "B3": "hybrid"}[self.id]
+        elif self.id in {"B1", "B2"}:
+            strategy = {"B1": "bm25", "B2": "medcpt"}[self.id]
             evidence, budget = evidence_budget(text_evidence(question, strategy), [])
             linked = []
-        if self.id in {"G1", "G2"}:
+        elif self.id == "B3":
+            texts = text_evidence(question, "hybrid")
+            evidence, budget = evidence_budget(texts, [], token_budget=evidence_words(texts))
+            linked = []
+        elif self.id == "G1":
             graphs, seeds = graph_evidence(question)
-            texts = text_evidence(question, "hybrid") if self.id == "G2" else []
-            evidence, budget = evidence_budget(texts, graphs)
+            evidence, budget = evidence_budget([], graphs)
             linked = seeds
-        if self.id in {"B0", "B1", "B2", "B3", "G1", "G2"}:
-            generation = generator().generate(question, evidence, closed_book=self.id == "B0")
-            prompt_name = "answer_closed_book_v1.txt" if self.id == "B0" else "answer_v1.txt"
-            integrity = validate_citations(generation.answer, evidence)
-            registry = {item["id"]: item for item in evidence}
-            cited = [registry[item_id] for item_id in integrity["valid_ids"]]
-            answer = generation.answer
-            if integrity["invented_ids"]:
-                answer = "The generated answer failed citation-integrity validation; no medical answer is shown."
-                cited = []
-            return {
-                "answer": answer, "citations": cited, "evidence": evidence,
-                "details": {"pipeline": self.id, "linked_entities": linked,
-                            "graph_paths": [item["snippet"] for item in evidence if item["type"] == "graph"],
-                            "degraded": False, "degraded_reason": None, "budget": budget,
-                            "citation_integrity": integrity,
-                            "generator": {"provider": generation.provider, "model": generation.model,
-                                          "cached": generation.cached},
-                            "latency_ms": round((time.perf_counter() - started) * 1000)},
-                "provenance": {"pipeline_id": self.id,
-                    "pipeline_config_hash": file_hash(project_root() / "configs/pipelines.yaml"),
-                    "prompt_hash": file_hash(project_root() / "configs/prompts" / prompt_name),
-                    "data_manifest_hash": file_hash(project_root() / "data/manifests/files.json")},
-            }
-        raise ValueError(f"Unsupported pipeline: {self.id}")
+        elif self.id == "G2":
+            texts = text_evidence(question, "hybrid")
+            graphs, linked = graph_evidence(question)
+            target = evidence_words(texts)
+            evidence, budget = evidence_budget(texts, graphs, token_budget=target,
+                                                max_items=13, graph_budget=min(540, target))
+        else:
+            raise ValueError(f"Unsupported pipeline: {self.id}")
+        arm = {"evidence": evidence, "budget": budget, "linked": linked,
+               "graph_positive": any(item["type"] == "graph" for item in evidence),
+               "control_complete": True}
+        return generate_from_evidence(question, self.id, arm, started)
 
 
 PIPELINES = {

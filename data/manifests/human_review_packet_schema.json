@@ -1,0 +1,14 @@
+{
+  "population": "bioasq_human_100.json",
+  "reviewers": 2,
+  "pipeline_blinding": "independent A/B randomization per reviewer",
+  "evidence_visible": ["literature snippets", "structured graph paths"],
+  "scores": {
+    "correctness": "0 | 1 | 2",
+    "completeness": "0 | 1 | 2",
+    "graph_usefulness": "supports | partial | irrelevant | misleading | not_applicable",
+    "error_code": "ERROR_TAXONOMY.md code",
+    "rationale": "required free text"
+  },
+  "note": "Reviewers are blind to pipeline IDs but may infer modality because graph evidence must remain visible for usefulness review."
+}
