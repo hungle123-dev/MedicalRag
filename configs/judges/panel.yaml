@@ -1,0 +1,18 @@
+version: 1
+purpose: Automated proxy evaluation; not human, physician, or ground truth
+temperature: 0
+models:
+  - id: gemini-2.5-flash
+    family: google
+  - id: cerebras/gpt-oss-120b
+    family: openai-oss-cerebras
+  - id: qwen3.5-122b-a10b
+    family: qwen
+direct_criteria:
+  correctness: 0.40
+  completeness: 0.25
+  evidence_faithfulness: 0.35
+pairwise:
+  position_swap: required
+  inconsistent_policy: tie
+masked_pipeline_identity: true

@@ -47,3 +47,32 @@ def holm_adjust(p_values: Sequence[float]) -> list[float]:
         running = max(running, min(1.0, (len(ordered) - rank) * value))
         adjusted[original_index] = running
     return adjusted
+
+
+def paired_effect_size(left: Sequence[float], right: Sequence[float]) -> float:
+    if not left or len(left) != len(right):
+        raise ValueError("left and right must be non-empty and equally sized")
+    differences = [b - a for a, b in zip(left, right, strict=True)]
+    deviation = statistics.stdev(differences) if len(differences) > 1 else 0.0
+    return statistics.fmean(differences) / deviation if deviation else 0.0
+
+
+def paired_permutation_p(
+    left: Sequence[float],
+    right: Sequence[float],
+    *,
+    resamples: int = 10_000,
+    seed: int = 20260713,
+) -> float:
+    if not left or len(left) != len(right):
+        raise ValueError("left and right must be non-empty and equally sized")
+    differences = [b - a for a, b in zip(left, right, strict=True)]
+    observed = abs(statistics.fmean(differences))
+    rng = random.Random(seed)
+    extreme = 0
+    for _ in range(resamples):
+        permuted = statistics.fmean(
+            value if rng.getrandbits(1) else -value for value in differences
+        )
+        extreme += abs(permuted) >= observed
+    return (extreme + 1) / (resamples + 1)

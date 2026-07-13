@@ -39,6 +39,9 @@ class AnswerResponse(BaseModel):
     latency_ms: float = Field(ge=0)
     input_tokens: int = Field(default=0, ge=0)
     output_tokens: int = Field(default=0, ge=0)
+    estimated_cost_usd: float | None = Field(default=None, ge=0)
+    model: str = ""
+    attempts: int = Field(default=1, ge=1)
 
 
 class RetrievedDocument(BaseModel):

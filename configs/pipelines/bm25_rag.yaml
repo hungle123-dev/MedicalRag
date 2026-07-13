@@ -1,0 +1,13 @@
+pipeline_id: bm25_rag
+description: Frozen vanilla closed-corpus RAG product baseline
+bm25_recipe: title_abstract
+retriever: bm25
+query_strategy: original
+evidence_strategy: sentence3
+context_order: relevance_descending
+diversity: none
+retrieval_k: 20
+snippet_limit: 20
+context_token_budget: 1200
+generator_model: ""
+max_output_tokens: 800

@@ -8,7 +8,19 @@ over all PubMed, and the chatbot is not medical advice.
 The binding protocol is
 [`docs/KE_HOACH_THUC_NGHIEM_MEDICAL_RAG.html`](docs/KE_HOACH_THUC_NGHIEM_MEDICAL_RAG.html).
 
-## First reproducible gate
+## Architecture
+
+`medrag_lab.pipeline.MedicalRAGPipeline` is the only orchestrator. Both FastAPI and experiment
+runners use the modules below it; the React application only calls HTTP endpoints. Gold fields
+are loaded by evaluation code, never by the inference pipeline.
+
+```text
+BioASQ corpus → BM25 / MedCPT → query strategy → evidence chunks + packing
+             → frozen prompt → real OpenAI-compatible gateway → validated PMID citations
+             → FastAPI / experiment runner → traces + evaluation + MLflow
+```
+
+## Reproducible setup
 
 ```powershell
 uv sync --extra dev --extra dense --extra semantic
@@ -18,6 +30,43 @@ uv run medrag data verify
 uv run medrag experiment validate
 uv run pytest
 ```
+
+The RTX 3050 path uses a CUDA PyTorch wheel pinned through the `pytorch` uv index. A CPU-only
+Docker image is sufficient for BM25 product deployment; build MedCPT indexes on the host and
+mount `artifacts/` when dense retrieval is selected.
+
+## Run the product
+
+```powershell
+# terminal 1
+uv run uvicorn apps.api.main:app --reload
+
+# terminal 2
+cd apps/web
+npm ci
+npm run dev
+```
+
+Open `http://localhost:5173`. API documentation is at `http://localhost:8000/docs`.
+For containers, run `docker compose up --build` after placing the raw bundle and `.env` locally.
+
+Required API routes are `GET /health`, `GET /ready`, `POST /v1/answer`, `POST /v1/compare`,
+`GET /v1/traces/{id}` and `GET /v1/experiments`.
+
+## Research commands
+
+```powershell
+uv run medrag index build-bm25 --recipe title_abstract
+uv run medrag index build-medcpt --batch-size 16
+uv run medrag experiment bm25 --recipe title_abstract --population smoke40
+uv run medrag experiment bm25 --recipe title_abstract --population selection4849
+mlflow ui --backend-store-uri sqlite:///artifacts/mlflow.db
+```
+
+Every observed run stores immutable data/split hashes, Git SHA, config hash, predictions,
+latency/failures and metrics. Provider failures remain in the denominator. Smoke runs establish
+feasibility only and never select a model on quality. The held-out 340 questions stay unopened
+until finalists, prompts, judges and exactly three final contrasts are frozen.
 
 Raw data stays in `data/raw/bioasq` and is ignored by Git. Tracked manifests contain hashes,
 frozen IDs and aggregate audit results only. Generated indexes, provider responses, MLflow

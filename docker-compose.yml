@@ -1,0 +1,20 @@
+services:
+  api:
+    build: .
+    env_file: .env
+    ports: ["8000:8000"]
+    volumes:
+      - ./data/raw/bioasq:/app/data/raw/bioasq:ro
+      - ./artifacts:/app/artifacts
+      - ./configs:/app/configs:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+  web:
+    build: ./apps/web
+    ports: ["5173:80"]
+    depends_on:
+      api:
+        condition: service_healthy

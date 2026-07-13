@@ -25,8 +25,30 @@ def load_registry(path: Path | None = None) -> dict[str, Any]:
     path = path or ROOT / "configs" / "experiments" / "registry.yaml"
     registry = yaml.safe_load(path.read_text(encoding="utf-8"))
     validate_registry(registry)
+    registry["resolved_arms"] = resolve_arms(registry)
     registry["registry_hash"] = stable_hash(registry)
     return registry
+
+
+def resolve_arms(registry: dict[str, Any]) -> list[dict[str, Any]]:
+    resolved = []
+    for family in registry["families"]:
+        shared = {key: family[key] for key in REQUIRED - {"arms"}}
+        for arm in family["arms"]:
+            value = shared | arm
+            value["config_hash"] = stable_hash(value)
+            value["model_hash"] = (
+                stable_hash({"alias": arm["variant"]})
+                if family["id"] == "E08"
+                else "not_applicable"
+            )
+            value["prompt_hash"] = (
+                stable_hash({"prompt_variant": arm["variant"]})
+                if family["id"] in {"E08", "E09", "E10", "E11"}
+                else "not_applicable"
+            )
+            resolved.append(value)
+    return resolved
 
 
 def validate_registry(registry: dict[str, Any]) -> dict[str, int]:

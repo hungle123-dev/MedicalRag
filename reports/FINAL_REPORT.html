@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>MedicalRAG results</title>
+<style>
+body{font:16px system-ui;margin:0;background:#f4f8f6;color:#173238}
+main{max-width:1150px;margin:auto;padding:48px 24px} h1{font-size:42px}
+.notice{padding:18px;border-left:4px solid #117c72;background:white}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+article{background:white;border:1px solid #d9e3df;border-radius:12px;padding:22px}
+table{width:100%;border-collapse:collapse}
+td{padding:7px;border-bottom:1px solid #e7eeeb;font-size:13px}
+td:last-child{text-align:right;font-family:monospace} small{color:#63777a}
+</style></head><body><main>
+<small>Generated 2026-07-13T12:45:07.767447+00:00</small>
+<h1>MedicalRAG observed results</h1>
+<p class="notice">Only machine-observed run artifacts are included. This positive-only BioASQ
+candidate pool measures controlled closed-corpus reranking and ideal-answer generation; it does
+not establish PubMed-wide retrieval, clinical safety, or medical generalization. Exact-answer
+metrics remain disabled because official exact labels are absent.</p>
+<div class="grid">
+<article><h3>E01-title_abstract-selection4849-a4332899b3</h3><p><b>Status:</b> observed_real_data</p><table><tbody><tr><td>ap</td><td>0.665962</td></tr><tr><td>map_at_10</td><td>0.665962</td></tr><tr><td>recall</td><td>0.654115</td></tr><tr><td>mrr</td><td>0.845794</td></tr><tr><td>ndcg</td><td>0.744645</td></tr><tr><td>hit</td><td>0.95133</td></tr><tr><td>recall_at_100</td><td>0.901873</td></tr><tr><td>questions</td><td>4849</td></tr><tr><td>failures</td><td>0</td></tr><tr><td>failure_rate</td><td>0.0</td></tr><tr><td>latency_ms_p50</td><td>451.5188</td></tr><tr><td>latency_ms_p95</td><td>1109.7857</td></tr></tbody></table></article><article><h3>E01-title_abstract-smoke40-60f0ab5dc7</h3><p><b>Status:</b> observed_real_data</p><table><tbody><tr><td>ap</td><td>0.718906</td></tr><tr><td>recall</td><td>0.676414</td></tr><tr><td>mrr</td><td>0.9125</td></tr><tr><td>ndcg</td><td>0.801776</td></tr><tr><td>hit</td><td>0.975</td></tr><tr><td>recall_at_100</td><td>0.95567</td></tr><tr><td>questions</td><td>40</td></tr><tr><td>failures</td><td>0</td></tr><tr><td>failure_rate</td><td>0.0</td></tr><tr><td>latency_ms_p50</td><td>303.0791</td></tr><tr><td>latency_ms_p95</td><td>462.0159</td></tr></tbody></table></article>
+</div></main></body></html>

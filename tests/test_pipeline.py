@@ -1,0 +1,44 @@
+from pathlib import Path
+
+from medrag_lab.generation.schemas import GatewayResult, GeneratedAnswer
+from medrag_lab.indexing.bm25 import BM25Index
+from medrag_lab.pipeline import MedicalRAGPipeline
+from medrag_lab.schemas import AnswerRequest
+from medrag_lab.tracking.traces import TraceStore
+
+
+class FakeGateway:
+    def generate(self, **_: object) -> GatewayResult:
+        return GatewayResult(
+            answer=GeneratedAnswer(
+                predicted_type="factoid",
+                exact_answer=["BRCA1"],
+                ideal_answer="BRCA1 is associated with hereditary breast cancer risk.",
+                citation_pmids=["1", "999"],
+                evidence_support_score=0.9,
+            ),
+            model="test-model",
+            provider="test",
+            input_tokens=20,
+            output_tokens=10,
+            latency_ms=1,
+        )
+
+
+def test_shared_pipeline_filters_hallucinated_citations(tmp_path: Path) -> None:
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text(
+        '{"id":"1","title":"BRCA1","text":"BRCA1 mutations increase hereditary breast cancer risk.","url":"https://example.test/1"}\n',
+        encoding="utf-8",
+    )
+    pipeline = MedicalRAGPipeline(
+        "bm25_rag",
+        gateway=FakeGateway(),  # type: ignore[arg-type]
+        trace_store=TraceStore(tmp_path / "traces.sqlite3"),
+        index=BM25Index.build(corpus),
+    )
+    result = pipeline.answer(
+        AnswerRequest(question="What does BRCA1 affect?", pipeline_id="bm25_rag")
+    )
+    assert [citation.pmid for citation in result.citations] == ["1"]
+    assert pipeline.trace_store.get(result.trace_id) is not None
