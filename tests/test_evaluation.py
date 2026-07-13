@@ -151,3 +151,27 @@ def test_diversity_gate_requires_recall_noninferiority_and_reliability(tmp_path,
         baseline, candidate, answer, recall, "E07_TEST"
     )
     assert result["passed"] is True
+
+
+def test_generator_screening_gate_rejects_unreliable_route(tmp_path, monkeypatch):
+    monkeypatch.setattr(analysis, "ROOT", tmp_path)
+    summary = tmp_path / "summary.json"
+    summary.write_text(
+        json.dumps(
+            {
+                "metrics": {
+                    "questions": 40,
+                    "failure_rate": 0.15,
+                    "retry_rate": 0.05,
+                    "citation_validity": 1.0,
+                    "latency_ms_p95": 5000,
+                    "rouge_su4_f1": 0.12,
+                    "input_tokens": 100,
+                    "output_tokens": 20,
+                }
+            }
+        )
+    )
+    result = analysis.evaluate_generator_screening_gate(summary, "E08_TEST")
+    assert result["passed"] is False
+    assert result["checks"]["failure_rate"] is False

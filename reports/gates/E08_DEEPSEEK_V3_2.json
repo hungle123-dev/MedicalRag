@@ -1,0 +1,31 @@
+{
+  "gate_id": "E08_DEEPSEEK_V3_2",
+  "family": "E08",
+  "stage": "generation_screen40",
+  "summary": "reports\\runs\\E08-deepseek_v3_2_screen40_v2-generation160-0762413ae7.json",
+  "thresholds": {
+    "max_failure_rate": 0.025,
+    "max_retry_rate": 0.1,
+    "min_citation_validity": 0.99,
+    "max_latency_ms_p95": 10000
+  },
+  "observed": {
+    "questions": 40,
+    "failure_rate": 0.175,
+    "retry_rate": 0.030303030303030304,
+    "citation_validity": 1.0,
+    "latency_ms_p95": 6815.389100011089,
+    "rouge_su4_f1": 0.09288615565903326,
+    "input_tokens": 27110,
+    "output_tokens": 5330
+  },
+  "checks": {
+    "failure_rate": false,
+    "retry_rate": true,
+    "citation_validity": true,
+    "latency_p95": true,
+    "minimum_screen_size": true
+  },
+  "passed": false,
+  "gate_hash": "68ad187370026b859cc805976360628f3e323a8bec2d27c81a129bd1590acca3"
+}

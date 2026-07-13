@@ -1,0 +1,31 @@
+{
+  "gate_id": "E08_GEMINI25_FLASH_LITE",
+  "family": "E08",
+  "stage": "generation_screen40",
+  "summary": "reports\\runs\\E08-gemini25flashlite_screen40_v2-generation160-09a32f7f11.json",
+  "thresholds": {
+    "max_failure_rate": 0.025,
+    "max_retry_rate": 0.1,
+    "min_citation_validity": 0.99,
+    "max_latency_ms_p95": 10000
+  },
+  "observed": {
+    "questions": 40,
+    "failure_rate": 0.225,
+    "retry_rate": 0.16129032258064516,
+    "citation_validity": 1.0,
+    "latency_ms_p95": 9453.546899996581,
+    "rouge_su4_f1": 0.08438010025417012,
+    "input_tokens": 27402,
+    "output_tokens": 5223
+  },
+  "checks": {
+    "failure_rate": false,
+    "retry_rate": false,
+    "citation_validity": true,
+    "latency_p95": true,
+    "minimum_screen_size": true
+  },
+  "passed": false,
+  "gate_hash": "2202fc86cc2eb30a034ddefc54a09fe02c836810549579f69deae5dfefbd2f45"
+}

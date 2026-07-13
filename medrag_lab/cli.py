@@ -19,6 +19,7 @@ from medrag_lab.experiments.analysis import (
     audit_failure_sequence,
     evaluate_diversity_gate,
     evaluate_evidence_gate,
+    evaluate_generator_screening_gate,
     evaluate_query_strategy_gate,
     verify_context_invariant,
 )
@@ -237,6 +238,9 @@ def parser() -> argparse.ArgumentParser:
     diversity_gate.add_argument("--candidate-summary", type=Path, required=True)
     diversity_gate.add_argument("--answer-comparison", type=Path, required=True)
     diversity_gate.add_argument("--recall-comparison", type=Path, required=True)
+    generator_gate = experiment_commands.add_parser("generator-screen-gate")
+    generator_gate.add_argument("--id", required=True)
+    generator_gate.add_argument("--summary", type=Path, required=True)
     invariant = experiment_commands.add_parser("verify-context-invariant")
     invariant.add_argument("--id", required=True)
     invariant.add_argument("--left", type=Path, required=True)
@@ -484,6 +488,13 @@ def main() -> None:
                     args.recall_comparison,
                     args.id,
                 ),
+                indent=2,
+            )
+        )
+    elif args.command == "experiment" and args.action == "generator-screen-gate":
+        print(
+            json.dumps(
+                evaluate_generator_screening_gate(args.summary, args.id),
                 indent=2,
             )
         )

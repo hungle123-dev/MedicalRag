@@ -1,0 +1,31 @@
+{
+  "gate_id": "E08_GPT41_NANO",
+  "family": "E08",
+  "stage": "generation_screen40",
+  "summary": "reports\\runs\\E08-gpt41nano_screen10_v2-generation160-2a149f33e4.json",
+  "thresholds": {
+    "max_failure_rate": 0.025,
+    "max_retry_rate": 0.1,
+    "min_citation_validity": 0.99,
+    "max_latency_ms_p95": 10000
+  },
+  "observed": {
+    "questions": 10,
+    "failure_rate": 1.0,
+    "retry_rate": 0.0,
+    "citation_validity": 1.0,
+    "latency_ms_p95": 0.0,
+    "rouge_su4_f1": 0.0,
+    "input_tokens": 0,
+    "output_tokens": 0
+  },
+  "checks": {
+    "failure_rate": false,
+    "retry_rate": true,
+    "citation_validity": true,
+    "latency_p95": true,
+    "minimum_screen_size": false
+  },
+  "passed": false,
+  "gate_hash": "57def5ae956f3a40ba27078491d82f806a2f8818db50f5bdd8d72020772a5e34"
+}

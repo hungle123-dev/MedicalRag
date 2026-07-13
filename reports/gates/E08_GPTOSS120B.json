@@ -1,0 +1,31 @@
+{
+  "gate_id": "E08_GPTOSS120B",
+  "family": "E08",
+  "stage": "generation_screen40",
+  "summary": "reports\\runs\\E08-gptoss120b_screen40_v2-generation160-02522c6235.json",
+  "thresholds": {
+    "max_failure_rate": 0.025,
+    "max_retry_rate": 0.1,
+    "min_citation_validity": 0.99,
+    "max_latency_ms_p95": 10000
+  },
+  "observed": {
+    "questions": 40,
+    "failure_rate": 0.0,
+    "retry_rate": 0.0,
+    "citation_validity": 1.0,
+    "latency_ms_p95": 1332.533600012539,
+    "rouge_su4_f1": 0.08923451393817358,
+    "input_tokens": 37062,
+    "output_tokens": 15570
+  },
+  "checks": {
+    "failure_rate": true,
+    "retry_rate": true,
+    "citation_validity": true,
+    "latency_p95": true,
+    "minimum_screen_size": true
+  },
+  "passed": true,
+  "gate_hash": "3002460b9f56d919d05ab248f247dd14d87074cd43de0fab479b6e260081be1f"
+}

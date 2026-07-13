@@ -204,6 +204,59 @@ def evaluate_diversity_gate(
     return result
 
 
+def evaluate_generator_screening_gate(
+    summary_path: Path,
+    gate_id: str,
+    *,
+    max_failure_rate: float = 0.025,
+    max_retry_rate: float = 0.10,
+    min_citation_validity: float = 0.99,
+    max_latency_ms_p95: float = 10_000,
+) -> dict[str, Any]:
+    """Promote only operationally reliable generators beyond the shared smoke screen."""
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    metrics = summary["metrics"]
+    checks = {
+        "failure_rate": metrics["failure_rate"] <= max_failure_rate,
+        "retry_rate": metrics["retry_rate"] <= max_retry_rate,
+        "citation_validity": metrics["citation_validity"] >= min_citation_validity,
+        "latency_p95": metrics["latency_ms_p95"] <= max_latency_ms_p95,
+        "minimum_screen_size": metrics["questions"] >= 40,
+    }
+    result = {
+        "gate_id": gate_id,
+        "family": "E08",
+        "stage": "generation_screen40",
+        "summary": str(summary_path),
+        "thresholds": {
+            "max_failure_rate": max_failure_rate,
+            "max_retry_rate": max_retry_rate,
+            "min_citation_validity": min_citation_validity,
+            "max_latency_ms_p95": max_latency_ms_p95,
+        },
+        "observed": {
+            key: metrics[key]
+            for key in (
+                "questions",
+                "failure_rate",
+                "retry_rate",
+                "citation_validity",
+                "latency_ms_p95",
+                "rouge_su4_f1",
+                "input_tokens",
+                "output_tokens",
+            )
+        },
+        "checks": checks,
+        "passed": all(checks.values()),
+    }
+    result["gate_hash"] = stable_hash(result)
+    destination = ROOT / "reports" / "gates" / f"{gate_id}.json"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    return result
+
+
 def verify_context_invariant(
     left_path: Path,
     right_path: Path,

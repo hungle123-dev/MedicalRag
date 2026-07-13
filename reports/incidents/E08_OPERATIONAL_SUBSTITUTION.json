@@ -1,0 +1,22 @@
+{
+  "incident_id": "E08_OPERATIONAL_SUBSTITUTION",
+  "family": "E08",
+  "type": "prospective_operational_substitution",
+  "registry_version": 1,
+  "timing": "Recorded after the common feasibility screen and before any E08 full-population promotion decision.",
+  "registered_routes": [
+    "gpt-4.1-nano",
+    "gemini-2.5-flash-lite",
+    "deepseek-v3.2",
+    "qwen3.5-122b-a10b"
+  ],
+  "observed_blockers": {
+    "gpt-4.1-nano": "10/10 gateway failures",
+    "gemini-2.5-flash-lite": "9/40 failures and 16.1% retry rate",
+    "deepseek-v3.2": "7/40 schema/parse failures",
+    "qwen3.5-122b-a10b": "ten-row run exceeded 532 seconds without a sealed artifact"
+  },
+  "fallback_route": "cerebras/gpt-oss-120b",
+  "fallback_rationale": "This route was already used as the frozen reference generator in E05-E07 and passed the same 40-row gate with zero failures. It prevents operational availability from making E08 and downstream prompt experiments impossible.",
+  "bias_control": "The original registered routes, their failed screens, comparisons and incident records are retained. The registry is not rewritten retroactively. Claims are scoped to observed gateway routes, not intrinsic model rankings."
+}

@@ -1,0 +1,62 @@
+{
+  "gate_id": "E08_FINAL_SELECTION",
+  "family": "E08",
+  "status": "complete",
+  "decision": "cerebras/gpt-oss-120b",
+  "selection_rule": "Promote a model only if it passes the common 40-question reliability gate; compare answer quality and resource use among promoted models.",
+  "screening_population": "first 40 sorted IDs from generation160",
+  "full_population": "generation160",
+  "controls": [
+    "byte-identical contexts",
+    "predicted_type_schema prompt",
+    "temperature 0",
+    "JSON object response format",
+    "shared parser and scorer",
+    "two workers"
+  ],
+  "screen40": {
+    "cerebras/gpt-oss-120b": {
+      "failure_rate": 0.0,
+      "retry_rate": 0.0,
+      "rouge_su4_f1": 0.08923451393817358,
+      "latency_ms_p95": 1332.533600012539,
+      "passed": true
+    },
+    "deepseek-v3.2": {
+      "failure_rate": 0.175,
+      "rouge_su4_f1": 0.09288615565903326,
+      "passed": false
+    },
+    "gemini-2.5-flash-lite": {
+      "failure_rate": 0.225,
+      "retry_rate": 0.16129032258064516,
+      "rouge_su4_f1": 0.08438010025417012,
+      "passed": false
+    },
+    "gpt-4.1-nano": {
+      "screened_rows": 10,
+      "failure_rate": 1.0,
+      "passed": false
+    },
+    "qwen3.5-122b-a10b": {
+      "requested_rows": 10,
+      "elapsed_seconds_lower_bound": 532,
+      "sealed_artifact": false,
+      "passed": false
+    }
+  },
+  "quality_interpretation": "On the shared 40 rows, neither DeepSeek nor Gemini showed a statistically resolved ROUGE-SU4 advantage over GPT-OSS; both failed the preregistered reliability threshold.",
+  "full_result": {
+    "questions": 160,
+    "rouge_su4_f1": 0.14268583853532052,
+    "rouge2_f1": 0.15784527313708227,
+    "failure_rate": 0.0,
+    "citation_validity": 1.0,
+    "citation_coverage": 0.95,
+    "input_tokens": 148211,
+    "output_tokens": 57407,
+    "latency_ms_p50": 670.1737999974284,
+    "latency_ms_p95": 1637.548800004879
+  },
+  "scope_note": "The decision applies to these gateway routes at the recorded snapshot; it is not a universal ranking of the underlying model families."
+}

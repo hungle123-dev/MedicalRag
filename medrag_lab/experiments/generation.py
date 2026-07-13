@@ -352,6 +352,7 @@ def run_context_generation(
         "population": population,
         "rows": len(contexts),
         "model": model,
+        "workers": workers,
         "provider": urlparse(config.openai_base_url).netloc,
         "contexts_sha256": sha256(contexts_path),
         "prompt_style": prompt_style,

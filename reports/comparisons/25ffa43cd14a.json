@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E08-gptoss120b_screen40_v2-generation160-02522c6235\\scored.jsonl",
+  "right": "artifacts\\runs\\E08-gemini25flashlite_screen40_v2-generation160-09a32f7f11\\scored.jsonl",
+  "metric": "rouge_su4.f1",
+  "require_equal_evidence": true,
+  "rows": 40,
+  "bootstrap": {
+    "mean_delta_right_minus_left": -0.00485441368400345,
+    "ci95_low": -0.025562334391437496,
+    "ci95_high": 0.015371488659412439
+  },
+  "paired_effect_size": -0.07387097819839089,
+  "paired_permutation_p": 0.646935306469353,
+  "normal_approx_mde_80": 0.029109636008336964,
+  "comparison_hash": "25ffa43cd14a29dc578bc92795bd51cb53956ca45e4316a70525ee23c8fcb981"
+}
