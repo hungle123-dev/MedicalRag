@@ -7,7 +7,6 @@ import json
 import os
 import subprocess
 import sys
-import statistics
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -17,6 +16,11 @@ from app.pipelines import PIPELINES
 
 
 def sha(path: Path) -> str: return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def median(values: list[float]) -> float:
+    ordered = sorted(values); middle = len(ordered) // 2
+    return ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
 
 
 def main() -> None:
@@ -29,7 +33,7 @@ def main() -> None:
     with (ROOT / "data/raw/bioasq/dev.jsonl").open(encoding="utf-8") as stream:
         by_id = {row["question_id"]: row for line in stream if (row := json.loads(line))}
     generator = os.getenv("MEDICAL_RAG_GENERATOR", "mock")
-    run_id = f"bioasq_dev_b3_g2_{generator}_warmed_counterbalanced_v4_{len(ids)}_20260712"
+    run_id = f"bioasq_dev_b3_g2_{generator}_warmed_counterbalanced_v5_{len(ids)}_20260712"
     directory = ROOT / "artifacts/experiments/bioasq" / run_id; directory.mkdir(parents=True, exist_ok=True)
     warmup_question = by_id[ids[0]]["question"]
     PIPELINES["B3"].run(warmup_question); PIPELINES["G2"].run(warmup_question)
@@ -61,12 +65,12 @@ def main() -> None:
     (directory / "run_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     paired = {question_id: {} for question_id in ids}
     for item in results: paired[item["question_id"]][item["pipeline_id"]] = item["result"]["details"]["latency_ms"]
+    paired_median = median([value["G2"] - value["B3"] for value in paired.values()])
     summary = {"run_id": run_id, "questions": len(ids), "generator": generator,
         "mean_latency_ms": {pipeline: round(sum(item["result"]["details"]["latency_ms"] for item in results
                                               if item["pipeline_id"] == pipeline) / len(ids), 3)
                             for pipeline in ("B3", "G2")},
-        "paired_median_latency_delta_G2_minus_B3_ms": statistics.median(
-            value["G2"] - value["B3"] for value in paired.values()),
+        "paired_median_latency_delta_G2_minus_B3_ms": paired_median,
         "graph_evidence_rate_G2": round(sum(any(e["type"] == "graph" for e in item["result"]["evidence"])
                                             for item in results if item["pipeline_id"] == "G2") / len(ids), 6),
         "interpretation": "Flow/latency smoke only" if generator == "mock" else "Candidate outputs require judge/human review"}
