@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from medrag_lab.generation.schemas import GatewayResult, GeneratedAnswer
 from medrag_lab.indexing.bm25 import BM25Index
 from medrag_lab.pipeline import MedicalRAGPipeline
@@ -25,6 +27,11 @@ class FakeGateway:
         )
 
 
+class FailingGateway:
+    def generate(self, **_: object) -> GatewayResult:
+        raise TimeoutError("synthetic unit-test timeout")
+
+
 def test_shared_pipeline_filters_hallucinated_citations(tmp_path: Path) -> None:
     corpus = tmp_path / "corpus.jsonl"
     corpus.write_text(
@@ -42,3 +49,23 @@ def test_shared_pipeline_filters_hallucinated_citations(tmp_path: Path) -> None:
     )
     assert [citation.pmid for citation in result.citations] == ["1"]
     assert pipeline.trace_store.get(result.trace_id) is not None
+
+
+def test_shared_pipeline_traces_provider_failure(tmp_path: Path) -> None:
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text(
+        '{"id":"1","title":"BRCA1","text":"BRCA1 evidence.","url":"u"}\n',
+        encoding="utf-8",
+    )
+    store = TraceStore(tmp_path / "failures.sqlite3")
+    pipeline = MedicalRAGPipeline(
+        "bm25_rag",
+        gateway=FailingGateway(),  # type: ignore[arg-type]
+        trace_store=store,
+        index=BM25Index.build(corpus),
+    )
+    with pytest.raises(TimeoutError):
+        pipeline.answer(AnswerRequest(question="What is BRCA1?", pipeline_id="bm25_rag"))
+    with store._connect() as connection:  # failure has no response object carrying its trace ID
+        payload = connection.execute("SELECT payload FROM traces").fetchone()[0]
+    assert '"failed": true' in payload

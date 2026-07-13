@@ -15,6 +15,8 @@ apps/web/node_modules/
 apps/web/dist/
 apps/web/coverage/
 apps/web/*.tsbuildinfo
+apps/web/vite.config.js
+apps/web/vite.config.d.ts
 
 # Data, indexes, models and generated artifacts
 data/*

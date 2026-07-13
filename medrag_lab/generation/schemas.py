@@ -32,3 +32,4 @@ class GatewayResult(BaseModel):
     cached: bool = False
     attempts: int = Field(default=1, ge=1)
     estimated_cost_usd: float | None = Field(default=None, ge=0)
+    raw_response: str = ""

@@ -40,6 +40,26 @@ def build_report(destination: Path | None = None) -> Path:
             f"<p><b>Status:</b> {html.escape(summary['status'])}</p>"
             f"<table><tbody>{metrics}</tbody></table></article>"
         )
+    for path in sorted((ROOT / "reports" / "gates").glob("*.json")):
+        gate = json.loads(path.read_text(encoding="utf-8"))
+        checks = "".join(
+            f"<tr><td>{html.escape(key)}</td><td>{'PASS' if value else 'FAIL'}</td></tr>"
+            for key, value in gate.get("checks", {}).items()
+        )
+        cards.append(
+            f"<article><h3>Gate {html.escape(gate['gate_id'])}</h3>"
+            f"<p><b>{'PASSED' if gate['passed'] else 'FAILED'}</b></p>"
+            f"<table><tbody>{checks}</tbody></table></article>"
+        )
+    judge_path = ROOT / "reports" / "judge_sanity.json"
+    if judge_path.is_file():
+        judge = json.loads(judge_path.read_text(encoding="utf-8"))
+        cards.append(
+            "<article><h3>Multi-LLM judge sanity</h3>"
+            f"<p><b>{'PASSED' if judge['passed'] else 'FAILED'}</b></p>"
+            f"<p>Models: {html.escape(', '.join(judge['models']))}</p>"
+            "<p>Automated proxy only; not human or physician validation.</p></article>"
+        )
     output = destination or ROOT / "reports" / "FINAL_REPORT.html"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(

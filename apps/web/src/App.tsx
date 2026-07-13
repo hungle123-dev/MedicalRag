@@ -5,6 +5,9 @@ import { AnswerCard } from "./components/AnswerCard";
 const PIPELINES = [
   { id: "bm25_rag", name: "BM25 · baseline" },
   { id: "bm25_mesh_rag", name: "BM25 · MeSH expansion" },
+  { id: "medcpt_rag", name: "MedCPT · dense" },
+  { id: "rrf_rag", name: "BM25 + MedCPT · RRF" },
+  { id: "rrf_rerank_rag", name: "RRF + cross-encoder" },
 ];
 
 export default function App() {
@@ -24,7 +27,10 @@ export default function App() {
     try {
       setAnswers(
         comparison
-          ? await compare(question.trim(), PIPELINES.map((item) => item.id))
+          ? await compare(
+              question.trim(),
+              [pipeline, pipeline === "bm25_rag" ? "rrf_rag" : "bm25_rag"],
+            )
           : [await ask(question.trim(), pipeline)],
       );
     } catch (reason) {
@@ -70,7 +76,7 @@ export default function App() {
             </label>
             <label className="toggle">
               <input type="checkbox" checked={comparison} onChange={(event) => setComparison(event.target.checked)} />
-              <span /> Compare A/B
+              <span /> Compare with {pipeline === "bm25_rag" ? "RRF" : "BM25"}
             </label>
             <button type="submit" disabled={loading || question.trim().length < 3}>
               {loading ? "Searching…" : "Run pipeline →"}

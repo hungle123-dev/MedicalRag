@@ -59,3 +59,27 @@ class MedCPTRetriever:
             for rank, index in enumerate(indexes[0], 1)
         ]
         return documents, (time.perf_counter() - started) * 1_000
+
+    def retrieve_many(
+        self, queries: list[str], k: int = 100, batch_size: int = 64
+    ) -> list[tuple[list[RetrievedDocument], float]]:
+        if not 1 <= k <= len(self.documents) or batch_size < 1:
+            raise ValueError("invalid k or batch_size")
+        results: list[tuple[list[RetrievedDocument], float]] = []
+        for start in range(0, len(queries), batch_size):
+            batch = queries[start : start + batch_size]
+            started = time.perf_counter()
+            scores, indexes = self.index.search(self._encode(batch), k)
+            per_query_ms = (time.perf_counter() - started) * 1_000 / len(batch)
+            for row_index in range(len(batch)):
+                rows = [
+                    RetrievedDocument(
+                        **self.documents[int(index)],
+                        score=float(scores[row_index, rank - 1]),
+                        rank=rank,
+                        retriever="medcpt",
+                    )
+                    for rank, index in enumerate(indexes[row_index], 1)
+                ]
+                results.append((rows, per_query_ms))
+        return results

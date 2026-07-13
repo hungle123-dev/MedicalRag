@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from dataclasses import dataclass
 from typing import Any
 
 import yaml
@@ -9,6 +10,7 @@ import yaml
 from medrag_lab.evidence.chunking import fixed_token_chunks
 from medrag_lab.evidence.packing import (
     pack_context,
+    serialize_context,
     source_diverse,
     strongest_in_middle,
 )
@@ -22,6 +24,16 @@ from medrag_lab.settings import ROOT, settings
 from medrag_lab.tracking.traces import TraceStore
 
 
+@dataclass(frozen=True)
+class PreparedContext:
+    query: str
+    documents: list[RetrievedDocument]
+    snippets: list[Snippet]
+    packed: list[Snippet]
+    serialized_context: str
+    retrieval_ms: float
+
+
 class MedicalRAGPipeline:
     """Single product/experiment orchestrator; gold labels never enter this class."""
 
@@ -32,9 +44,10 @@ class MedicalRAGPipeline:
         gateway: GatewayClient | None = None,
         trace_store: TraceStore | None = None,
         index: BM25Index | None = None,
+        config_override: dict[str, Any] | None = None,
     ):
         self.pipeline_id = pipeline_id
-        self.config = load_pipeline_config(pipeline_id)
+        self.config = load_pipeline_config(pipeline_id) | (config_override or {})
         self.gateway = gateway or GatewayClient()
         self.trace_store = trace_store or TraceStore()
         self.index = index or _load_or_build_bm25(str(self.config["bm25_recipe"]))
@@ -55,19 +68,15 @@ class MedicalRAGPipeline:
             else None
         )
 
-    def answer(
+    def prepare_context(
         self,
-        request: AnswerRequest,
+        question: str,
         *,
         documents_override: list[RetrievedDocument] | None = None,
         evidence_override: list[Snippet] | None = None,
-        system_prompt_override: str | None = None,
-    ) -> AnswerResponse:
-        if request.pipeline_id != self.pipeline_id:
-            raise ValueError("Request pipeline_id does not match initialized pipeline")
-        started = time.perf_counter()
-        trace_id = uuid.uuid4().hex
-        query = request.question
+    ) -> PreparedContext:
+        """Gold-free retrieval and evidence preparation reusable across controlled arms."""
+        query = question
         if self.mesh_expander:
             query = self.mesh_expander.expand(query)[0]
         retrieval_k = min(int(self.config["retrieval_k"]), len(self.index.documents))
@@ -95,22 +104,60 @@ class MedicalRAGPipeline:
         snippets = (
             list(evidence_override)
             if evidence_override is not None
-            else self._evidence(request.question, documents)
+            else self._evidence(question, documents)
         )
         if self.config.get("diversity") == "one_per_pmid":
             snippets = source_diverse(snippets)
-        if self.config.get("context_order") == "strongest_middle":
-            snippets = strongest_in_middle(snippets)
         context, packed = pack_context(snippets, int(self.config["context_token_budget"]))
-        user_prompt = answer_prompt(request.question, context)
-        system_prompt = system_prompt_override or SYSTEM_PROMPT
-        generated = self.gateway.generate(
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            model=self.config.get("generator_model") or None,
-            max_output_tokens=int(self.config["max_output_tokens"]),
+        if self.config.get("context_order") == "strongest_middle":
+            packed = strongest_in_middle(packed)
+            context = serialize_context(packed)
+        return PreparedContext(query, documents, snippets, packed, context, retrieval_ms)
+
+    def answer(
+        self,
+        request: AnswerRequest,
+        *,
+        documents_override: list[RetrievedDocument] | None = None,
+        evidence_override: list[Snippet] | None = None,
+        system_prompt_override: str | None = None,
+    ) -> AnswerResponse:
+        if request.pipeline_id != self.pipeline_id:
+            raise ValueError("Request pipeline_id does not match initialized pipeline")
+        started = time.perf_counter()
+        trace_id = uuid.uuid4().hex
+        prepared = self.prepare_context(
+            request.question,
+            documents_override=documents_override,
+            evidence_override=evidence_override,
         )
-        evidence_by_pmid = {snippet.pmid: snippet for snippet in packed}
+        user_prompt = answer_prompt(request.question, prepared.serialized_context)
+        system_prompt = system_prompt_override or SYSTEM_PROMPT
+        try:
+            generated = self.gateway.generate(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                model=self.config.get("generator_model") or None,
+                max_output_tokens=int(self.config["max_output_tokens"]),
+            )
+        except Exception as exc:
+            self.trace_store.put(
+                trace_id,
+                self.pipeline_id,
+                {
+                    "request": request.model_dump(),
+                    "query": prepared.query,
+                    "retrieval_ms": prepared.retrieval_ms,
+                    "packed_evidence": [vars(item) for item in prepared.packed],
+                    "serialized_context": prepared.serialized_context,
+                    "prompt_hash": prompt_hash(system_prompt, user_prompt),
+                    "failed": True,
+                    "error_type": type(exc).__name__,
+                    "latency_ms": (time.perf_counter() - started) * 1_000,
+                },
+            )
+            raise
+        evidence_by_pmid = {snippet.pmid: snippet for snippet in prepared.packed}
         citations = [
             Citation(
                 pmid=pmid,
@@ -143,10 +190,11 @@ class MedicalRAGPipeline:
             self.pipeline_id,
             {
                 "request": request.model_dump(),
-                "query": query,
-                "retrieval_ms": retrieval_ms,
-                "retrieved": [item.model_dump() for item in documents],
-                "packed_evidence": [vars(item) for item in packed],
+                "query": prepared.query,
+                "retrieval_ms": prepared.retrieval_ms,
+                "retrieved": [item.model_dump() for item in prepared.documents],
+                "packed_evidence": [vars(item) for item in prepared.packed],
+                "serialized_context": prepared.serialized_context,
                 "prompt_hash": prompt_hash(system_prompt, user_prompt),
                 "experimental_override": {
                     "documents": documents_override is not None,
@@ -154,6 +202,7 @@ class MedicalRAGPipeline:
                     "system_prompt": system_prompt_override is not None,
                 },
                 "cached": generated.cached,
+                "raw_response": generated.raw_response,
                 "response": response.model_dump(),
             },
         )

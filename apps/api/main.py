@@ -34,7 +34,12 @@ def ready() -> dict[str, object]:
     config = settings()
     data_ok = all((config.medrag_data_dir / filename).is_file() for filename in EXPECTED)
     gateway_ok = bool(config.openai_api_key and config.openai_base_url)
+    dense_ok = (config.medrag_index_dir / "medcpt" / "index.faiss").is_file()
     return {
         "ready": data_ok and gateway_ok,
-        "checks": {"pinned_data_present": data_ok, "gateway_configured": gateway_ok},
+        "checks": {
+            "pinned_data_present": data_ok,
+            "gateway_configured": gateway_ok,
+            "optional_medcpt_index_present": dense_ok,
+        },
     }

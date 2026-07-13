@@ -105,6 +105,7 @@ class GatewayClient:
             output_tokens=int(usage.completion_tokens if usage else 0),
             latency_ms=(time.perf_counter() - started) * 1_000,
             attempts=attempts,
+            raw_response=content,
         )
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         temporary = cache_path.with_suffix(".tmp")

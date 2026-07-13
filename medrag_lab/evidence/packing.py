@@ -43,3 +43,9 @@ def pack_context(snippets: list[Snippet], token_budget: int = 1_200) -> tuple[st
         blocks.append(block)
         used += tokens
     return "\n\n".join(blocks), selected
+
+
+def serialize_context(snippets: list[Snippet]) -> str:
+    return "\n\n".join(
+        f"[PMID:{snippet.pmid}] {snippet.title}\n{snippet.text}" for snippet in snippets
+    )

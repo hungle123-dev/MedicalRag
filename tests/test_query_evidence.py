@@ -2,7 +2,7 @@ from pathlib import Path
 
 from medrag_lab.evidence.chunking import fixed_token_chunks
 from medrag_lab.evidence.packing import source_diverse, strongest_in_middle
-from medrag_lab.evidence.snippets import Snippet
+from medrag_lab.evidence.snippets import Snippet, sentence_windows
 from medrag_lab.query.mesh import MeshExpander
 from medrag_lab.schemas import RetrievedDocument
 
@@ -34,3 +34,23 @@ def test_chunk_order_and_diversity() -> None:
     ]
     assert strongest_in_middle(snippets)[1] == snippets[0]
     assert [item.pmid for item in source_diverse(snippets)] == ["0", "1"]
+
+
+def test_evidence_chunks_preserve_bioasq_character_offsets() -> None:
+    text = "First sentence.  Second sentence! Third sentence?"
+    document = RetrievedDocument(
+        pmid="1",
+        title="Title",
+        text=text,
+        url="u",
+        score=1,
+        rank=1,
+        retriever="test",
+    )
+    window = sentence_windows(document, size=2)[0]
+    assert window.begin == 0
+    assert window.end is not None
+    assert text[window.begin : window.end] == window.text
+    for chunk in fixed_token_chunks([document], size=32, overlap=8):
+        assert chunk.begin is not None and chunk.end is not None
+        assert text[chunk.begin : chunk.end] == chunk.text

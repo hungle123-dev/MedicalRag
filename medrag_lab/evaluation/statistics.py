@@ -7,6 +7,15 @@ from collections import defaultdict
 from collections.abc import Sequence
 
 
+def nearest_rank_percentile(values: Sequence[float], probability: float) -> float:
+    if not values:
+        raise ValueError("values must be non-empty")
+    if not 0 < probability <= 1:
+        raise ValueError("probability must be in (0, 1]")
+    ordered = sorted(map(float, values))
+    return ordered[math.ceil(probability * len(ordered)) - 1]
+
+
 def paired_group_bootstrap(
     left: Sequence[float],
     right: Sequence[float],

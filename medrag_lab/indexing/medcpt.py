@@ -14,6 +14,7 @@ from medrag_lab.settings import settings
 
 ARTICLE_MODEL = "ncbi/MedCPT-Article-Encoder"
 QUERY_MODEL = "ncbi/MedCPT-Query-Encoder"
+MODEL_LICENSE = "public-domain"
 LOGGER = logging.getLogger(__name__)
 
 
@@ -127,6 +128,7 @@ def build_index(
             "article_revision": article_revision,
             "query_model": QUERY_MODEL,
             "query_revision": query_revision,
+            "model_license": MODEL_LICENSE,
             "device": device,
             "batch_size": batch_size,
             "effective_batch_size": effective_batch_size,

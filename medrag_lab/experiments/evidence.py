@@ -1,0 +1,275 @@
+from __future__ import annotations
+
+import json
+import statistics
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, Literal
+
+import mlflow
+from rank_bm25 import BM25Okapi
+
+from medrag_lab.data.loaders import iter_jsonl
+from medrag_lab.data.manifests import stable_hash
+from medrag_lab.evaluation.bioasq import snippet_span_f1
+from medrag_lab.evidence.chunking import fixed_token_chunks
+from medrag_lab.evidence.snippets import Snippet, sentence_windows
+from medrag_lab.experiments.runner import _write_jsonl, git_sha
+from medrag_lab.indexing.bm25 import tokenize
+from medrag_lab.schemas import RetrievedDocument
+from medrag_lab.settings import ROOT, settings
+from medrag_lab.tracking.mlflow_tracking import log_artifact, tracked_run
+
+EvidenceArm = Literal[
+    "full_document_fields",
+    "fixed256_bm25",
+    "sentence3_bm25",
+    "sentence3_cross_encoder",
+]
+
+
+def _title_snippet(document: RetrievedDocument) -> Snippet:
+    return Snippet(
+        pmid=document.pmid,
+        title=document.title,
+        text=document.title,
+        score=document.score,
+        url=document.url,
+        section="title",
+        begin=0,
+        end=len(document.title),
+    )
+
+
+def _abstract_snippet(document: RetrievedDocument) -> Snippet:
+    return Snippet(
+        pmid=document.pmid,
+        title=document.title,
+        text=document.text,
+        score=document.score,
+        url=document.url,
+        section="abstract",
+        begin=0,
+        end=len(document.text),
+    )
+
+
+def _rank_bm25(question: str, candidates: list[Snippet], limit: int) -> list[Snippet]:
+    model = BM25Okapi([tokenize(item.text) or ["__empty__"] for item in candidates])
+    scores = model.get_scores(tokenize(question))
+    ranked = sorted(
+        enumerate(candidates),
+        key=lambda pair: (-float(scores[pair[0]]), -pair[1].score, pair[0]),
+    )[:limit]
+    return [Snippet(**(vars(item) | {"score": float(scores[index])})) for index, item in ranked]
+
+
+def _rank_cross(
+    question: str, candidates: list[Snippet], reranker: Any, limit: int
+) -> tuple[list[Snippet], float]:
+    documents = [
+        RetrievedDocument(
+            pmid=item.pmid,
+            title=item.title,
+            text=item.text,
+            url=f"snippet://{index}",
+            score=item.score,
+            rank=index + 1,
+            retriever="snippet_candidate",
+        )
+        for index, item in enumerate(candidates)
+    ]
+    ranked, latency = reranker.rerank(question, documents, limit)
+    selected = []
+    for row in ranked:
+        index = int(row.url.removeprefix("snippet://"))
+        selected.append(Snippet(**(vars(candidates[index]) | {"score": row.score})))
+    return selected, latency
+
+
+def _annotation(snippet: Snippet) -> dict[str, Any]:
+    return {
+        "document": f"http://www.ncbi.nlm.nih.gov/pubmed/{snippet.pmid}",
+        "beginSection": snippet.section,
+        "endSection": snippet.section,
+        "offsetInBeginSection": snippet.begin,
+        "offsetInEndSection": snippet.end,
+        "text": snippet.text,
+    }
+
+
+def run_evidence_retrieval(
+    arm: EvidenceArm,
+    retrieval_predictions: Path,
+    population: str = "selection4849",
+    limit: int | None = None,
+) -> dict[str, Any]:
+    """Evaluate E04 with the exact same ranked PMIDs for every evidence arm."""
+    if arm not in {
+        "full_document_fields",
+        "fixed256_bm25",
+        "sentence3_bm25",
+        "sentence3_cross_encoder",
+    }:
+        raise ValueError(f"Unsupported evidence arm: {arm}")
+    config = settings()
+    splits = json.loads((ROOT / "data" / "manifests" / "splits.json").read_text("utf-8"))
+    allowed = set(map(str, splits[population]))
+    retrieval = {
+        str(row["question_id"]): row
+        for row in iter_jsonl(retrieval_predictions)
+        if str(row["question_id"]) in allowed
+    }
+    gold = {
+        str(row["question_id"]): row
+        for row in iter_jsonl(config.medrag_data_dir / "dev.jsonl")
+        if str(row["question_id"]) in allowed
+    }
+    identifiers = sorted(set(retrieval) & set(gold))
+    if set(identifiers) != allowed:
+        raise ValueError("Retrieval predictions do not cover the requested population exactly")
+    if limit is not None:
+        if limit < 1:
+            raise ValueError("limit must be positive")
+        identifiers = identifiers[:limit]
+    corpus = {str(row["id"]): row for row in iter_jsonl(config.medrag_data_dir / "corpus.jsonl")}
+    reranker = None
+    if arm == "sentence3_cross_encoder":
+        from medrag_lab.retrieval.reranker import MedCPTReranker
+
+        reranker = MedCPTReranker()
+    run_config = {
+        "family": "E04",
+        "arm": arm,
+        "population": population,
+        "rows": len(identifiers),
+        "retrieval_predictions_hash": stable_hash(
+            {question_id: retrieval[question_id]["ranked_pmids"] for question_id in identifiers}
+        ),
+        "document_count": 10,
+        "snippet_count": 20,
+        "split_freeze_hash": splits["freeze_hash"],
+        "git_sha": git_sha(),
+        "purpose": "feasibility_only" if limit is not None else "candidate_evaluation",
+    }
+    if reranker:
+        run_config["cross_encoder_revision"] = reranker.revision
+    run_config["config_hash"] = stable_hash(run_config)
+    run_name = f"E04-{arm}-{population}-{run_config['config_hash'][:10]}"
+    output_dir = config.medrag_artifact_dir / run_name
+    predictions_path, summary_path = output_dir / "predictions.jsonl", output_dir / "summary.json"
+    rows: list[dict[str, Any]] = []
+    latencies: list[float] = []
+    with tracked_run(run_name, run_config):
+        for question_id in identifiers:
+            row = gold[question_id]
+            try:
+                ranked_pmids = list(map(str, retrieval[question_id]["ranked_pmids"][:10]))
+                documents = [
+                    RetrievedDocument(
+                        pmid=pmid,
+                        title=str(corpus[pmid].get("title", "")),
+                        text=str(corpus[pmid].get("text", "")),
+                        url=str(
+                            corpus[pmid].get("url") or f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+                        ),
+                        score=float(10 - rank),
+                        rank=rank,
+                        retriever="frozen_e04_input",
+                    )
+                    for rank, pmid in enumerate(ranked_pmids, 1)
+                    if pmid in corpus
+                ]
+                title_candidates = [_title_snippet(document) for document in documents]
+                if arm == "full_document_fields":
+                    selected = [
+                        snippet
+                        for document in documents
+                        for snippet in (_title_snippet(document), _abstract_snippet(document))
+                    ][:20]
+                    latency = 0.0
+                elif arm == "fixed256_bm25":
+                    selected = _rank_bm25(
+                        str(row["question"]), title_candidates + fixed_token_chunks(documents), 20
+                    )
+                    latency = 0.0
+                else:
+                    candidates = title_candidates + [
+                        snippet for document in documents for snippet in sentence_windows(document)
+                    ]
+                    if arm == "sentence3_bm25":
+                        selected = _rank_bm25(str(row["question"]), candidates, 20)
+                        latency = 0.0
+                    else:
+                        selected, latency = _rank_cross(
+                            str(row["question"]), candidates, reranker, 20
+                        )
+                predicted = [_annotation(item) for item in selected]
+                metrics = snippet_span_f1(predicted, row["snippets"])
+                gold_pmids = {
+                    str(item["document"]).rstrip("/").rsplit("/", 1)[-1] for item in row["snippets"]
+                }
+                predicted_pmids = {item.pmid for item in selected}
+                metrics["gold_pmid_recall"] = (
+                    len(gold_pmids & predicted_pmids) / len(gold_pmids) if gold_pmids else 0.0
+                )
+                latencies.append(latency)
+                rows.append(
+                    {
+                        "question_id": question_id,
+                        "question_type": str(row["type"]),
+                        "ranked_pmids_hash": stable_hash(ranked_pmids),
+                        "snippets": predicted,
+                        "metrics": metrics,
+                        "latency_ms": latency,
+                        "failed": False,
+                    }
+                )
+            except Exception as exc:
+                rows.append(
+                    {
+                        "question_id": question_id,
+                        "snippets": [],
+                        "metrics": {
+                            "precision": 0.0,
+                            "recall": 0.0,
+                            "f1": 0.0,
+                            "gold_pmid_recall": 0.0,
+                        },
+                        "latency_ms": 0.0,
+                        "failed": True,
+                        "error_type": type(exc).__name__,
+                    }
+                )
+        _write_jsonl(predictions_path, rows)
+        aggregate = {
+            f"snippet_span_{name}": statistics.fmean(item["metrics"][name] for item in rows)
+            for name in ("precision", "recall", "f1")
+        }
+        aggregate["gold_pmid_recall"] = statistics.fmean(
+            item["metrics"]["gold_pmid_recall"] for item in rows
+        )
+        failures = sum(item["failed"] for item in rows)
+        aggregate |= {
+            "questions": len(rows),
+            "failures": failures,
+            "failure_rate": failures / len(rows) if rows else 0.0,
+            "latency_ms_p50": statistics.median(latencies) if latencies else 0.0,
+        }
+        summary = {
+            "created_at": datetime.now(UTC).isoformat(),
+            "status": "observed_real_data",
+            "scope": "gold snippet offsets are used only after evidence selection",
+            "config": run_config,
+            "metrics": aggregate,
+            "artifacts": {"predictions": str(predictions_path.relative_to(ROOT))},
+        }
+        summary_path.parent.mkdir(parents=True, exist_ok=True)
+        summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+        report_path = ROOT / "reports" / "runs" / f"{run_name}.json"
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+        mlflow.log_metrics({key: float(value) for key, value in aggregate.items()})
+        log_artifact(predictions_path)
+        log_artifact(summary_path)
+    return summary

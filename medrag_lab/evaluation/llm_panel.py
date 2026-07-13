@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import random
+import time
 from pathlib import Path
 from typing import Literal
 
@@ -38,7 +39,7 @@ class LLMPanel:
             api_key=config.openai_api_key.get_secret_value() if config.openai_api_key else "",
             base_url=config.openai_base_url.rstrip("/"),
             timeout=90,
-            max_retries=2,
+            max_retries=0,
         )
         self.cache = ROOT / "artifacts" / "cache" / "judges"
 
@@ -48,17 +49,36 @@ class LLMPanel:
         path = self.cache / f"{digest}.json"
         if path.is_file():
             return json.loads(path.read_text(encoding="utf-8"))
-        response = self.client.chat.completions.create(
-            model=model,
-            temperature=0,
-            max_tokens=900,
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-        )
-        text = response.choices[0].message.content or ""
-        start, end = text.find("{"), text.rfind("}")
-        if start < 0 or end < start:
-            raise ValueError("Judge returned no JSON object")
-        value = json.loads(text[start : end + 1])
+        last_error: Exception | None = None
+        for attempt in range(1, 4):
+            try:
+                response = self.client.chat.completions.create(
+                    model=model,
+                    temperature=0,
+                    max_tokens=4_000,
+                    **({"response_format": {"type": "json_object"}} if attempt == 1 else {}),
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ],
+                )
+                message = response.choices[0].message
+                text = message.content or getattr(message, "reasoning_content", None) or ""
+                start, end = text.find("{"), text.rfind("}")
+                if start < 0 or end < start:
+                    raise ValueError(
+                        f"Judge {model} returned no JSON object (content_length={len(text)}, "
+                        f"preview={text[:180]!r})"
+                    )
+                value = json.loads(text[start : end + 1])
+                break
+            except Exception as exc:
+                last_error = exc
+                if attempt == 3:
+                    raise
+                time.sleep(attempt)
+        else:  # pragma: no cover
+            raise RuntimeError("Judge retry loop exhausted") from last_error
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
         return value
@@ -70,7 +90,8 @@ reference. Then justify and score correctness, completeness, and evidence faithf
 0 (unacceptable) to 4 (fully supported/correct). The reference is an evaluation aid, while
 the supplied evidence is the only source for faithfulness. Return JSON only with keys:
 supported_claims, unsupported_claims, reference_discrepancies, justification, correctness,
-completeness, evidence_faithfulness."""
+completeness, evidence_faithfulness. Use at most two short items per list (20 words each) and a
+justification of at most 50 words so the JSON stays compact."""
         user = (
             f"QUESTION\n{question}\n\nREFERENCE\n{reference}\n\n"
             f"EVIDENCE\n{evidence}\n\nANSWER\n{answer}"

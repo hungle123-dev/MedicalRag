@@ -26,9 +26,14 @@ def fixed_token_chunks(
     stride = size - overlap
     for document in documents:
         tokens = ENCODING.encode(document.text)
+        search_from = 0
         for start in range(0, len(tokens), stride):
             text = ENCODING.decode(tokens[start : start + size]).strip()
             if text:
+                begin = document.text.find(text, max(0, search_from - overlap * 4))
+                if begin < 0:
+                    begin = document.text.find(text)
+                end = begin + len(text) if begin >= 0 else None
                 chunks.append(
                     Snippet(
                         pmid=document.pmid,
@@ -36,8 +41,12 @@ def fixed_token_chunks(
                         text=text,
                         score=document.score,
                         url=document.url,
+                        begin=begin if begin >= 0 else None,
+                        end=end,
                     )
                 )
+                if begin >= 0:
+                    search_from = begin
             if start + size >= len(tokens):
                 break
     return chunks

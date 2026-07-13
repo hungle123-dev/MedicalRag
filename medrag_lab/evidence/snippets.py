@@ -16,21 +16,48 @@ class Snippet:
     text: str
     score: float
     url: str
+    section: str = "abstract"
+    begin: int | None = None
+    end: int | None = None
+
+
+def _sentence_spans(text: str) -> list[tuple[int, int]]:
+    spans: list[tuple[int, int]] = []
+    start = 0
+    for separator in SENTENCE.finditer(text):
+        left, right = start, separator.start()
+        while left < right and text[left].isspace():
+            left += 1
+        while right > left and text[right - 1].isspace():
+            right -= 1
+        if left < right:
+            spans.append((left, right))
+        start = separator.end()
+    left, right = start, len(text)
+    while left < right and text[left].isspace():
+        left += 1
+    while right > left and text[right - 1].isspace():
+        right -= 1
+    if left < right:
+        spans.append((left, right))
+    return spans
 
 
 def sentence_windows(document: RetrievedDocument, size: int = 3) -> list[Snippet]:
-    sentences = [value.strip() for value in SENTENCE.split(document.text) if value.strip()]
-    if not sentences:
-        sentences = [document.text]
+    spans = _sentence_spans(document.text)
+    if not spans:
+        spans = [(0, len(document.text))]
     return [
         Snippet(
             pmid=document.pmid,
             title=document.title,
-            text=" ".join(sentences[start : start + size]),
+            text=document.text[spans[start][0] : spans[min(start + size, len(spans)) - 1][1]],
             score=document.score,
             url=document.url,
+            begin=spans[start][0],
+            end=spans[min(start + size, len(spans)) - 1][1],
         )
-        for start in range(len(sentences))
+        for start in range(len(spans))
     ]
 
 

@@ -3,9 +3,12 @@ from __future__ import annotations
 import json
 import statistics
 import subprocess
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import mlflow
 
@@ -15,6 +18,7 @@ from medrag_lab.data.splits import normalize_question
 from medrag_lab.evaluation.bioasq import rouge_su4
 from medrag_lab.evaluation.retrieval import retrieval_metrics
 from medrag_lab.evaluation.statistics import (
+    nearest_rank_percentile,
     paired_effect_size,
     paired_group_bootstrap,
     paired_permutation_p,
@@ -81,6 +85,9 @@ def run_bm25(
         "corpus_sha256": sha256(config.medrag_data_dir / "corpus.jsonl"),
         "dev_sha256": sha256(dev_path),
         "git_sha": git_sha(),
+        "purpose": "feasibility_only"
+        if population == "smoke40" or limit is not None
+        else "candidate_evaluation",
     }
     run_config["config_hash"] = stable_hash(run_config)
     run_name = f"E01-{recipe}-{population}-{run_config['config_hash'][:10]}"
@@ -137,9 +144,7 @@ def run_bm25(
             "failures": failures,
             "failure_rate": failures / len(predictions) if predictions else 0.0,
             "latency_ms_p50": statistics.median(latencies) if latencies else 0.0,
-            "latency_ms_p95": sorted(latencies)[max(0, int(0.95 * len(latencies)) - 1)]
-            if latencies
-            else 0.0,
+            "latency_ms_p95": nearest_rank_percentile(latencies, 0.95) if latencies else 0.0,
         }
         summary = {
             "created_at": datetime.now(UTC).isoformat(),
@@ -165,6 +170,7 @@ def run_generation(
 ) -> dict[str, Any]:
     """Run gold-free inference first, then score the sealed prediction file separately."""
     from medrag_lab.data.loaders import load_inference_questions
+    from medrag_lab.generation.prompts import SYSTEM_PROMPT
     from medrag_lab.pipeline import MedicalRAGPipeline, load_pipeline_config
     from medrag_lab.schemas import AnswerRequest
 
@@ -185,8 +191,13 @@ def run_generation(
         "rows": len(questions),
         "split_freeze_hash": splits["freeze_hash"],
         "generator_model": pipeline_config["generator_model"] or settings().gateway_generator_model,
+        "provider": urlparse(settings().openai_base_url).netloc,
         "pipeline_config_hash": stable_hash(pipeline_config),
+        "system_prompt_hash": stable_hash(SYSTEM_PROMPT),
         "git_sha": git_sha(),
+        "purpose": "feasibility_only"
+        if population == "smoke40" or limit is not None
+        else "candidate_evaluation",
     }
     run_config["config_hash"] = stable_hash(run_config)
     run_name = f"E08-{pipeline_id}-{population}-{run_config['config_hash'][:10]}"
@@ -202,10 +213,13 @@ def run_generation(
                 answer = pipeline.answer(
                     AnswerRequest(question=question.question, pipeline_id=pipeline_id)
                 )
+                trace = pipeline.trace_store.get(answer.trace_id) or {}
                 inference.append(
                     {
                         "question_id": question.question_id,
                         "answer": answer.model_dump(),
+                        "evidence_hash": stable_hash(trace.get("serialized_context", "")),
+                        "prompt_hash": trace.get("prompt_hash", ""),
                         "failed": False,
                     }
                 )
@@ -245,9 +259,7 @@ def run_generation(
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
             "latency_ms_p50": statistics.median(latencies) if latencies else 0,
-            "latency_ms_p95": sorted(latencies)[max(0, int(0.95 * len(latencies)) - 1)]
-            if latencies
-            else 0,
+            "latency_ms_p95": nearest_rank_percentile(latencies, 0.95) if latencies else 0,
         }
         summary = {
             "created_at": datetime.now(UTC).isoformat(),
@@ -273,7 +285,10 @@ def run_generation(
 
 
 def run_dense_retrieval(
-    method: str = "medcpt", population: str = "smoke40", limit: int | None = None
+    method: str = "medcpt",
+    population: str = "smoke40",
+    limit: int | None = None,
+    bm25_recipe: Recipe = "title_abstract",
 ) -> dict[str, Any]:
     if method not in {"medcpt", "rrf", "rrf_rerank"}:
         raise ValueError("method must be medcpt, rrf, or rrf_rerank")
@@ -296,7 +311,7 @@ def run_dense_retrieval(
         questions = questions[:limit]
 
     dense = MedCPTRetriever()
-    sparse = BM25Index.load(build_bm25("title_abstract")) if method != "medcpt" else None
+    sparse = BM25Index.load(build_bm25(bm25_recipe)) if method != "medcpt" else None
     reranker = None
     if method == "rrf_rerank":
         from medrag_lab.retrieval.reranker import MedCPTReranker
@@ -309,11 +324,16 @@ def run_dense_retrieval(
         "population": population,
         "rows": len(questions),
         "candidate_depth": 100,
+        "latency_mode": "batched_throughput_amortized",
+        "bm25_recipe": bm25_recipe if method != "medcpt" else "not_applicable",
         "split_freeze_hash": splits["freeze_hash"],
         "corpus_sha256": metadata["corpus_sha256"],
         "article_revision": metadata["article_revision"],
         "query_revision": metadata["query_revision"],
         "git_sha": git_sha(),
+        "purpose": "feasibility_only"
+        if population == "smoke40" or limit is not None
+        else "candidate_evaluation",
     }
     if reranker:
         run_config["cross_encoder_revision"] = reranker.revision
@@ -323,10 +343,11 @@ def run_dense_retrieval(
     predictions_path, summary_path = output_dir / "predictions.jsonl", output_dir / "summary.json"
     predictions: list[dict[str, Any]] = []
     latencies: list[float] = []
+    dense_results = dense.retrieve_many([str(row["question"]) for row in questions], 100)
     with tracked_run(run_name, run_config):
-        for row in questions:
+        for row, (dense_rows, dense_latency) in zip(questions, dense_results, strict=True):
             try:
-                dense_rows, latency = dense.retrieve(str(row["question"]), 100)
+                latency = dense_latency
                 ranked_rows = dense_rows
                 if sparse:
                     sparse_rows, sparse_ms = sparse.search(str(row["question"]), 100)
@@ -376,9 +397,7 @@ def run_dense_retrieval(
             "failures": failures,
             "failure_rate": failures / len(predictions) if predictions else 0,
             "latency_ms_p50": statistics.median(latencies) if latencies else 0,
-            "latency_ms_p95": sorted(latencies)[max(0, int(0.95 * len(latencies)) - 1)]
-            if latencies
-            else 0,
+            "latency_ms_p95": nearest_rank_percentile(latencies, 0.95) if latencies else 0,
         }
         summary = {
             "created_at": datetime.now(UTC).isoformat(),
@@ -399,7 +418,11 @@ def run_dense_retrieval(
     return summary
 
 
-def run_oracle(population: str = "validation200", limit: int | None = None) -> dict[str, Any]:
+def run_oracle(
+    population: str = "validation200",
+    limit: int | None = None,
+    pipeline_id: str = "bm25_deepseek",
+) -> dict[str, Any]:
     """L0-L3 bottleneck localization; gold evidence is passed only as an explicit override."""
     import re
 
@@ -420,15 +443,20 @@ def run_oracle(population: str = "validation200", limit: int | None = None) -> d
     if limit is not None:
         gold_rows = gold_rows[:limit]
     corpus = {str(row["id"]): row for row in iter_jsonl(config.medrag_data_dir / "corpus.jsonl")}
-    pipeline_id = "bm25_deepseek"
     pipeline = MedicalRAGPipeline(pipeline_id)
     run_config = {
         "family": "E10",
         "population": population,
         "rows": len(gold_rows),
         "pipeline": pipeline_id,
+        "document_cap": 10,
+        "snippet_cap": int(pipeline.config["snippet_limit"]),
+        "context_token_budget": int(pipeline.config["context_token_budget"]),
         "split_freeze_hash": splits["freeze_hash"],
         "git_sha": git_sha(),
+        "purpose": "feasibility_only"
+        if population == "smoke40" or limit is not None
+        else "diagnostic_evaluation",
     }
     run_config["config_hash"] = stable_hash(run_config)
     run_name = f"E10-oracle-{population}-{run_config['config_hash'][:10]}"
@@ -437,7 +465,7 @@ def run_oracle(population: str = "validation200", limit: int | None = None) -> d
     rows: list[dict[str, Any]] = []
     with tracked_run(run_name, run_config):
         for row in gold_rows:
-            pmids = list(dict.fromkeys(map(str, row["relevant_passage_ids"])))
+            pmids = list(dict.fromkeys(map(str, row["relevant_passage_ids"])))[:10]
             gold_documents = [
                 RetrievedDocument(
                     pmid=pmid,
@@ -466,6 +494,7 @@ def run_oracle(population: str = "validation200", limit: int | None = None) -> d
                             url=str(source.get("url", snippet.get("document", ""))),
                         )
                     )
+            gold_snippets = gold_snippets[: int(pipeline.config["snippet_limit"])]
             request = AnswerRequest(question=str(row["question"]), pipeline_id=pipeline_id)
             for arm in arms:
                 try:
@@ -537,12 +566,27 @@ def run_oracle(population: str = "validation200", limit: int | None = None) -> d
 
 
 def compare_prediction_files(
-    left_path: Path, right_path: Path, metric: str = "metrics.ap"
+    left_path: Path,
+    right_path: Path,
+    metric: str = "metrics.ap",
+    *,
+    require_equal_evidence: bool = False,
 ) -> dict[str, Any]:
     left = {str(row["question_id"]): row for row in iter_jsonl(left_path)}
     right = {str(row["question_id"]): row for row in iter_jsonl(right_path)}
     if set(left) != set(right):
         raise ValueError("Paired comparison requires identical question IDs")
+    shared_hash_rows = [
+        question_id
+        for question_id in left
+        if "evidence_hash" in left[question_id] and "evidence_hash" in right[question_id]
+    ]
+    if require_equal_evidence and len(shared_hash_rows) != len(left):
+        raise ValueError("Equal-evidence comparison requires an evidence hash for every row")
+    if require_equal_evidence and any(
+        left[item]["evidence_hash"] != right[item]["evidence_hash"] for item in shared_hash_rows
+    ):
+        raise ValueError("Generator comparison evidence hashes are not identical")
     questions = {}
     for filename in ("dev.jsonl", "eval.jsonl"):
         for row in iter_jsonl(settings().medrag_data_dir / filename):
@@ -566,6 +610,7 @@ def compare_prediction_files(
         "left": str(left_path),
         "right": str(right_path),
         "metric": metric,
+        "require_equal_evidence": require_equal_evidence,
         "rows": len(identifiers),
         "bootstrap": paired_group_bootstrap(left_values, right_values, groups),
         "paired_effect_size": paired_effect_size(left_values, right_values),
@@ -577,3 +622,250 @@ def compare_prediction_files(
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return result
+
+
+def run_judge_sanity() -> dict[str, Any]:
+    from medrag_lab.evaluation.llm_panel import LLMPanel
+
+    source = next(
+        row
+        for row in iter_jsonl(settings().medrag_data_dir / "corpus.jsonl")
+        if str(row["id"]) == "20711702"
+    )
+    question = "Do BRCA1 mutations confer inherited breast cancer risk?"
+    reference = "Yes. Pathogenic germline BRCA1 mutations increase inherited breast cancer risk."
+    evidence = f"[PMID:20711702] {source['title']}\n{source['text']}"
+    good = reference
+    bad = "No. BRCA1 mutations eliminate breast cancer risk and make counseling unnecessary."
+    panel = LLMPanel()
+    good_result = panel.direct(question, good, reference, evidence)
+    bad_result = panel.direct(question, bad, reference, evidence)
+    pairwise = panel.pairwise("sanity-brca", question, good, bad, evidence)
+    passed = (
+        good_result["median_weighted_score_0_4"] > bad_result["median_weighted_score_0_4"]
+        and good_result["median_unsupported_atomic_claim_rate"]
+        <= bad_result["median_unsupported_atomic_claim_rate"]
+        and pairwise["panel_winner"] == "left"
+    )
+    result = {
+        "status": "observed_real_gateway_sanity",
+        "fixture_pmid": "20711702",
+        "models": [entry["model"] for entry in good_result["judges"]],
+        "good": good_result,
+        "adversarial": bad_result,
+        "pairwise_position_swapped": pairwise,
+        "passed": passed,
+        "limitation": "Automated proxy sanity check; not human or physician validation",
+    }
+    destination = ROOT / "reports" / "judge_sanity.json"
+    destination.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    return result
+
+
+def evaluate_superiority_gate(
+    comparison_path: Path,
+    left_efficiency_summary: Path,
+    right_efficiency_summary: Path,
+    gate_id: str,
+) -> dict[str, Any]:
+    from medrag_lab.experiments.gates import superiority_gate
+
+    comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
+    left = json.loads(left_efficiency_summary.read_text(encoding="utf-8"))["metrics"]
+    right = json.loads(right_efficiency_summary.read_text(encoding="utf-8"))["metrics"]
+    bootstrap = comparison["bootstrap"]
+    result = {
+        "gate_id": gate_id,
+        "quality_comparison_hash": comparison["comparison_hash"],
+        "efficiency_runs": [str(left_efficiency_summary), str(right_efficiency_summary)],
+        **superiority_gate(
+            bootstrap["mean_delta_right_minus_left"],
+            bootstrap["ci95_low"],
+            right["failure_rate"] - left["failure_rate"],
+            right["latency_ms_p95"] / left["latency_ms_p95"],
+        ),
+    }
+    result["gate_hash"] = stable_hash(result)
+    destination = ROOT / "reports" / "gates" / f"{gate_id}.json"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    return result
+
+
+def run_query_retrieval(
+    strategy: str,
+    population: str = "query800",
+    limit: int | None = None,
+    bm25_recipe: Recipe = "boosted_title_abstract_mesh",
+    retriever: str = "rrf",
+    workers: int = 4,
+) -> dict[str, Any]:
+    if strategy not in {"original", "mesh", "hyde"}:
+        raise ValueError("strategy must be original, mesh, or hyde")
+    if retriever not in {"rrf", "rrf_rerank"}:
+        raise ValueError("retriever must be rrf or rrf_rerank")
+    if workers < 1 or workers > 16:
+        raise ValueError("workers must be between 1 and 16")
+    from medrag_lab.generation.gateway import GatewayClient
+    from medrag_lab.query.hyde import HyDEExpander
+    from medrag_lab.query.mesh import MeshExpander
+    from medrag_lab.retrieval.dense import MedCPTRetriever
+    from medrag_lab.retrieval.hybrid import reciprocal_rank_fusion
+
+    config = settings()
+    splits = json.loads((ROOT / "data" / "manifests" / "splits.json").read_text(encoding="utf-8"))
+    allowed = set(map(str, splits[population]))
+    questions = [
+        row
+        for row in iter_jsonl(config.medrag_data_dir / "dev.jsonl")
+        if str(row["question_id"]) in allowed
+    ]
+    questions.sort(key=lambda row: str(row["question_id"]))
+    if limit is not None:
+        questions = questions[:limit]
+    sparse = BM25Index.load(build_bm25(bm25_recipe))
+    dense = MedCPTRetriever()
+    mesh = MeshExpander(config.medrag_data_dir / "corpus.jsonl") if strategy == "mesh" else None
+    hyde = HyDEExpander(GatewayClient()) if strategy == "hyde" else None
+    reranker = None
+    if retriever == "rrf_rerank":
+        from medrag_lab.retrieval.reranker import MedCPTReranker
+
+        reranker = MedCPTReranker()
+    run_config = {
+        "family": "E03",
+        "arm": strategy,
+        "population": population,
+        "rows": len(questions),
+        "retriever_control": retriever,
+        "bm25_recipe": bm25_recipe,
+        "split_freeze_hash": splits["freeze_hash"],
+        "git_sha": git_sha(),
+        "purpose": "feasibility_only" if limit is not None else "candidate_evaluation",
+    }
+    if hyde:
+        from medrag_lab.query.hyde import HYDE_SYSTEM
+
+        run_config |= {
+            "query_generator_model": settings().gateway_generator_model,
+            "hyde_prompt_hash": stable_hash(HYDE_SYSTEM),
+        }
+    if reranker:
+        run_config["cross_encoder_revision"] = reranker.revision
+    run_config["config_hash"] = stable_hash(run_config)
+    run_name = f"E03-{strategy}-{population}-{run_config['config_hash'][:10]}"
+    output_dir = config.medrag_artifact_dir / run_name
+    prediction_path, summary_path = output_dir / "predictions.jsonl", output_dir / "summary.json"
+    predictions = []
+    latencies = []
+    transform_latencies: list[float] = []
+    transformed: list[str | None] = [None] * len(questions)
+    transform_errors: dict[int, str] = {}
+    if strategy == "original":
+        transformed = [str(row["question"]) for row in questions]
+        transform_latencies = [0.0] * len(questions)
+    elif mesh:
+        for index, row in enumerate(questions):
+            started = time.perf_counter()
+            transformed[index] = mesh.expand(str(row["question"]))[0]
+            transform_latencies.append((time.perf_counter() - started) * 1_000)
+    elif hyde:
+
+        def expand(index: int) -> tuple[int, str, float]:
+            started = time.perf_counter()
+            value = hyde.expand(str(questions[index]["question"])).expanded
+            return index, value, (time.perf_counter() - started) * 1_000
+
+        measured = [0.0] * len(questions)
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {executor.submit(expand, index): index for index in range(len(questions))}
+            for future in as_completed(futures):
+                index = futures[future]
+                try:
+                    _, value, latency = future.result()
+                    transformed[index] = value
+                    measured[index] = latency
+                except Exception as exc:
+                    transform_errors[index] = type(exc).__name__
+        transform_latencies = measured
+    dense_results = dense.retrieve_many([value or "" for value in transformed], 100)
+    with tracked_run(run_name, run_config):
+        for index, (row, dense_result) in enumerate(zip(questions, dense_results, strict=True)):
+            try:
+                query_value = transformed[index]
+                if index in transform_errors or query_value is None:
+                    raise RuntimeError(transform_errors.get(index, "QueryTransformationFailure"))
+                query = query_value
+                sparse_rows, sparse_ms = sparse.search(query, 100)
+                dense_rows, dense_ms = dense_result
+                ranked_rows = reciprocal_rank_fusion(sparse_rows, dense_rows)[:100]
+                rerank_ms = 0.0
+                if reranker:
+                    ranked_rows, rerank_ms = reranker.rerank(query, ranked_rows, 100)
+                ranked = [item.pmid for item in ranked_rows]
+                latency = sparse_ms + dense_ms + rerank_ms + transform_latencies[index]
+                gold = set(map(str, row["relevant_passage_ids"]))
+                top10 = retrieval_metrics(ranked, gold, 10)
+                top100 = retrieval_metrics(ranked, gold, 100)
+                latencies.append(latency)
+                predictions.append(
+                    {
+                        "question_id": str(row["question_id"]),
+                        "question_type": str(row["type"]),
+                        "transformed_query_hash": stable_hash(query),
+                        "ranked_pmids": ranked,
+                        "latency_ms": latency,
+                        "query_transform_ms": transform_latencies[index],
+                        "metrics": top10 | {"recall_at_100": top100["recall"]},
+                        "failed": False,
+                    }
+                )
+            except Exception as exc:
+                predictions.append(
+                    {
+                        "question_id": str(row["question_id"]),
+                        "ranked_pmids": [],
+                        "latency_ms": 0,
+                        "metrics": dict.fromkeys(
+                            ("ap", "recall", "mrr", "ndcg", "hit", "recall_at_100"), 0.0
+                        ),
+                        "failed": True,
+                        "error_type": type(exc).__name__,
+                    }
+                )
+        _write_jsonl(prediction_path, predictions)
+        names = ("ap", "recall", "mrr", "ndcg", "hit", "recall_at_100")
+        metrics = {
+            name: statistics.fmean(item["metrics"][name] for item in predictions) for name in names
+        }
+        metrics["map_at_10"] = metrics["ap"]
+        failures = sum(item["failed"] for item in predictions)
+        metrics |= {
+            "questions": len(predictions),
+            "failures": failures,
+            "failure_rate": failures / len(predictions) if predictions else 0,
+            "retrieval_latency_ms_p50": statistics.median(latencies) if latencies else 0,
+            "retrieval_latency_ms_p95": nearest_rank_percentile(latencies, 0.95)
+            if latencies
+            else 0,
+            "query_transform_ms_p50": statistics.median(transform_latencies)
+            if transform_latencies
+            else 0,
+        }
+        summary = {
+            "created_at": datetime.now(UTC).isoformat(),
+            "status": "observed_real_data",
+            "scope": "closed-world positive-only gold-conditioned candidate pool",
+            "config": run_config,
+            "metrics": metrics,
+            "artifacts": {"predictions": str(prediction_path.relative_to(ROOT))},
+        }
+        summary_path.parent.mkdir(parents=True, exist_ok=True)
+        summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+        report_path = ROOT / "reports" / "runs" / f"{run_name}.json"
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+        mlflow.log_metrics({key: float(value) for key, value in metrics.items()})
+        log_artifact(prediction_path)
+        log_artifact(summary_path)
+    return summary
