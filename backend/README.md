@@ -2,8 +2,8 @@
 
 FastAPI runtime shared by the UI and research evaluator. B1/B2/B3 and G1/G2 use
 the local real BM25, MedCPT/FAISS and PrimeKG indexes. The deterministic generator
-is retained only for offline flow tests; set `MEDICAL_RAG_GENERATOR=gemini` for
-credentialed inference.
+is retained only for offline flow tests; copy `.env.example` to `.env` and set
+the gateway key for credentialed inference.
 
 ```powershell
 cd backend

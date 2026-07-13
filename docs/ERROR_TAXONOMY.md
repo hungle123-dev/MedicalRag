@@ -18,6 +18,6 @@ The primary error is the earliest causal failure which, if fixed alone, would pl
 | UNSUPPORTED | An atomic claim has no supporting cited evidence | Citation supports the claim but is formatted wrong | New dosage recommendation appears without evidence |
 | CITATION_MISMATCH | Citation exists but does not support its attached claim | Citation ID was invented | PMID discusses another disease |
 | ABSTENTION_FAIL | System answers confidently despite insufficient/conflicting evidence | Evidence supports the conclusion | G1 answers after no entity links |
-| API_RUNTIME | Timeout, quota, cache, transport or config failure | Model returned a substantive bad answer | Gemini quota interrupts one member of a pair |
+| API_RUNTIME | Timeout, quota, cache, transport or config failure | Model returned a substantive bad answer | Gateway quota interrupts one member of a pair |
 
 For each reviewed case store `primary_error`, zero or more `contributing_errors`, inclusion rationale, evidence IDs and reviewer ID. PrimeKG edges are associations unless their relation/source explicitly establishes something stronger; a path alone never proves causality.

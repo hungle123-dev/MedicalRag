@@ -63,9 +63,13 @@ Dev controls do not support the path scorer: full F1 0.058013, one-hop 0.045791,
 
 ## End-to-end and product status
 
-B3/G2 share one backend pipeline contract, generator/prompt/model settings, 1,800-token/8-item budget, text-first interleaving, retry policy and evidence registry. The generator never receives gold labels, pipeline ID, competing output or metrics. The mock generator makes no medical claims and only verifies retrieval, citations, API/UI and replay. Credentialed answer generation and judging are not run because this environment has neither `GEMINI_API_KEY` nor `GROQ_API_KEY`.
+B3/G2 share one backend pipeline contract, generator/prompt/model settings, 1,800-token/8-item budget, text-first interleaving, retry policy and evidence registry. The generator never receives gold labels, pipeline ID, competing output or metrics. Gateway model-list and structured-output probes verified `deepseek-v3.2` and the independent `cerebras/gpt-oss-120b` judge on 2026-07-13. The key remains local and gitignored.
 
 The clean-commit dev smoke `bioasq_dev_b3_g2_mock_warmed_counterbalanced_v5_50_20260712` replayed 50 paired questions / 100 results with one config/prompt hash. After unmeasured warm-up and counterbalanced ordering, mean latency was 1,113.8 ms for B3 and 1,199.7 ms for G2; paired median G2−B3 was +26.5 ms. G2 returned graph evidence for 44% of questions. These are product-flow/coverage numbers only because the mock makes no medical claim.
+
+A frozen five-question dev calibration compared Qwen 3.5 397B-A17B with DeepSeek V3.2 on identical B3 evidence. Both obtained 100% citation integrity, mean correctness 1.6/2, completeness 1.4/2 and zero mean unsupported-claim rate under the same Cerebras judge. DeepSeek was selected only by the predeclared observed-latency tie-break (7.87 s versus 8.30 s); this is an operational choice, not evidence of superior medical quality.
+
+The real paired dev smoke `bioasq_dev_b3_g2_gateway_deepseek-v3-2_warmed_counterbalanced_v6_5_20260713` produced five B3/G2 pairs with 100% deterministic citation integrity. Only one question contained accepted graph evidence. Exploratory machine-judge correctness was 1.6/2 for B3 and 1.4/2 for G2; paired G2−B3 delta −0.2 with bootstrap CI [−0.6, 0]. This tiny, graph-sparse dev smoke supports neither a benefit nor a harm claim.
 
 The 100-question human sample was frozen from locked BioASQ eval before any locked outputs. Human correctness/completeness and graph-usefulness review requires two qualified reviewers and remains an external blocker. Consequently BioASQ locked B3-vs-G2 correctness is intentionally unopened; the project does not claim graph improves final medical answers.
 

@@ -40,7 +40,7 @@
       <div class="eyebrow">Research brief · 12/07/2026</div>
       <h1>Medical QA, grounded in text <em>and</em> graph.</h1>
       <p class="lede"><strong>Input là câu hỏi text. Output là câu trả lời text có dẫn chứng.</strong> Nghiên cứu không cố chứng minh Graph-RAG luôn tốt hơn; nó đo chính xác graph giúp loại câu hỏi nào khi so với một Text-RAG đủ mạnh.</p>
-      <div class="chips"><span class="chip good">BioASQ + PrimeKGQA</span><span class="chip good">MedCPT + PrimeKG</span><span class="chip good">Gemini API core</span><span class="chip">Groq judge</span><span class="chip no">Không crawl</span><span class="chip no">Không fine-tune</span><span class="chip no">Không clinical deployment</span></div>
+      <div class="chips"><span class="chip good">BioASQ + PrimeKGQA</span><span class="chip good">MedCPT + PrimeKG</span><span class="chip good">DeepSeek generator</span><span class="chip">Cerebras judge</span><span class="chip no">Không crawl</span><span class="chip no">Không fine-tune</span><span class="chip no">Không clinical deployment</span></div>
     </header>
 
     <section id="scope">
@@ -92,18 +92,18 @@ Sources: PMID… · PrimeKG path…</div></div>
 
     <section id="models">
       <div class="section-head"><div class="num">03 · MODELS</div><div><h2>Model/API nào dùng, dùng để làm gì</h2><p>API chỉ đảm nhiệm sinh câu trả lời và hỗ trợ chấm. Retrieval biomedical vẫn dùng các model open-weight chạy local. Không thay model giữa hai pipeline đang được so sánh.</p></div></div>
-      <div class="callout"><strong>Cấu hình mặc định:</strong> dùng <code>gemini-3.5-flash</code> làm generator cho toàn bộ B0–G2; dùng <code>openai/gpt-oss-120b</code> qua Groq làm LLM judge. W1 phải gọi API model-list, chạy smoke test và ghi lại exact model ID, ngày truy cập, quota thực tế. Nếu model không khả dụng thì chọn fallback một lần rồi chạy lại toàn bộ cặp B3/G2 bằng cùng model.</div>
+      <div class="callout"><strong>Cấu hình đã xác minh 13/07/2026:</strong> dùng <code>deepseek-v3.2</code> làm generator cho toàn bộ B0–G2; dùng <code>cerebras/gpt-oss-120b</code> làm LLM judge độc lập qua gateway OpenAI-compatible. Model-list, JSON/citation smoke và calibration dev đều có artifact. Không trộn model trong cùng paired run.</div>
       <div class="table-wrap" style="margin-top:14px"><table><caption>Danh sách model có chủ đích — “free-tier” nghĩa là có hạn mức miễn phí, không có nghĩa quota vô hạn.</caption>
         <thead><tr><th>Vai trò</th><th>Model/provider</th><th>Dùng ở đâu</th><th>Trạng thái chi phí</th><th>Quyết định</th></tr></thead><tbody>
-          <tr><td class="id">Generator chính</td><td><code>gemini-3.5-flash</code> · Gemini API</td><td>Mọi pipeline B0–G2, temperature 0</td><td>Free tier có giới hạn; dữ liệu free tier có thể được dùng để cải thiện sản phẩm</td><td>Bắt buộc cho core comparison</td></tr>
-          <tr><td class="id">Judge chính</td><td><code>openai/gpt-oss-120b</code> · Groq API</td><td>Chấm BioASQ 0–2; không thấy tên pipeline</td><td>Developer quota/rate limit phụ thuộc tài khoản</td><td>Phải hiệu chỉnh với 100 câu human audit</td></tr>
-          <tr><td class="id">Generator phụ</td><td><code>openai/gpt-oss-20b</code> · Groq API</td><td>Robustness trên evidence đã cache của pipeline thắng dev</td><td>Quota-dependent; kiểm tra model-list</td><td>Exploratory, không thay core claim</td></tr>
+          <tr><td class="id">Generator chính</td><td><code>deepseek-v3.2</code> · gateway</td><td>Mọi pipeline B0–G2, temperature 0</td><td>Key/quota cục bộ; cache theo model + prompt</td><td>Bắt buộc cho core comparison</td></tr>
+          <tr><td class="id">Judge chính</td><td><code>cerebras/gpt-oss-120b</code> · gateway</td><td>Chấm BioASQ 0–2; không thấy tên pipeline/score retrieval</td><td>Khác họ model với generator</td><td>Phải hiệu chỉnh với 100 câu human audit</td></tr>
+          <tr><td class="id">Generator phụ</td><td><code>qwen3.5-397b-a17b</code> · gateway</td><td>Robustness trên cùng evidence dev đã cache</td><td>Không dùng để thay output giữa một paired run</td><td>Exploratory, không thay core claim</td></tr>
           <tr><td class="id">API trả phí tùy chọn</td><td><code>gpt-4o</code> · OpenAI API</td><td>Robustness nếu tài khoản có API credits</td><td><strong>Không có API free tier</strong>; ChatGPT Free không phải OpenAI API</td><td>Không phải dependency; thiếu key vẫn hoàn thành đồ án</td></tr>
           <tr><td class="id">Dense retriever</td><td>MedCPT Query + Article Encoder · local</td><td>B2/B3/G2</td><td>Open model, tải từ Hugging Face</td><td>Không gọi LLM API</td></tr>
           <tr><td class="id">Reranker</td><td>MedCPT Cross Encoder · local</td><td>B3/G2 top-30 → top-8</td><td>Open model, tải từ Hugging Face</td><td>Không gọi LLM API</td></tr>
         </tbody></table></div>
       <div class="grid" style="margin-top:14px">
-        <article class="card wide"><h3>Fallback rõ ràng</h3><p>Gemini primary lỗi/quá quota → Groq <code>openai/gpt-oss-20b</code>. Groq judge không khả dụng → Gemini model khác đang có trong model-list. Fallback chỉ được chọn trước locked test; không trộn output từ nhiều generator trong cùng paired run.</p></article>
+        <article class="card wide"><h3>Fallback rõ ràng</h3><p>Không có fallback tự động trong paired run. Nếu DeepSeek lỗi/quá quota thì dừng run, ghi lỗi và chọn Qwen một lần trước khi chạy lại toàn bộ population với run ID/model hash mới. Judge lỗi cũng dừng; không đổi judge sau khi xem kết quả.</p></article>
         <article class="card wide"><h3>Không gửi dữ liệu bệnh nhân</h3><p>Dataset benchmark là dữ liệu nghiên cứu công khai. Không gửi EHR/PII/PHI lên free-tier API. Cache theo hash của prompt + evidence; log token, latency, retry và lỗi 429, tuyệt đối không log API key.</p></article>
       </div>
       <div class="contract"><h3>Hai ma trận tách biệt để tránh kết luận mơ hồ</h3><pre>A. COMPONENT STUDY (claim chính)
@@ -113,8 +113,8 @@ Sources: PMID… · PrimeKG path…</div></div>
 
 B. GENERATOR ROBUSTNESS (claim phụ, chỉ sau khi cache evidence)
    fixed pipeline/evidence/question IDs/prompt
-   compare: Gemini 3.5 Flash vs Groq GPT-OSS 20B
-   optional: OpenAI GPT-4o only when prepaid API credit exists
+   compare: DeepSeek V3.2 vs Qwen 3.5 trên cùng frozen dev evidence
+   no automatic fallback or third model in the core comparison
 
 Không chạy mọi generator × mọi pipeline. Thiết kế đó tốn quota và làm mờ
 nguyên nhân cải thiện là retrieval, graph hay generator.</pre></div>
@@ -125,7 +125,7 @@ nguyên nhân cải thiện là retrieval, graph hay generator.</pre></div>
       <div class="grid">
         <article class="card"><span class="status locked">DEFAULT LOCKED</span><h3>Primary track</h3><p>BioASQ 12B RAG trên Hugging Face; long-form QA và gold textual evidence.</p></article>
         <article class="card"><span class="status locked">COMPONENT LOCKED</span><h3>PrimeKGQA track</h3><p>Official test đánh giá answer-set/query execution; phân tầng 2/3/4-node. Không gộp score với BioASQ.</p></article>
-        <article class="card"><span class="status">EXTERNAL BLOCKER</span><h3>Runtime</h3><p>Local CUDA/MedCPT đã xác minh. Gemini/Groq exact API model ID và quota chưa xác minh vì môi trường không có credential; không tự bật billing và không giảm confirmatory population.</p></article>
+        <article class="card"><span class="status">VERIFIED</span><h3>Runtime</h3><p>Local CUDA/MedCPT và gateway model IDs đã xác minh. Key chỉ nằm trong <code>.env</code> gitignored; generator/judge có retry và cache. Quota vẫn phải được theo dõi trước locked run.</p></article>
       </div>
       <div class="contract"><h3>DATA_MANIFEST · nguồn và integrity</h3><pre>BioASQ HF repo   mattmorgis/bioasq-12b-rag @ 6d6add1a6ec2090991386b5ae7608b71fd637bc4
 Question data    dev 5.049 · locked eval 340 · development sample 300
@@ -252,7 +252,7 @@ Frozen QA IDs + gold PMID/snippets/ideal answer → shared harness
     </section>
 
     <section id="experiments">
-      <div class="section-head"><div class="num">06 · TESTS</div><div><h2>Ma trận thực nghiệm</h2><p>Sáu pipeline trả lời câu hỏi retrieval/graph dưới cùng Gemini generator. So sánh generator là robustness study riêng trên evidence đã cache, không phải tích Descartes model × pipeline.</p></div></div>
+      <div class="section-head"><div class="num">06 · TESTS</div><div><h2>Ma trận thực nghiệm</h2><p>Sáu pipeline trả lời câu hỏi retrieval/graph dưới cùng DeepSeek generator. So sánh generator là robustness study riêng trên evidence đã cache, không phải tích Descartes model × pipeline.</p></div></div>
       <div class="callout"><strong>Nguyên tắc chọn thí nghiệm:</strong> chỉ chạy một chiến lược khi kết quả trước tạo ra một câu hỏi chưa được trả lời. Mỗi thí nghiệm phải ghi trước giả thuyết, biến thay đổi, biến giữ cố định, metric quyết định và hành động tiếp theo.</div>
       <div class="table-wrap" style="margin-top:14px"><table><caption>Decision ladder — tối ưu từng tầng trên dev rồi mới thêm tầng tiếp theo; không chạy full factorial.</caption><thead><tr><th>Thứ tự</th><th>So sánh</th><th>Giữ cố định</th><th>Metric quyết định</th><th>Quy tắc chọn</th></tr></thead><tbody>
         <tr><td class="id">E1 · Chunk</td><td>C0 abstract vs C2 sentence-aware</td><td>Q0; chạy cả BM25 và MedCPT trên cùng dev IDs</td><td>Document Recall@10 + nDCG@10</td><td>Chọn theo paired retrieval; hòa thì chọn C0 đơn giản hơn</td></tr>
@@ -286,7 +286,7 @@ Frozen QA IDs + gold PMID/snippets/ideal answer → shared harness
         <article class="card"><h3>Matched controls</h3><p>A3: extra text cùng token · A4: random path match relation/hop/degree; fallback adjacent degree bucket → same relation/hop. Không match được vẫn giữ câu và báo unmatched.</p></article>
         <article class="card"><h3>Fairness control</h3><p>B3 và G2 dùng cùng generator, prompt, test set và tổng evidence token budget.</p></article>
       </div>
-      <div class="table-wrap" style="margin-top:14px"><table><caption>Generator robustness — chạy sau core, dev-only, cùng evidence cache.</caption><thead><tr><th>ID</th><th>Generator</th><th>Sample</th><th>Mục đích</th></tr></thead><tbody><tr><td class="id">M1</td><td>Gemini 3.5 Flash</td><td>Cùng ≤300 dev IDs</td><td>Reference generator của core.</td></tr><tr><td class="id">M2</td><td>Groq GPT-OSS 20B</td><td>Đúng evidence của M1</td><td>Độ nhạy theo model/latency với API quota thấp.</td></tr><tr><td class="id">M3</td><td>OpenAI GPT-4o</td><td>Chỉ khi có prepaid credit</td><td>Optional upper-cost robustness; không có không ảnh hưởng core.</td></tr></tbody></table></div>
+      <div class="table-wrap" style="margin-top:14px"><table><caption>Generator robustness — dev-only, cùng evidence cache.</caption><thead><tr><th>ID</th><th>Generator</th><th>Sample</th><th>Mục đích</th></tr></thead><tbody><tr><td class="id">M1</td><td>DeepSeek V3.2</td><td>Frozen dev IDs</td><td>Generator core được chọn sau calibration.</td></tr><tr><td class="id">M2</td><td>Qwen 3.5 397B-A17B</td><td>Đúng evidence của M1</td><td>Kiểm tra độ nhạy theo model; không mở rộng full factorial.</td></tr></tbody></table></div>
     </section>
 
     <section id="evaluation">
@@ -310,7 +310,7 @@ Frozen QA IDs + gold PMID/snippets/ideal answer → shared harness
       </div>
       <div class="contract"><h3>Frozen LLM judge contract · primary BioASQ scorer</h3><pre>population         every frozen locked-test question ID; missing output creates
                    a retained failure record and correctness=0, never excluded
-judge             Groq model ID openai/gpt-oss-120b; verified W1
+judge             gateway model ID cerebras/gpt-oss-120b; verified 13/07/2026
                   must differ from generator; unavailable → freeze replacement before test
 correctness pass  question + reference answer + candidate answer; NO evidence
 faithfulness pass candidate answer + cited evidence; NO reference answer
@@ -417,7 +417,7 @@ Evaluator          reads only frozen experiment IDs from registry</pre></div>
       <div class="week"><div class="week-no">W1 · 13–19/07</div><div><h3>Data contract + compatibility</h3><ul><li>Pin BioASQ, PrimeKG, PrimeKGQA; schema/count/license/checksum EDA</li><li>Recreate/verify PrimeKGQA RDF/IRI schema; execute 100 gold SPARQL</li><li>Audit duplicate/entity/relation/motif overlap across splits</li><li>Dựng C0 + BM25 và end-to-end mock smoke n=50</li></ul></div><div class="gate"><strong>Gate</strong>Manifest frozen; PrimeKGQA executable ≥99%; question→artifact flow chạy đủ.</div></div>
       <div class="week"><div class="week-no">W2 · 20–26/07</div><div><h3>Strong Text-RAG có chọn lọc</h3><ul><li>E1 C0/C2 × BM25/MedCPT; dev≤300</li><li>E2 BM25/MedCPT/RRF; E3 cross-encoder</li><li>E4 Q0/Q1; Q2 exploratory với runtime confidence trigger</li><li>FastAPI registry, SSE, cache/persistence; React answer/citation states</li></ul></div><div class="gate"><strong>Gate</strong>Freeze B3-final cùng chunk/query strategy và report lý do chọn.</div></div>
       <div class="week"><div class="week-no">W3 · 27/07–02/08</div><div><h3>PrimeKGQA + PrimeKG retriever</h3><ul><li>Entity/relation linker; node và relation answer types</li><li>1/2/≤3-hop retrieval, path ranking; val metrics theo 2/3/4-node</li><li>BioASQ G1/G2, 1,800-token fusion/backfill; graph UI panel</li></ul></div><div class="gate"><strong>Gate</strong>PrimeKGQA component metrics reproducible; mọi edge traceable; G2 cùng contract như B3.</div></div>
-      <div class="week"><div class="week-no">W4 · 03–09/08</div><div><h3>Confirmatory pair + controls</h3><ul><li>Freeze registry; B3/G2 primary dev run bằng cùng Gemini model ID</li><li>A1/A2 + extra-text + matched random-path controls</li><li>Cache evidence; chạy M1/M2 dev robustness, M3 chỉ khi có credit</li><li>Comparison UI, full-stack QA, statistics dry-run</li></ul></div><div class="gate"><strong>Gate</strong>Không silent failure; core cost $0; ký locked-test freeze.</div></div>
+      <div class="week"><div class="week-no">W4 · 03–09/08</div><div><h3>Confirmatory pair + controls</h3><ul><li>Freeze registry; B3/G2 primary dev run bằng cùng DeepSeek model ID</li><li>A1/A2 + extra-text + matched random-path controls</li><li>Cache evidence; chạy M1/M2 dev robustness</li><li>Comparison UI, full-stack QA, statistics dry-run</li></ul></div><div class="gate"><strong>Gate</strong>Không silent failure; kiểm tra quota; ký locked-test freeze.</div></div>
       <div class="week"><div class="week-no">W5 · 10–16/08</div><div><h3>Hai locked tests + review</h3><ul><li>BioASQ B3/G2 một lần; blind human random sample 100</li><li>PrimeKGQA official test một lần; EM/F1/execution theo complexity</li><li>Paired bootstrap, judge calibration, error taxonomy, cost/latency</li><li>Demo acceptance và report; MedQA chỉ ghi future work</li></ul></div><div class="gate"><strong>Gate</strong>Mọi claim map tới track/run/config/hash; không gộp hai benchmark thành một score.</div></div>
     </section>
 
@@ -481,11 +481,8 @@ Evaluator          reads only frozen experiment IDs from registry</pre></div>
         <li><a href="https://github.com/xixi019/primeKGQG">PrimeKGQA generation repository</a></li>
         <li><a href="https://aclanthology.org/2024.bionlp-1.13/">KG-Rank paper</a></li>
         <li><a href="https://github.com/ImprintLab/Medical-Graph-RAG">Medical Graph RAG repository</a></li>
-        <li><a href="https://ai.google.dev/gemini-api/docs/pricing">Gemini API pricing và Free Tier</a></li>
-        <li><a href="https://ai.google.dev/gemini-api/docs/rate-limits">Gemini API rate limits</a></li>
-        <li><a href="https://console.groq.com/docs/models">Groq supported model IDs</a></li>
-        <li><a href="https://console.groq.com/docs/deprecations">Groq model deprecations</a></li>
-        <li><a href="https://developers.openai.com/api/docs/models/gpt-4o">OpenAI GPT-4o API model và pricing</a></li>
+        <li><a href="https://api.futureppo.top/">Gateway OpenAI-compatible đang dùng (model-list cần credential)</a></li>
+        <li><code>data/manifests/generator_calibration_dev_5_20260713.json</code> — quyết định model có thể replay</li>
         <li><a href="https://github.com/plannotator/effective-html">effective-html style source</a></li>
       </ul>
     </section>

@@ -113,8 +113,6 @@ def main() -> None:
             "coverage": 0.0, "fallback": "PrimeKG release-level provenance only; do not claim per-edge source."},
     }
     atomic_json("data_quality_audit.json", audit)
-    exclusions = OUT / "exclusions.jsonl"
-    exclusions.write_text("", encoding="utf-8")
     print(json.dumps(audit, indent=2))
 
 

@@ -1,0 +1,13 @@
+{
+  "run_id": "bioasq_dev_b3_g2_gateway_deepseek-v3-2_warmed_counterbalanced_v6_5_20260713",
+  "questions": 5,
+  "generator": "gateway",
+  "generator_model": "deepseek-v3.2",
+  "mean_latency_ms": {
+    "B3": 1049.4,
+    "G2": 3806.8
+  },
+  "paired_median_latency_delta_G2_minus_B3_ms": 6,
+  "graph_evidence_rate_G2": 0.2,
+  "interpretation": "Candidate outputs require judge/human review"
+}

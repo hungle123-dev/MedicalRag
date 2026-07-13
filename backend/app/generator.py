@@ -10,6 +10,8 @@ from pathlib import Path
 
 import httpx
 
+from .env import load_dotenv
+
 
 CITATION = re.compile(r"\[([^\[\]]+)\]")
 
@@ -28,7 +30,10 @@ def render_evidence(evidence: list[dict]) -> str:
 
 def validate_citations(answer: str, evidence: list[dict]) -> dict:
     registry = {item["id"]: item for item in evidence}
-    cited = list(dict.fromkeys(CITATION.findall(answer)))
+    cited = list(dict.fromkeys(
+        citation.strip() for group in CITATION.findall(answer) for citation in group.split(",")
+        if citation.strip()
+    ))
     valid = [citation for citation in cited if citation in registry]
     invented = [citation for citation in cited if citation not in registry]
     return {"valid_ids": valid, "invented_ids": invented, "valid": not invented}
@@ -105,10 +110,62 @@ class GeminiGenerator:
         raise RuntimeError(f"Gemini generation failed after 3 attempts: {type(last_error).__name__}")
 
 
+class GatewayGenerator:
+    provider = "futureppo"
+
+    def __init__(self, root: Path, model: str | None = None):
+        load_dotenv(root)
+        self.root = root
+        self.model = model or os.getenv("GATEWAY_GENERATOR_MODEL", "deepseek-v3.2")
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.base_url = os.getenv("OPENAI_BASE_URL", "https://api.futureppo.top/v1").rstrip("/")
+        if not self.api_key:
+            raise RuntimeError("OPENAI_API_KEY is not configured")
+        if not self.base_url.startswith(("http://", "https://")):
+            raise RuntimeError("OPENAI_BASE_URL must be an HTTP(S) URL")
+        self.prompt_template = (root / "configs/prompts/answer_v1.txt").read_text(encoding="utf-8")
+        self.cache = root / "artifacts/model_cache/gateway"
+        self.cache.mkdir(parents=True, exist_ok=True)
+
+    def generate(self, question: str, evidence: list[dict], closed_book: bool = False) -> Generation:
+        template = self.prompt_template
+        if closed_book:
+            template = (self.root / "configs/prompts/answer_closed_book_v1.txt").read_text(encoding="utf-8")
+        prompt = template.format(question=question, evidence=render_evidence(evidence))
+        key = stable_hash(json.dumps({"model": self.model, "prompt": prompt}, sort_keys=True))
+        target = self.cache / f"{key}.json"
+        if target.exists():
+            return Generation(json.loads(target.read_text(encoding="utf-8"))["answer"], self.model,
+                              self.provider, cached=True)
+        body = {"model": self.model, "temperature": 0, "max_tokens": 512,
+                "messages": [{"role": "user", "content": prompt}]}
+        last_error = None
+        for attempt in range(3):
+            try:
+                response = httpx.post(f"{self.base_url}/chat/completions",
+                                      headers={"Authorization": f"Bearer {self.api_key}"},
+                                      json=body, timeout=90)
+                response.raise_for_status()
+                raw = response.json()
+                answer = raw["choices"][0]["message"]["content"].strip()
+                temporary = target.with_suffix(".json.tmp")
+                temporary.write_text(json.dumps({"answer": answer, "raw": raw}), encoding="utf-8")
+                os.replace(temporary, target)
+                return Generation(answer, self.model, self.provider)
+            except (httpx.HTTPError, KeyError, IndexError, AttributeError) as exc:
+                last_error = exc
+                if attempt < 2:
+                    time.sleep(2 ** attempt)
+        raise RuntimeError(f"Gateway generation failed after 3 attempts: {type(last_error).__name__}")
+
+
 def create_generator(root: Path):
+    load_dotenv(root)
     selected = os.getenv("MEDICAL_RAG_GENERATOR", "mock").casefold()
     if selected == "mock":
         return MockGenerator()
     if selected == "gemini":
         return GeminiGenerator(root)
+    if selected == "gateway":
+        return GatewayGenerator(root)
     raise RuntimeError(f"Unsupported generator provider: {selected}")

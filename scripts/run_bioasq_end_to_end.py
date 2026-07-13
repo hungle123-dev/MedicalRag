@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 from app.pipelines import PIPELINES
+from app.env import load_dotenv
 
 
 def sha(path: Path) -> str: return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -32,8 +33,11 @@ def main() -> None:
     ids = frozen["ids"][:args.questions]
     with (ROOT / "data/raw/bioasq/dev.jsonl").open(encoding="utf-8") as stream:
         by_id = {row["question_id"]: row for line in stream if (row := json.loads(line))}
+    load_dotenv(ROOT)
     generator = os.getenv("MEDICAL_RAG_GENERATOR", "mock")
-    run_id = f"bioasq_dev_b3_g2_{generator}_warmed_counterbalanced_v5_{len(ids)}_20260712"
+    generator_model = (os.getenv("GATEWAY_GENERATOR_MODEL", "local") if generator == "gateway" else generator)
+    model_slug = "".join(character if character.isalnum() else "-" for character in generator_model).strip("-")
+    run_id = f"bioasq_dev_b3_g2_{generator}_{model_slug}_warmed_counterbalanced_v6_{len(ids)}_20260713"
     directory = ROOT / "artifacts/experiments/bioasq" / run_id; directory.mkdir(parents=True, exist_ok=True)
     warmup_question = by_id[ids[0]]["question"]
     PIPELINES["B3"].run(warmup_question); PIPELINES["G2"].run(warmup_question)
@@ -54,7 +58,8 @@ def main() -> None:
             results.append(result)
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True, capture_output=True).stdout.strip()
     manifest = {"run_id": run_id, "track": "bioasq_dev_smoke", "pipelines": ["B3", "G2"],
-        "generator": generator, "question_ids": ids, "seed": frozen["seed"], "code_commit": commit,
+        "generator": generator, "generator_model": generator_model,
+        "question_ids": ids, "seed": frozen["seed"], "code_commit": commit,
         "working_tree_dirty": bool(subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, text=True, capture_output=True).stdout),
         "pipeline_order": "counterbalanced_by_question_index",
         "warmup": "one unmeasured B3 and G2 call before the paired population",
@@ -67,6 +72,7 @@ def main() -> None:
     for item in results: paired[item["question_id"]][item["pipeline_id"]] = item["result"]["details"]["latency_ms"]
     paired_median = median([value["G2"] - value["B3"] for value in paired.values()])
     summary = {"run_id": run_id, "questions": len(ids), "generator": generator,
+        "generator_model": generator_model,
         "mean_latency_ms": {pipeline: round(sum(item["result"]["details"]["latency_ms"] for item in results
                                               if item["pipeline_id"] == pipeline) / len(ids), 3)
                             for pipeline in ("B3", "G2")},

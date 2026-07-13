@@ -40,18 +40,18 @@ knowledge_graph:
     mondo_group_resources_filtered: true
 
 generator:
-  provider: google
-  model: gemini-3.5-flash
-  snapshot: external_credential_blocker_not_verified
+  provider: futureppo_openai_compatible_gateway
+  model: deepseek-v3.2
+  snapshot: selected_on_frozen_5_question_dev_calibration_2026-07-13
   temperature: 0
   top_p: 1
   max_output_tokens: 512
   retries: 3
 
 judge:
-  provider: groq
-  model: openai/gpt-oss-120b
-  snapshot: external_credential_blocker_not_verified
+  provider: futureppo_openai_compatible_gateway
+  model: cerebras/gpt-oss-120b
+  snapshot: verified_available_2026-07-13
   must_differ_from_generator: true
   human_calibration_sample: 100
   validity_weighted_kappa_minimum: 0.60
@@ -125,6 +125,6 @@ generator_robustness:
   role: exploratory_dev_only
   reuse_cached_evidence: true
   models:
-    - google/gemini-3.5-flash
-    - groq/openai-gpt-oss-20b
-  optional_paid_model: openai/gpt-4o
+    - deepseek-v3.2
+    - qwen3.5-397b-a17b
+  selection: frozen_5_question_dev_calibration_then_deepseek_v3_2

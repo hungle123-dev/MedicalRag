@@ -1,0 +1,34 @@
+{
+  "track": "exploratory_frozen_dev_generator_calibration",
+  "question_ids": [
+    "56d2ac03f22319765a000004",
+    "5895bfdc7d9090f35300000c",
+    "5c6b15467c78d69471000024",
+    "52ee065d98d0239505000033",
+    "58f0b1d670f9fc6f0f000007"
+  ],
+  "models": [
+    "qwen3.5-397b-a17b",
+    "deepseek-v3.2"
+  ],
+  "judge_model": "cerebras/gpt-oss-120b",
+  "selection_rule": "citation integrity, then correctness+completeness, unsupported claims, latency",
+  "aggregates": {
+    "qwen3.5-397b-a17b": {
+      "citation_integrity_rate": 1.0,
+      "correctness_mean_0_2": 1.6,
+      "completeness_mean_0_2": 1.4,
+      "unsupported_claim_rate_mean": 0.0,
+      "latency_ms_mean": 8304.8
+    },
+    "deepseek-v3.2": {
+      "citation_integrity_rate": 1.0,
+      "correctness_mean_0_2": 1.6,
+      "completeness_mean_0_2": 1.4,
+      "unsupported_claim_rate_mean": 0.0,
+      "latency_ms_mean": 7872.2
+    }
+  },
+  "selected": "deepseek-v3.2",
+  "warning": "Small LLM-judge calibration is model selection evidence, not a medical performance claim."
+}

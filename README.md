@@ -8,7 +8,7 @@ Research prototype for English medical QA. Input is one text question; output is
 - G1 PrimeKG-only diagnostic; G2 B3 plus 1–2 hop PrimeKG evidence under the same 1,800-token/8-item budget.
 - BioASQ end-to-end track and PrimeKGQA graph-component track. PrimeKGQA is QA evaluation data; PrimeKG is the one queried graph.
 - FastAPI/SQLite/JSON-artifact backend and React/TypeScript UI with SSE, cancellation, evidence panels and B3/G2 comparison.
-- Deterministic offline generator for tests; cached Gemini and blinded two-pass Groq judge adapters for real inference when credentials exist.
+- Deterministic offline generator for tests; cached OpenAI-compatible gateway generator and blinded two-pass independent judge for real inference.
 
 ## Verified real data
 
@@ -58,7 +58,9 @@ npm install
 npm run dev
 ```
 
-The default `MEDICAL_RAG_GENERATOR=mock` spends no quota. For real generation set `MEDICAL_RAG_GENERATOR=gemini` and provide `GEMINI_API_KEY` in the environment. Judge evaluation separately requires `GROQ_API_KEY`. Keys are never accepted by the frontend or committed.
+Copy `.env.example` to `.env`, set `OPENAI_API_KEY`, and switch `MEDICAL_RAG_GENERATOR=gateway` for real generation. Keep `mock` for quota-free flow tests. Keys are loaded only by the backend, never accepted by the frontend, logged or committed.
+
+The frozen 5-question dev calibration selected `deepseek-v3.2` as generator and `cerebras/gpt-oss-120b` as the independent structured judge. Qwen and DeepSeek tied on the recorded judge/citation metrics; DeepSeek won only the predeclared latency tie-break, so this is an operational choice rather than a medical-quality claim.
 
 ## Experiments and checks
 
@@ -81,6 +83,6 @@ Start with the Vietnamese [step-by-step overview](docs/TONG_QUAN_TUNG_BUOC_Medic
 
 ## Current external blockers
 
-- No Gemini/Groq credentials are present, so real generator/judge inference and the locked B3-vs-G2 answer comparison are not run.
+- Gateway credentials are configured locally; real generator/judge calibration and the locked B3-vs-G2 comparison remain separate recorded experiment stages.
 - Two qualified medical reviewers must complete the frozen 100-question blinded review; AI draft labels cannot replace them.
 - MedQA, crawling, EHR/PHI, clinical deployment, model fine-tuning, Neo4j, GNNs and billing fallback are out of core scope.
