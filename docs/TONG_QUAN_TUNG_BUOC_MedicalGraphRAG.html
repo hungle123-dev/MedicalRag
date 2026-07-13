@@ -136,7 +136,7 @@ BM25 index · FAISS · PrimeKG adjacency · SQLite · JSONL artifacts</pre></div
         <article class="card"><div class="tag">Text result</div><h3>B3 thắng retrieval</h3><p>Recall@10 B1 0,6585; B2 0,6612; B3 0,7347 trên cùng dev-300.</p></article>
         <article class="card"><div class="tag">Graph result</div><h3>Chưa chứng minh lợi ích</h3><p>PrimeKGQA test fallback F1 0,0700; random-path control còn hơn full scorer trên dev.</p></article>
       </div>
-      <div class="callout"><strong>Kết luận hiện tại:</strong> hybrid text retrieval là improvement đáng tin cậy. Evidence extraction P1 tăng any-gold visibility từ 0,800 lên 0,920. Atomic-path E5-v9 đã pass 80 câu/320 outputs và 196/196 X2 slots, nhưng G2−B3 correctness = −0,05, CI [−0,15; 0,0375], đồng thời không thắng X1/X2. Vậy frozen heuristic graph chưa giúp strong text RAG; hai reviewer y khoa vẫn là external gate bắt buộc.</div>
+      <div class="callout"><strong>Kết luận hiện tại:</strong> hybrid text retrieval là improvement đáng tin cậy. Atomic-path E5-v9 pass nhưng G2−B3 = −0,05, CI [−0,15; 0,0375] và không thắng X1/X2. Locked preflight đầu tiên dừng trước generation vì một X1 text quá ngắn; v10 dùng frozen top-30 control pool, pass dev-80 và cho evidence/output/judge result giống hệt v9. Full eval preflight phải pass trước locked generation; hai reviewer y khoa vẫn là external gate.</div>
     </section>
   </main>
   <footer><div class="wrap">Bản đọc nhanh bằng tiếng Việt. Execution protocol chi tiết nằm trong <code>KE_HOACH_NGHIEN_CUU_MedicalGraphRAG.html</code>.</div></footer>

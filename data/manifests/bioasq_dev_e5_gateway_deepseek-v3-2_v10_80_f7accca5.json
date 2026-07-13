@@ -1,0 +1,82 @@
+{
+  "run_id": "bioasq_dev_e5_gateway_deepseek-v3-2_v10_80_f7accca5",
+  "split": "dev",
+  "questions": 80,
+  "arms": [
+    "B3",
+    "G2",
+    "X1",
+    "X2"
+  ],
+  "generator_model": "deepseek-v3.2",
+  "code_commit": "f7accca585c345f81216acfbbb3d015edd3a1e36",
+  "observed_response_models": [
+    "deepseek-v3-2-251201"
+  ],
+  "response_model_consistent": true,
+  "graph_retrieval_positive_questions": 43,
+  "failure_rate": 0.0,
+  "latency_ms": {
+    "B3": {
+      "mean": 10.075,
+      "p50": 12.5,
+      "p95": 23
+    },
+    "G2": {
+      "mean": 10.425,
+      "p50": 12.0,
+      "p95": 25
+    },
+    "X1": {
+      "mean": 10.213,
+      "p50": 12.0,
+      "p95": 25
+    },
+    "X2": {
+      "mean": 10.787,
+      "p50": 13.0,
+      "p95": 26
+    }
+  },
+  "api_usage": {
+    "B3": {
+      "logical_requests": 80,
+      "network_calls": 0,
+      "cache_hits": 80,
+      "logical_prompt_tokens": 208312,
+      "network_prompt_tokens": 0,
+      "network_completion_tokens": 0
+    },
+    "G2": {
+      "logical_requests": 80,
+      "network_calls": 0,
+      "cache_hits": 80,
+      "logical_prompt_tokens": 220693,
+      "network_prompt_tokens": 0,
+      "network_completion_tokens": 0
+    },
+    "X1": {
+      "logical_requests": 80,
+      "network_calls": 0,
+      "cache_hits": 80,
+      "logical_prompt_tokens": 216094,
+      "network_prompt_tokens": 0,
+      "network_completion_tokens": 0
+    },
+    "X2": {
+      "logical_requests": 80,
+      "network_calls": 0,
+      "cache_hits": 80,
+      "logical_prompt_tokens": 221139,
+      "network_prompt_tokens": 0,
+      "network_completion_tokens": 0
+    }
+  },
+  "no_invented_citation_id_rate": {
+    "B3": 1.0,
+    "G2": 0.975,
+    "X1": 1.0,
+    "X2": 1.0
+  },
+  "interpretation": "Machine outputs require blinded judging and qualified human review."
+}

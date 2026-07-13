@@ -11,6 +11,7 @@
   "primekgqa_locked_fallback": {"answer_set_f1": 0.069993, "exact_match": 0.018022, "entity_link_f1": 0.694486, "relation_f1": 0.110063},
   "clean_smoke": {"run_id": "bioasq_dev_b3_g2_mock_warmed_counterbalanced_v5_50_20260712", "paired_questions": 50, "result_files": 100, "working_tree_dirty_during_run": false, "graph_evidence_rate_g2": 0.44},
   "e5_v9_dev": {"run_id": "bioasq_dev_e5_gateway_deepseek-v3-2_v9_80_dbfb1208", "questions": 80, "outputs": 320, "generation_failures": 0, "graph_positive": 43, "x2_slots": "196/196", "correctness": {"B3": 1.55, "G2": 1.5, "X1": 1.5125, "X2": 1.525}, "g2_minus_b3_ci95": [-0.15, 0.0375], "machine_graph_benefit_gate": false},
+  "e5_v10_amendment": {"commit": "f7accca585c345f81216acfbbb3d015edd3a1e36", "reason": "X1 short-candidate structural failure in eval preflight before any output", "dev_preflight": "80/80 passed", "dev_arm_evidence_differences_vs_v9": {"B3": 0, "G2": 0, "X1": 0, "X2": 0}, "dev_generation_network_calls": 0, "dev_result_changed": false},
   "verification": {"backend_tests": "27 passed", "frontend_build": "passed", "npm_audit": "0 vulnerabilities", "html_yaml_validation": "passed", "github_ci": "passed on c57a35e and later"},
   "external_blockers": ["two qualified medical reviewers", "judge-human calibration before confirmatory judge claims"],
   "gateway_status": "DeepSeek generator and Cerebras judge verified 2026-07-13; key remains local and gitignored",
