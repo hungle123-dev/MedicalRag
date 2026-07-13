@@ -356,6 +356,7 @@ def run_context_generation(
         "contexts_sha256": sha256(contexts_path),
         "prompt_style": prompt_style,
         "system_prompt_hash": stable_hash(system_prompt_template),
+        "response_format": GatewayClient.response_format,
         "pre_inference_gold_access": "question_type_only"
         if prompt_style == "gold_type_oracle"
         else "none",

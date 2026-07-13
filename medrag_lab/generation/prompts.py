@@ -20,7 +20,8 @@ CITATION_SYSTEM_PROMPT = (
     + """
 
 Every citation_pmids entry must be copied from a [PMID:...] label in the supplied evidence.
-Do not invent citations. If the evidence is insufficient, abstain."""
+Do not invent citations. If the evidence is insufficient, set abstained=true and still provide
+the non-empty ideal_answer "Insufficient evidence in the provided context."."""
 )
 
 SYSTEM_PROMPT = (

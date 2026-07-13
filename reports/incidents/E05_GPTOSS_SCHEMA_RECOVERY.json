@@ -1,0 +1,16 @@
+{
+  "incident_id": "E05_GPTOSS_SCHEMA_RECOVERY",
+  "family": "E05",
+  "arm": "budget600_gptoss",
+  "population": "generation160",
+  "rows": 160,
+  "failures": 9,
+  "failure_rate": 0.05625,
+  "first_failure_index_zero_based": 10,
+  "error_types": {
+    "ValidationError": 9
+  },
+  "source_artifact": "artifacts/runs/E05-budget600_gptoss-generation160-ec5d3abc5a/inference.jsonl",
+  "recovery_policy": "Rerun the identical sealed-context arm. Successful responses are reused from the immutable gateway cache; only uncached validation failures are requested again. The denominator remains 160.",
+  "interpretation": "All requests reached the gateway, but nine responses failed the shared output schema after retries. A direct replay of the first failed question produced schema-valid JSON, so this is treated as stochastic format non-compliance and recovered without changing prompts, contexts, model, metrics, or question membership."
+}

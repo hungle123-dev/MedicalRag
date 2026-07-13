@@ -15,6 +15,8 @@ from medrag_lab.settings import ROOT, Settings, settings
 
 
 class GatewayClient:
+    response_format = "json_object"
+
     def __init__(self, config: Settings | None = None):
         self.config = config or settings()
         if not self.config.openai_api_key or not self.config.openai_base_url:
@@ -67,6 +69,7 @@ class GatewayClient:
             "user": user_prompt,
             "temperature": 0,
             "max_output_tokens": max_output_tokens,
+            "response_format": self.response_format,
         }
         cache_path = self._cache_path(payload)
         if cache_path.is_file():
@@ -81,6 +84,7 @@ class GatewayClient:
                     model=selected_model,
                     temperature=0,
                     max_tokens=max_output_tokens,
+                    response_format={"type": self.response_format},
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
