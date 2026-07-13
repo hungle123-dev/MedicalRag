@@ -95,6 +95,10 @@ def run_evidence_retrieval(
     }:
         raise ValueError(f"Unsupported evidence arm: {arm}")
     config = settings()
+    if population == "heldout340":
+        from medrag_lab.experiments.final import verify_final_freeze
+
+        verify_final_freeze()
     splits = json.loads((ROOT / "data" / "manifests" / "splits.json").read_text("utf-8"))
     allowed = set(map(str, splits[population]))
     retrieval = {
@@ -102,12 +106,15 @@ def run_evidence_retrieval(
         for row in iter_jsonl(retrieval_predictions)
         if str(row["question_id"]) in allowed
     }
-    gold = {
-        str(row["question_id"]): row
-        for row in iter_jsonl(config.medrag_data_dir / "dev.jsonl")
+    question_source = config.medrag_data_dir / (
+        "eval.jsonl" if population == "heldout340" else "dev.jsonl"
+    )
+    questions = {
+        str(row["question_id"]): {"question": str(row["question"])}
+        for row in iter_jsonl(question_source)
         if str(row["question_id"]) in allowed
     }
-    identifiers = sorted(set(retrieval) & set(gold))
+    identifiers = sorted(set(retrieval) & set(questions))
     if set(identifiers) != allowed:
         raise ValueError("Retrieval predictions do not cover the requested population exactly")
     if offset < 0:
@@ -141,6 +148,7 @@ def run_evidence_retrieval(
     run_config["config_hash"] = stable_hash(run_config)
     run_name = f"E04-{arm}-{population}-{run_config['config_hash'][:10]}"
     output_dir = config.medrag_artifact_dir / run_name
+    inference_path = output_dir / "inference_predictions.jsonl"
     predictions_path, summary_path = output_dir / "predictions.jsonl", output_dir / "summary.json"
     rows: list[dict[str, Any]] = []
     latencies: list[float] = []
@@ -168,7 +176,7 @@ def run_evidence_retrieval(
             ]
             prepared_ids.append(question_id)
             prepared.append(
-                (str(gold[question_id]["question"]), document_snippet_candidates(documents))
+                (str(questions[question_id]["question"]), document_snippet_candidates(documents))
             )
         for start in range(0, len(prepared), 16):
             batch = prepared[start : start + 16]
@@ -181,7 +189,7 @@ def run_evidence_retrieval(
                 cross_ranked[question_id] = result
     with tracked_run(run_name, run_config):
         for question_id in identifiers:
-            row = gold[question_id]
+            row = questions[question_id]
             try:
                 ranked_pmids = list(map(str, retrieval[question_id]["ranked_pmids"][:10]))
                 documents = [
@@ -220,22 +228,12 @@ def run_evidence_retrieval(
                     else:
                         selected, latency = cross_ranked[question_id]
                 predicted = [_annotation(item) for item in selected]
-                metrics = snippet_span_f1(predicted, row["snippets"])
-                gold_pmids = {
-                    str(item["document"]).rstrip("/").rsplit("/", 1)[-1] for item in row["snippets"]
-                }
-                predicted_pmids = {item.pmid for item in selected}
-                metrics["gold_pmid_recall"] = (
-                    len(gold_pmids & predicted_pmids) / len(gold_pmids) if gold_pmids else 0.0
-                )
                 latencies.append(latency)
                 rows.append(
                     {
                         "question_id": question_id,
-                        "question_type": str(row["type"]),
                         "ranked_pmids_hash": stable_hash(ranked_pmids),
                         "snippets": predicted,
-                        "metrics": metrics,
                         "latency_ms": latency,
                         "failed": False,
                     }
@@ -245,18 +243,40 @@ def run_evidence_retrieval(
                     {
                         "question_id": question_id,
                         "snippets": [],
-                        "metrics": {
-                            "precision": 0.0,
-                            "recall": 0.0,
-                            "f1": 0.0,
-                            "gold_pmid_recall": 0.0,
-                        },
                         "latency_ms": 0.0,
                         "failed": True,
                         "error_type": type(exc).__name__,
                     }
                 )
+        _write_jsonl(inference_path, rows)
+        if population == "heldout340":
+            from medrag_lab.experiments.final import record_heldout_access
+
+            record_heldout_access("E11.evidence.inference", inference_path)
+        gold = {
+            str(row["question_id"]): row
+            for row in iter_jsonl(question_source)
+            if str(row["question_id"]) in {item["question_id"] for item in rows}
+        }
+        for item in rows:
+            reference = gold[item["question_id"]]
+            metrics = snippet_span_f1(item["snippets"], reference["snippets"])
+            gold_pmids = {
+                str(value["document"]).rstrip("/").rsplit("/", 1)[-1]
+                for value in reference["snippets"]
+            }
+            predicted_pmids = {
+                str(value["document"]).rstrip("/").rsplit("/", 1)[-1]
+                for value in item["snippets"]
+            }
+            metrics["gold_pmid_recall"] = (
+                len(gold_pmids & predicted_pmids) / len(gold_pmids) if gold_pmids else 0.0
+            )
+            item["question_type"] = str(reference["type"])
+            item["metrics"] = metrics
         _write_jsonl(predictions_path, rows)
+        if population == "heldout340":
+            record_heldout_access("E11.evidence.scoring", predictions_path)
         aggregate = {
             f"snippet_span_{name}": statistics.fmean(item["metrics"][name] for item in rows)
             for name in ("precision", "recall", "f1")
@@ -277,7 +297,10 @@ def run_evidence_retrieval(
             "scope": "gold snippet offsets are used only after evidence selection",
             "config": run_config,
             "metrics": aggregate,
-            "artifacts": {"predictions": str(predictions_path.relative_to(ROOT))},
+            "artifacts": {
+                "inference_predictions": str(inference_path.relative_to(ROOT)),
+                "predictions": str(predictions_path.relative_to(ROOT)),
+            },
         }
         summary_path.parent.mkdir(parents=True, exist_ok=True)
         summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
@@ -285,6 +308,7 @@ def run_evidence_retrieval(
         report_path.parent.mkdir(parents=True, exist_ok=True)
         report_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
         mlflow.log_metrics({key: float(value) for key, value in aggregate.items()})
+        log_artifact(inference_path)
         log_artifact(predictions_path)
         log_artifact(summary_path)
     return summary

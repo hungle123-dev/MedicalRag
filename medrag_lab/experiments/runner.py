@@ -771,11 +771,18 @@ def run_query_retrieval(
     from medrag_lab.retrieval.hybrid import reciprocal_rank_fusion
 
     config = settings()
+    if population == "heldout340":
+        from medrag_lab.experiments.final import verify_final_freeze
+
+        verify_final_freeze()
     splits = json.loads((ROOT / "data" / "manifests" / "splits.json").read_text(encoding="utf-8"))
     allowed = set(map(str, splits[population]))
+    question_source = config.medrag_data_dir / (
+        "eval.jsonl" if population == "heldout340" else "dev.jsonl"
+    )
     questions = [
-        row
-        for row in iter_jsonl(config.medrag_data_dir / "dev.jsonl")
+        {"question_id": str(row["question_id"]), "question": str(row["question"])}
+        for row in iter_jsonl(question_source)
         if str(row["question_id"]) in allowed
     ]
     questions.sort(key=lambda row: str(row["question_id"]))
@@ -821,6 +828,7 @@ def run_query_retrieval(
     run_config["config_hash"] = stable_hash(run_config)
     run_name = f"E03-{strategy}-{population}-{run_config['config_hash'][:10]}"
     output_dir = config.medrag_artifact_dir / run_name
+    inference_path = output_dir / "inference_predictions.jsonl"
     prediction_path, summary_path = output_dir / "predictions.jsonl", output_dir / "summary.json"
     predictions = []
     latencies = []
@@ -907,20 +915,15 @@ def run_query_retrieval(
                     ranked_rows, rerank_ms = reranked[index]
                 ranked = [item.pmid for item in ranked_rows]
                 latency = sparse_ms + dense_ms + rerank_ms + transform_latencies[index]
-                gold = set(map(str, row["relevant_passage_ids"]))
-                top10 = retrieval_metrics(ranked, gold, 10)
-                top100 = retrieval_metrics(ranked, gold, 100)
                 latencies.append(latency)
                 predictions.append(
                     {
                         "question_id": str(row["question_id"]),
-                        "question_type": str(row["type"]),
                         "transformed_query_hash": stable_hash(query),
                         "ranked_pmids": ranked,
                         "latency_ms": latency,
                         "query_transform_ms": transform_latencies[index],
                         "query_transform_cached": transform_cached[index],
-                        "metrics": top10 | {"recall_at_100": top100["recall"]},
                         "failed": False,
                     }
                 )
@@ -930,14 +933,29 @@ def run_query_retrieval(
                         "question_id": str(row["question_id"]),
                         "ranked_pmids": [],
                         "latency_ms": 0,
-                        "metrics": dict.fromkeys(
-                            ("ap", "recall", "mrr", "ndcg", "hit", "recall_at_100"), 0.0
-                        ),
                         "failed": True,
                         "error_type": type(exc).__name__,
                     }
                 )
+        _write_jsonl(inference_path, predictions)
+        if population == "heldout340":
+            from medrag_lab.experiments.final import record_heldout_access
+
+            record_heldout_access("E11.retrieval.inference", inference_path)
+        gold_rows = {
+            str(row["question_id"]): row
+            for row in iter_jsonl(question_source)
+            if str(row["question_id"]) in {item["question_id"] for item in predictions}
+        }
+        for item in predictions:
+            gold = set(map(str, gold_rows[item["question_id"]]["relevant_passage_ids"]))
+            top10 = retrieval_metrics(item["ranked_pmids"], gold, 10)
+            top100 = retrieval_metrics(item["ranked_pmids"], gold, 100)
+            item["question_type"] = str(gold_rows[item["question_id"]]["type"])
+            item["metrics"] = top10 | {"recall_at_100": top100["recall"]}
         _write_jsonl(prediction_path, predictions)
+        if population == "heldout340":
+            record_heldout_access("E11.retrieval.scoring", prediction_path)
         names = ("ap", "recall", "mrr", "ndcg", "hit", "recall_at_100")
         metrics = {
             name: statistics.fmean(item["metrics"][name] for item in predictions) for name in names
@@ -967,7 +985,10 @@ def run_query_retrieval(
             "scope": "closed-world positive-only gold-conditioned candidate pool",
             "config": run_config,
             "metrics": metrics,
-            "artifacts": {"predictions": str(prediction_path.relative_to(ROOT))},
+            "artifacts": {
+                "inference_predictions": str(inference_path.relative_to(ROOT)),
+                "predictions": str(prediction_path.relative_to(ROOT)),
+            },
         }
         summary_path.parent.mkdir(parents=True, exist_ok=True)
         summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
@@ -975,6 +996,7 @@ def run_query_retrieval(
         report_path.parent.mkdir(parents=True, exist_ok=True)
         report_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
         mlflow.log_metrics({key: float(value) for key, value in metrics.items()})
+        log_artifact(inference_path)
         log_artifact(prediction_path)
         log_artifact(summary_path)
     return summary
