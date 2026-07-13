@@ -18,6 +18,13 @@ from medrag_lab.settings import ROOT, settings
 PMID_END = re.compile(r"(\d+)/?$")
 
 
+def _guard_panel_population(population: str) -> None:
+    if population in {"heldout340", "judge160"}:
+        from medrag_lab.experiments.final import verify_final_freeze
+
+        verify_final_freeze()
+
+
 def _source(population: str) -> Path:
     return settings().medrag_data_dir / (
         "eval.jsonl" if population in {"heldout340", "judge160"} else "dev.jsonl"
@@ -42,6 +49,7 @@ def run_panel_direct(
     limit: int | None = None,
     workers: int = 2,
 ) -> dict[str, Any]:
+    _guard_panel_population(population)
     identifiers = _selected_ids(population, limit)
     selected = set(identifiers)
     generated = {
@@ -147,6 +155,10 @@ def run_panel_direct(
     output_dir = ROOT / "artifacts" / "panel" / analysis_hash[:12]
     predictions_path = output_dir / "direct.jsonl"
     _write_jsonl(predictions_path, rows)
+    if population in {"heldout340", "judge160"}:
+        from medrag_lab.experiments.final import record_heldout_access
+
+        record_heldout_access(f"panel.direct.{population}", predictions_path)
     result["predictions"] = str(predictions_path.relative_to(ROOT))
     destination = ROOT / "reports" / "panel" / f"direct-{analysis_hash[:12]}.json"
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -163,6 +175,7 @@ def run_panel_pairwise(
     limit: int | None = None,
     workers: int = 2,
 ) -> dict[str, Any]:
+    _guard_panel_population(population)
     identifiers = _selected_ids(population, limit)
     selected = set(identifiers)
     left = {
@@ -238,6 +251,10 @@ def run_panel_pairwise(
     output_dir = ROOT / "artifacts" / "panel" / analysis_hash[:12]
     predictions_path = output_dir / "pairwise.jsonl"
     _write_jsonl(predictions_path, rows)
+    if population in {"heldout340", "judge160"}:
+        from medrag_lab.experiments.final import record_heldout_access
+
+        record_heldout_access(f"panel.pairwise.{population}", predictions_path)
     result["predictions"] = str(predictions_path.relative_to(ROOT))
     destination = ROOT / "reports" / "panel" / f"pairwise-{analysis_hash[:12]}.json"
     destination.parent.mkdir(parents=True, exist_ok=True)
