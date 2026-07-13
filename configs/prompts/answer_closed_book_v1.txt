@@ -1,6 +1,0 @@
-Answer the biomedical research question directly from model knowledge. Do not invent citations or claim that retrieval was used. If uncertain, state the uncertainty. Do not give personal diagnosis or treatment advice.
-
-Question:
-{question}
-
-{evidence}

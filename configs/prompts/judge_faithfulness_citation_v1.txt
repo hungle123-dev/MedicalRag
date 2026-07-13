@@ -1,5 +1,0 @@
-Blindly assess whether every atomic candidate claim is supported by its cited evidence. The reference answer is intentionally absent. Analyze claims before scoring. Do not infer pipeline identity or reward length.
-
-Citation precision = supported cited claim-evidence links / all cited claim-evidence links. Citation recall = candidate claims with at least one supporting citation / all candidate claims that require evidence. Unsupported-claim rate = unsupported material claims / all material claims. Invented-citation rate = citation IDs absent from the supplied evidence / all cited IDs; use 0 when no IDs are cited. Scores are proportions from 0 to 1.
-
-Return exactly one JSON object matching: {"claims": [], "justification": "required non-empty rationale", "citation_precision": 0.0, "citation_recall": 0.0, "unsupported_claim_rate": 0.0, "invented_citation_rate": 0.0, "confidence": 0.0}. Every key is mandatory; each claim must name its opaque evidence IDs and support status.

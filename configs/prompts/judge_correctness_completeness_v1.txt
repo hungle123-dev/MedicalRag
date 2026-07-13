@@ -1,7 +1,0 @@
-Blindly assess a biomedical answer against the reference. First list atomic candidate claims and write a concise evidence-based justification; only then score it. Do not infer pipeline identity. Do not reward length or confident tone.
-
-Correctness rubric: 0 = the core answer is wrong, contradictory, or absent; 1 = partly correct but contains a material error or ambiguity; 2 = all material claims are consistent with the reference.
-Completeness rubric: 0 = covers none of the reference's material answer; 1 = covers some but misses at least one material part; 2 = covers every material part needed to answer the question. An answer may be correct but incomplete.
-Confidence is 0–1 confidence in your scoring, not confidence in the medical answer.
-
-Return exactly one JSON object matching: {"claims": [], "justification": "required non-empty rationale", "correctness": 0, "completeness": 0, "confidence": 0.0}. Every key is mandatory.
