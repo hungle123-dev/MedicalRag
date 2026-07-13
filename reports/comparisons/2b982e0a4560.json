@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E10-L0_closed_book_protocol_v2-validation200-9ebb588fd6\\scored.jsonl",
+  "right": "artifacts\\runs\\E10-L1_predicted-validation200-a8ddbceb1e\\scored.jsonl",
+  "metric": "rouge_su4.f1",
+  "require_equal_evidence": false,
+  "rows": 200,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.041211595725726025,
+    "ci95_low": 0.02747540871661465,
+    "ci95_high": 0.055679290422156955
+  },
+  "paired_effect_size": 0.40423720928665435,
+  "paired_permutation_p": 9.999000099990002e-05,
+  "normal_approx_mde_80": 0.020196307912005787,
+  "comparison_hash": "2b982e0a4560764d9edb103a28ebd996185361474057db43d8366c46bc55e052"
+}

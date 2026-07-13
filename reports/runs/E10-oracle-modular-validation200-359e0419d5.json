@@ -1,0 +1,48 @@
+{
+  "created_at": "2026-07-13T23:17:24.694828+00:00",
+  "status": "observed_real_data_real_gateway",
+  "config": {
+    "family": "E10",
+    "stage": "merged_modular_oracle",
+    "population": "validation200",
+    "rows": 200,
+    "sources": {
+      "L0_closed_book": "artifacts\\runs\\E10-L0_closed_book_protocol_v2-validation200-9ebb588fd6\\scored.jsonl",
+      "L1_predicted": "artifacts\\runs\\E10-L1_predicted-validation200-a8ddbceb1e\\scored.jsonl",
+      "L2_gold_documents": "artifacts\\runs\\E10-L2_gold_documents-validation200-f4089b4cb9\\scored.jsonl",
+      "L3_gold_snippets": "artifacts\\runs\\E10-L3_gold_snippets-validation200-e0fa3fa1e2\\scored.jsonl"
+    },
+    "source_sha256": {
+      "L0_closed_book": "55cdd168ce4ec711f7245a7acdfe72a24cc4bfa7df170f53967074251818cad6",
+      "L1_predicted": "6637523e2164a76b86b21a019c8db4cc4f3b1829ef5c2c4369224b4d0b973e00",
+      "L2_gold_documents": "8822203d964b1fba9b817036f371d27b9e2217c6cc41df8b75043d41b4d2379a",
+      "L3_gold_snippets": "8e33d0c4dc9ae4780e42b68005d4f9617b560ec4bf502be9173aa2b3501620ad"
+    },
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "77262b7a45a95653a0e09e2c2065e38408b0b347",
+    "purpose": "diagnostic_evaluation",
+    "config_hash": "359e0419d5229bbf86d3590d1b616a326db367a5eca03fe880f852bc6a4a7c48"
+  },
+  "metrics": {
+    "L0_closed_book": {
+      "rouge_su4_f1": 0.1080903064691147,
+      "failures": 3
+    },
+    "L1_predicted": {
+      "rouge_su4_f1": 0.1493019021948407,
+      "failures": 5
+    },
+    "L2_gold_documents": {
+      "rouge_su4_f1": 0.1535045745657785,
+      "failures": 5
+    },
+    "L3_gold_snippets": {
+      "rouge_su4_f1": 0.17444289410859695,
+      "failures": 8
+    }
+  },
+  "interpretation": "Diagnostic upper bounds, not deployable systems",
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E10-oracle-modular-validation200-359e0419d5\\oracle_predictions.jsonl"
+  }
+}

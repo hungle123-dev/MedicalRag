@@ -1,0 +1,25 @@
+{
+  "created_at": "2026-07-13T20:55:08.989869+00:00",
+  "status": "observed_real_data_explicit_oracle",
+  "config": {
+    "family": "E10",
+    "arm": "L0_closed_book",
+    "stage": "sealed_oracle_context_preparation",
+    "population": "validation200",
+    "rows": 200,
+    "context_token_budget": 600,
+    "pre_inference_gold_access": "none",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "77262b7a45a95653a0e09e2c2065e38408b0b347",
+    "purpose": "diagnostic_oracle",
+    "config_hash": "5ff4149ba70e3edf61eb9b976f60dc523c4cfd1b113218dfb07d2b7429ef57cb"
+  },
+  "metrics": {
+    "questions": 200,
+    "failures": 0,
+    "packed_snippets_mean": 0.0
+  },
+  "artifacts": {
+    "contexts": "artifacts\\runs\\E10-closed_book-contexts-validation200-5ff4149ba7\\contexts.jsonl"
+  }
+}

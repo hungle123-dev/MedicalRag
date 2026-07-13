@@ -123,3 +123,44 @@ def rank_snippets_cross_encoder(
         index = int(row.url.removeprefix("snippet://"))
         selected.append(Snippet(**(vars(candidates[index]) | {"score": row.score})))
     return selected, latency
+
+
+def rank_snippets_cross_encoder_many(
+    items: list[tuple[str, list[Snippet]]],
+    reranker: Any,
+    limit: int,
+    *,
+    batch_size: int = 64,
+) -> list[tuple[list[Snippet], float]]:
+    """Rank snippet candidates across questions in shared accelerator batches."""
+    document_groups = [
+        [
+            RetrievedDocument(
+                pmid=item.pmid,
+                title=item.title,
+                text=item.text,
+                url=f"snippet://{index}",
+                score=item.score,
+                rank=index + 1,
+                retriever="snippet_candidate",
+            )
+            for index, item in enumerate(candidates)
+        ]
+        for _, candidates in items
+    ]
+    ranked_groups = reranker.rerank_many(
+        [
+            (question, documents)
+            for (question, _), documents in zip(items, document_groups, strict=True)
+        ],
+        k=limit,
+        batch_size=batch_size,
+    )
+    output = []
+    for (_, candidates), (ranked, latency) in zip(items, ranked_groups, strict=True):
+        selected = []
+        for row in ranked:
+            index = int(row.url.removeprefix("snippet://"))
+            selected.append(Snippet(**(vars(candidates[index]) | {"score": row.score})))
+        output.append((selected, latency))
+    return output

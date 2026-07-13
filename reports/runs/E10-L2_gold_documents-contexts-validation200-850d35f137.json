@@ -1,0 +1,35 @@
+{
+  "created_at": "2026-07-13T20:54:57.216685+00:00",
+  "status": "observed_real_data_gold_free",
+  "config": {
+    "family": "E10",
+    "arm": "L2_gold_documents",
+    "stage": "gold_free_context_preparation",
+    "pipeline": "best_rag",
+    "population": "validation200",
+    "rows": 200,
+    "overrides": {
+      "context_token_budget": 600,
+      "context_order": "relevance_descending",
+      "diversity": "none",
+      "evidence_strategy": "sentence3_cross_encoder"
+    },
+    "retrieval_source_sha256": "live_pipeline",
+    "evidence_source_sha256": "5aa36c38e5765251f3e83b069814fab0b91e339f554cc48164a8860a22b86938",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "77262b7a45a95653a0e09e2c2065e38408b0b347",
+    "purpose": "candidate_evaluation",
+    "config_hash": "850d35f1376e11a2f16b417dd71406b68adb46e4eec95814d7645bc209fab820"
+  },
+  "metrics": {
+    "questions": 200,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "packed_snippets_mean": 5.68,
+    "packed_context_gold_pmid_recall": 0.49773011762844177
+  },
+  "artifacts": {
+    "contexts": "artifacts\\runs\\E10-L2_gold_documents-contexts-validation200-850d35f137\\contexts.jsonl",
+    "scored_contexts": "artifacts\\runs\\E10-L2_gold_documents-contexts-validation200-850d35f137\\scored_contexts.jsonl"
+  }
+}

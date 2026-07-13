@@ -4,7 +4,12 @@ from types import SimpleNamespace
 
 from medrag_lab.evidence.chunking import fixed_token_chunks
 from medrag_lab.evidence.packing import source_diverse, strongest_in_middle
-from medrag_lab.evidence.snippets import Snippet, document_snippet_candidates, sentence_windows
+from medrag_lab.evidence.snippets import (
+    Snippet,
+    document_snippet_candidates,
+    rank_snippets_cross_encoder_many,
+    sentence_windows,
+)
 from medrag_lab.experiments import evidence
 from medrag_lab.experiments.generation import _frozen_snippets
 from medrag_lab.generation.schemas import GatewayResult, GeneratedAnswer
@@ -125,6 +130,24 @@ def test_frozen_e04_annotations_preserve_order_and_offsets() -> None:
     snippets = _frozen_snippets(annotations, {"123": {"title": "Title", "url": "u"}})
     assert [(item.pmid, item.text, item.begin, item.end) for item in snippets] == [
         ("123", "evidence", 4, 12)
+    ]
+
+
+def test_cross_encoder_many_maps_each_ranked_group_back_to_its_candidates() -> None:
+    class FakeReranker:
+        def rerank_many(self, items, **_):
+            return [(list(reversed(documents)), 1.0) for _, documents in items]
+
+    candidates = [
+        Snippet("1", "t1", "first", 1, "u1"),
+        Snippet("2", "t2", "second", 2, "u2"),
+    ]
+    ranked = rank_snippets_cross_encoder_many(
+        [("q1", candidates), ("q2", candidates)], FakeReranker(), 2
+    )
+    assert [[item.text for item in rows] for rows, _ in ranked] == [
+        ["second", "first"],
+        ["second", "first"],
     ]
 
 

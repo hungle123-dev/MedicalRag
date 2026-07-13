@@ -1,0 +1,20 @@
+{
+  "incident_id": "E10_ORACLE_RECOVERY",
+  "family": "E10",
+  "status": "resolved",
+  "incidents": [
+    {
+      "stage": "monolithic_oracle",
+      "error": "OpenBLAS malloc failed in gemm_driver",
+      "sealed_full_artifact": false,
+      "resolution": "Reuse existing modular stages, batch cross-encoder inference, freeze each context arm, and merge only complete 200-row generation artifacts."
+    },
+    {
+      "stage": "closed_book_protocol_v1",
+      "observed": "200 HTTP 200 responses but 200/200 schema validation failures",
+      "root_cause": "The prompt referenced the evidence-grounded schema without spelling out its required keys, so the model emitted an incompatible {answer: ...} object.",
+      "resolution": "Declare the complete JSON schema in the shared closed-book prompt, pass a one-row probe, then rerun all 200 rows under a new prompt hash."
+    }
+  ],
+  "bias_control": "Failed runs are excluded by protocol hash, retained as incidents, and never substituted into scientific metrics. Population size, model, scorer and temperature were unchanged."
+}

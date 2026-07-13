@@ -1,0 +1,42 @@
+{
+  "gate_id": "E10_FINAL_DIAGNOSTIC",
+  "family": "E10",
+  "status": "complete",
+  "population": "validation200",
+  "deployable_champion": "L1_predicted",
+  "arms": {
+    "L0_closed_book": {"rouge_su4_f1": 0.1080903064691147, "failures": 3},
+    "L1_predicted": {"rouge_su4_f1": 0.1493019021948407, "failures": 5},
+    "L2_gold_documents": {"rouge_su4_f1": 0.1535045745657785, "failures": 5},
+    "L3_gold_snippets": {"rouge_su4_f1": 0.17444289410859695, "failures": 8}
+  },
+  "paired_findings": {
+    "rag_minus_closed_book": {
+      "delta": 0.041211595725726025,
+      "ci95": [0.02747540871661465, 0.055679290422156955],
+      "p": 0.00009999000099990002
+    },
+    "gold_documents_minus_predicted": {
+      "delta": 0.004202672370937794,
+      "ci95": [-0.004612071776965787, 0.014038238527753724],
+      "p": 0.396960303969603
+    },
+    "gold_snippets_minus_gold_documents": {
+      "delta": 0.02093831954281846,
+      "ci95": [0.008510106798374523, 0.033361828537774],
+      "p": 0.000999900009999
+    },
+    "gold_snippets_minus_predicted": {
+      "delta": 0.025140991913756253,
+      "ci95": [0.010403899541525468, 0.040174938447745355],
+      "p": 0.0004999500049995
+    }
+  },
+  "evidence_diagnostic": {
+    "predicted_document_snippet_f1": 0.21340436880529023,
+    "gold_document_snippet_f1": 0.33120463509495884,
+    "gold_snippet_pmids_missing_from_retrieval_corpus": 2
+  },
+  "interpretation": "RAG significantly improves over closed book. Replacing predicted documents with gold documents alone gives no resolved answer gain, while exact gold snippets add a significant 0.0251 over the deployable pipeline. Evidence localization and generator use of evidence are the larger remaining answer bottlenecks; L2/L3 remain diagnostic oracles and are never deployable.",
+  "reliability_note": "Gold snippets improve mean quality but have 8/200 parse failures versus 5/200 for predicted evidence; oracle quality is not a reliability claim."
+}

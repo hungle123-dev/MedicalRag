@@ -16,6 +16,7 @@ from medrag_lab.data.manifests import sha256, stable_hash
 from medrag_lab.evaluation.bioasq import rouge_su4
 from medrag_lab.evaluation.semantic import bertscore, rouge2
 from medrag_lab.evaluation.statistics import nearest_rank_percentile
+from medrag_lab.evidence.packing import pack_context
 from medrag_lab.evidence.snippets import Snippet
 from medrag_lab.experiments.runner import _write_jsonl, git_sha
 from medrag_lab.generation.gateway import GatewayClient
@@ -304,6 +305,237 @@ def prepare_contexts(
         if scored_rows:
             log_artifact(scored_path)
         log_artifact(summary_path)
+    return summary
+
+
+def build_gold_document_retrieval_oracle(population: str = "validation200") -> dict[str, Any]:
+    """Materialize gold document IDs for E10 only, with explicit provenance."""
+    _guard_heldout(population)
+    splits = json.loads((ROOT / "data" / "manifests" / "splits.json").read_text("utf-8"))
+    allowed = set(map(str, splits[population]))
+    rows: list[dict[str, Any]] = [
+        {
+            "question_id": str(row["question_id"]),
+            "ranked_pmids": list(dict.fromkeys(map(str, row["relevant_passage_ids"])))[:10],
+            "failed": False,
+        }
+        for row in iter_jsonl(_question_source(population))
+        if str(row["question_id"]) in allowed
+    ]
+    rows.sort(key=lambda row: row["question_id"])
+    if {row["question_id"] for row in rows} != allowed:
+        raise ValueError("Gold document oracle does not cover the population")
+    run_config = {
+        "family": "E10",
+        "arm": "L2_gold_documents",
+        "stage": "explicit_gold_document_retrieval_oracle",
+        "population": population,
+        "rows": len(rows),
+        "pre_inference_gold_access": "relevant_passage_ids",
+        "split_freeze_hash": splits["freeze_hash"],
+        "git_sha": git_sha(),
+        "purpose": "diagnostic_oracle",
+    }
+    run_config["config_hash"] = stable_hash(run_config)
+    run_name = f"E10-gold-documents-{population}-{run_config['config_hash'][:10]}"
+    output_dir = settings().medrag_artifact_dir / run_name
+    predictions_path = output_dir / "predictions.jsonl"
+    summary_path = output_dir / "summary.json"
+    _write_jsonl(predictions_path, rows)
+    summary = {
+        "created_at": datetime.now(UTC).isoformat(),
+        "status": "observed_real_data_explicit_oracle",
+        "config": run_config,
+        "metrics": {"questions": len(rows), "failures": 0},
+        "artifacts": {"predictions": str(predictions_path.relative_to(ROOT))},
+    }
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    report_path = ROOT / "reports" / "runs" / f"{run_name}.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    return summary
+
+
+def prepare_oracle_contexts(
+    arm: Literal["closed_book", "gold_snippets"],
+    population: str = "validation200",
+    *,
+    context_token_budget: int = 600,
+) -> dict[str, Any]:
+    """Prepare the two E10 contexts that cannot be produced by a gold-free pipeline."""
+    _guard_heldout(population)
+    splits = json.loads((ROOT / "data" / "manifests" / "splits.json").read_text("utf-8"))
+    allowed = set(map(str, splits[population]))
+    questions = [
+        row
+        for row in iter_jsonl(_question_source(population))
+        if str(row["question_id"]) in allowed
+    ]
+    questions.sort(key=lambda row: str(row["question_id"]))
+    corpus = (
+        {
+            str(row["id"]): row
+            for row in iter_jsonl(settings().medrag_data_dir / "corpus.jsonl")
+        }
+        if arm == "gold_snippets"
+        else {}
+    )
+    rows: list[dict[str, Any]] = []
+    missing_source_pmids: set[str] = set()
+    for question in questions:
+        snippets: list[Snippet] = []
+        if corpus:
+            annotations = list(question["snippets"])
+            for rank, annotation in enumerate(annotations, 1):
+                pmid = str(annotation["document"]).rstrip("/").rsplit("/", 1)[-1]
+                source = corpus.get(pmid, {})
+                if not source:
+                    missing_source_pmids.add(pmid)
+                snippets.append(
+                    Snippet(
+                        pmid=pmid,
+                        title=str(source.get("title", "")),
+                        text=str(annotation["text"]),
+                        score=float(len(annotations) - rank + 1),
+                        url=str(
+                            source.get("url")
+                            or annotation.get("document")
+                            or f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+                        ),
+                        section=str(annotation.get("beginSection", "abstract")),
+                        begin=annotation.get("offsetInBeginSection"),
+                        end=annotation.get("offsetInEndSection"),
+                    )
+                )
+        context, packed = pack_context(snippets, context_token_budget)
+        evidence_set = sorted(
+            (item.pmid, item.section, item.begin, item.end, item.text) for item in packed
+        )
+        rows.append(
+            {
+                "question_id": str(question["question_id"]),
+                "question": str(question["question"]),
+                "context": context,
+                "context_hash": stable_hash(context),
+                "evidence_set_hash": stable_hash(evidence_set),
+                "candidate_evidence_hash": stable_hash(evidence_set),
+                "packed_evidence": [vars(item) for item in packed],
+                "retrieved_pmids": [item.pmid for item in packed],
+                "retrieval_ms": 0.0,
+                "failed": False,
+            }
+        )
+    run_config = {
+        "family": "E10",
+        "arm": "L0_closed_book" if arm == "closed_book" else "L3_gold_snippets",
+        "stage": "sealed_oracle_context_preparation",
+        "population": population,
+        "rows": len(rows),
+        "context_token_budget": context_token_budget,
+        "pre_inference_gold_access": "none" if arm == "closed_book" else "gold_snippets",
+        "split_freeze_hash": splits["freeze_hash"],
+        "git_sha": git_sha(),
+        "purpose": "diagnostic_oracle",
+    }
+    run_config["config_hash"] = stable_hash(run_config)
+    run_name = f"E10-{arm}-contexts-{population}-{run_config['config_hash'][:10]}"
+    output_dir = settings().medrag_artifact_dir / run_name
+    contexts_path = output_dir / "contexts.jsonl"
+    summary_path = output_dir / "summary.json"
+    _write_jsonl(contexts_path, rows)
+    summary = {
+        "created_at": datetime.now(UTC).isoformat(),
+        "status": "observed_real_data_explicit_oracle",
+        "config": run_config,
+        "metrics": {
+            "questions": len(rows),
+            "failures": 0,
+            "packed_snippets_mean": statistics.fmean(
+                len(row["packed_evidence"]) for row in rows
+            ),
+            "gold_snippet_pmids_missing_from_corpus": len(missing_source_pmids),
+        },
+        "artifacts": {"contexts": str(contexts_path.relative_to(ROOT))},
+    }
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    report_path = ROOT / "reports" / "runs" / f"{run_name}.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    return summary
+
+
+def summarize_oracle_generation_arms(
+    closed_book_path: Path,
+    predicted_path: Path,
+    gold_documents_path: Path,
+    gold_snippets_path: Path,
+    population: str = "validation200",
+) -> dict[str, Any]:
+    """Combine four independently sealed E10 generation artifacts."""
+    splits = json.loads((ROOT / "data" / "manifests" / "splits.json").read_text("utf-8"))
+    expected_ids = set(map(str, splits[population]))
+    sources = {
+        "L0_closed_book": closed_book_path,
+        "L1_predicted": predicted_path,
+        "L2_gold_documents": gold_documents_path,
+        "L3_gold_snippets": gold_snippets_path,
+    }
+    rows: list[dict[str, Any]] = []
+    for arm, path in sources.items():
+        values = list(iter_jsonl(path))
+        if {str(row["question_id"]) for row in values} != expected_ids:
+            raise ValueError(f"{arm} does not cover {population}")
+        rows.extend(
+            {
+                "question_id": str(row["question_id"]),
+                "question_type": str(row["question_type"]),
+                "arm": arm,
+                "answer": row.get("answer"),
+                "rouge_su4": row["rouge_su4"],
+                "failed": bool(row["failed"]),
+            }
+            for row in values
+        )
+    arm_order = {arm: index for index, arm in enumerate(sources)}
+    rows.sort(key=lambda row: (row["question_id"], arm_order[row["arm"]]))
+    run_config = {
+        "family": "E10",
+        "stage": "merged_modular_oracle",
+        "population": population,
+        "rows": len(expected_ids),
+        "sources": {arm: str(path) for arm, path in sources.items()},
+        "source_sha256": {arm: sha256(path) for arm, path in sources.items()},
+        "split_freeze_hash": splits["freeze_hash"],
+        "git_sha": git_sha(),
+        "purpose": "diagnostic_evaluation",
+    }
+    run_config["config_hash"] = stable_hash(run_config)
+    run_name = f"E10-oracle-modular-{population}-{run_config['config_hash'][:10]}"
+    output_dir = settings().medrag_artifact_dir / run_name
+    predictions_path = output_dir / "oracle_predictions.jsonl"
+    summary_path = output_dir / "summary.json"
+    _write_jsonl(predictions_path, rows)
+    metrics = {
+        arm: {
+            "rouge_su4_f1": statistics.fmean(
+                row["rouge_su4"]["f1"] for row in rows if row["arm"] == arm
+            ),
+            "failures": sum(row["failed"] for row in rows if row["arm"] == arm),
+        }
+        for arm in sources
+    }
+    summary = {
+        "created_at": datetime.now(UTC).isoformat(),
+        "status": "observed_real_data_real_gateway",
+        "config": run_config,
+        "metrics": metrics,
+        "interpretation": "Diagnostic upper bounds, not deployable systems",
+        "artifacts": {"predictions": str(predictions_path.relative_to(ROOT))},
+    }
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    report_path = ROOT / "reports" / "runs" / f"{run_name}.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return summary
 
 

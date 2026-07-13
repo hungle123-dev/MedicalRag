@@ -26,9 +26,12 @@ from medrag_lab.experiments.analysis import (
 from medrag_lab.experiments.evidence import merge_evidence_shards, run_evidence_retrieval
 from medrag_lab.experiments.final import apply_final_holm, freeze_finalists, verify_final_freeze
 from medrag_lab.experiments.generation import (
+    build_gold_document_retrieval_oracle,
     prepare_contexts,
+    prepare_oracle_contexts,
     run_context_generation,
     score_bertscore_artifact,
+    summarize_oracle_generation_arms,
 )
 from medrag_lab.experiments.registry import load_registry, validate_registry
 from medrag_lab.experiments.runner import (
@@ -104,6 +107,18 @@ def parser() -> argparse.ArgumentParser:
     oracle.add_argument("--population", default="validation200")
     oracle.add_argument("--limit", type=int)
     oracle.add_argument("--pipeline", default="bm25_deepseek")
+    gold_retrieval = experiment_commands.add_parser("gold-retrieval-oracle")
+    gold_retrieval.add_argument("--population", default="validation200")
+    oracle_context = experiment_commands.add_parser("prepare-oracle-contexts")
+    oracle_context.add_argument("--arm", choices=("closed_book", "gold_snippets"), required=True)
+    oracle_context.add_argument("--population", default="validation200")
+    oracle_context.add_argument("--context-budget", type=int, default=600)
+    summarize_oracle = experiment_commands.add_parser("summarize-oracle")
+    summarize_oracle.add_argument("--closed-book", type=Path, required=True)
+    summarize_oracle.add_argument("--predicted", type=Path, required=True)
+    summarize_oracle.add_argument("--gold-documents", type=Path, required=True)
+    summarize_oracle.add_argument("--gold-snippets", type=Path, required=True)
+    summarize_oracle.add_argument("--population", default="validation200")
     comparison = experiment_commands.add_parser("compare")
     comparison.add_argument("--left", required=True)
     comparison.add_argument("--right", required=True)
@@ -320,6 +335,30 @@ def main() -> None:
         print(json.dumps(result, indent=2))
     elif args.command == "experiment" and args.action == "oracle":
         print(json.dumps(run_oracle(args.population, args.limit, args.pipeline), indent=2))
+    elif args.command == "experiment" and args.action == "gold-retrieval-oracle":
+        print(json.dumps(build_gold_document_retrieval_oracle(args.population), indent=2))
+    elif args.command == "experiment" and args.action == "prepare-oracle-contexts":
+        print(
+            json.dumps(
+                prepare_oracle_contexts(
+                    args.arm, args.population, context_token_budget=args.context_budget
+                ),
+                indent=2,
+            )
+        )
+    elif args.command == "experiment" and args.action == "summarize-oracle":
+        print(
+            json.dumps(
+                summarize_oracle_generation_arms(
+                    args.closed_book,
+                    args.predicted,
+                    args.gold_documents,
+                    args.gold_snippets,
+                    args.population,
+                ),
+                indent=2,
+            )
+        )
     elif args.command == "experiment" and args.action == "compare":
         print(
             json.dumps(

@@ -476,6 +476,8 @@ def run_oracle(
     gold_rows = [row for row in iter_jsonl(question_source) if str(row["question_id"]) in allowed]
     gold_rows.sort(key=lambda row: str(row["question_id"]))
     if limit is not None:
+        if limit < 1:
+            raise ValueError("limit must be positive")
         gold_rows = gold_rows[:limit]
     corpus = {str(row["id"]): row for row in iter_jsonl(config.medrag_data_dir / "corpus.jsonl")}
     pipeline = MedicalRAGPipeline(pipeline_id)
@@ -865,21 +867,44 @@ def run_query_retrieval(
                     transform_errors[index] = type(exc).__name__
         transform_latencies = measured
     dense_results = dense.retrieve_many([value or "" for value in transformed], 100)
+    prepared_rankings: dict[
+        int, tuple[str, list[Any], float, float]
+    ] = {}
+    preparation_errors: dict[int, str] = {}
+    for index, dense_result in enumerate(dense_results):
+        try:
+            query_value = transformed[index]
+            if index in transform_errors or query_value is None:
+                raise RuntimeError(transform_errors.get(index, "QueryTransformationFailure"))
+            sparse_rows, sparse_ms = sparse.search(query_value, 100)
+            dense_rows, dense_ms = dense_result
+            ranked_rows = reciprocal_rank_fusion(sparse_rows, dense_rows)[:100]
+            prepared_rankings[index] = (query_value, ranked_rows, sparse_ms, dense_ms)
+        except Exception as exc:
+            preparation_errors[index] = type(exc).__name__
+    reranked: dict[int, tuple[list[Any], float]] = {}
+    if reranker:
+        valid_indexes = sorted(prepared_rankings)
+        for start in range(0, len(valid_indexes), 16):
+            batch_indexes = valid_indexes[start : start + 16]
+            batch_results = reranker.rerank_many(
+                [
+                    (prepared_rankings[index][0], prepared_rankings[index][1])
+                    for index in batch_indexes
+                ],
+                k=100,
+                batch_size=rerank_batch_size,
+            )
+            reranked.update(zip(batch_indexes, batch_results, strict=True))
     with tracked_run(run_name, run_config):
-        for index, (row, dense_result) in enumerate(zip(questions, dense_results, strict=True)):
+        for index, row in enumerate(questions):
             try:
-                query_value = transformed[index]
-                if index in transform_errors or query_value is None:
-                    raise RuntimeError(transform_errors.get(index, "QueryTransformationFailure"))
-                query = query_value
-                sparse_rows, sparse_ms = sparse.search(query, 100)
-                dense_rows, dense_ms = dense_result
-                ranked_rows = reciprocal_rank_fusion(sparse_rows, dense_rows)[:100]
+                if index in preparation_errors:
+                    raise RuntimeError(preparation_errors[index])
+                query, ranked_rows, sparse_ms, dense_ms = prepared_rankings[index]
                 rerank_ms = 0.0
                 if reranker:
-                    ranked_rows, rerank_ms = reranker.rerank(
-                        query, ranked_rows, 100, batch_size=rerank_batch_size
-                    )
+                    ranked_rows, rerank_ms = reranked[index]
                 ranked = [item.pmid for item in ranked_rows]
                 latency = sparse_ms + dense_ms + rerank_ms + transform_latencies[index]
                 gold = set(map(str, row["relevant_passage_ids"]))

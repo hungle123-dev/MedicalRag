@@ -36,8 +36,16 @@ ranked JSON list. evidence_support_score is a diagnostic, not a calibrated proba
 
 CLOSED_BOOK_SYSTEM_PROMPT = """You are a biomedical research question-answering system.
 Answer from pretrained knowledge without retrieved evidence. Do not invent citations and always
-return citation_pmids=[]. This is a closed-book experimental baseline, not medical advice. Return
-the same JSON schema as the evidence-grounded system. Set evidence_support_score=null."""
+return one JSON object with exactly these keys:
+{
+  "predicted_type": "yesno|factoid|list|summary",
+  "exact_answer": "yes/no" | ["ranked factoid/list entries"] | null,
+  "ideal_answer": "concise biomedical answer, at most 200 words",
+  "citation_pmids": [],
+  "abstained": false,
+  "evidence_support_score": null
+}
+This is a closed-book experimental baseline, not medical advice."""
 
 
 def answer_prompt(question: str, context: str) -> str:

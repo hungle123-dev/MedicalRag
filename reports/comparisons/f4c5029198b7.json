@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E10-L2_gold_documents-validation200-f4089b4cb9\\scored.jsonl",
+  "right": "artifacts\\runs\\E10-L3_gold_snippets-validation200-e0fa3fa1e2\\scored.jsonl",
+  "metric": "rouge_su4.f1",
+  "require_equal_evidence": false,
+  "rows": 200,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.02093831954281846,
+    "ci95_low": 0.008510106798374523,
+    "ci95_high": 0.033361828537774
+  },
+  "paired_effect_size": 0.23296440041611044,
+  "paired_permutation_p": 0.000999900009999,
+  "normal_approx_mde_80": 0.01780496407787171,
+  "comparison_hash": "f4c5029198b702fbb8725b89da24735f7f2b35996337e98cf0d33243b079497b"
+}

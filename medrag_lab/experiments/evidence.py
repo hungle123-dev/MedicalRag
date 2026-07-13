@@ -16,7 +16,7 @@ from medrag_lab.evidence.chunking import fixed_token_chunks
 from medrag_lab.evidence.snippets import (
     Snippet,
     document_snippet_candidates,
-    rank_snippets_cross_encoder,
+    rank_snippets_cross_encoder_many,
 )
 from medrag_lab.experiments.runner import _write_jsonl, git_sha
 from medrag_lab.indexing.bm25 import tokenize
@@ -144,6 +144,41 @@ def run_evidence_retrieval(
     predictions_path, summary_path = output_dir / "predictions.jsonl", output_dir / "summary.json"
     rows: list[dict[str, Any]] = []
     latencies: list[float] = []
+    cross_ranked: dict[str, tuple[list[Snippet], float]] = {}
+    if arm == "sentence3_cross_encoder" and reranker:
+        prepared: list[tuple[str, list[Snippet]]] = []
+        prepared_ids: list[str] = []
+        for question_id in identifiers:
+            ranked_pmids = list(map(str, retrieval[question_id]["ranked_pmids"][:10]))
+            documents = [
+                RetrievedDocument(
+                    pmid=pmid,
+                    title=str(corpus[pmid].get("title", "")),
+                    text=str(corpus[pmid].get("text", "")),
+                    url=str(
+                        corpus[pmid].get("url")
+                        or f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+                    ),
+                    score=float(10 - rank),
+                    rank=rank,
+                    retriever="frozen_e04_input",
+                )
+                for rank, pmid in enumerate(ranked_pmids, 1)
+                if pmid in corpus
+            ]
+            prepared_ids.append(question_id)
+            prepared.append(
+                (str(gold[question_id]["question"]), document_snippet_candidates(documents))
+            )
+        for start in range(0, len(prepared), 16):
+            batch = prepared[start : start + 16]
+            ranked_batch = rank_snippets_cross_encoder_many(
+                batch, reranker, 20, batch_size=64
+            )
+            for question_id, result in zip(
+                prepared_ids[start : start + 16], ranked_batch, strict=True
+            ):
+                cross_ranked[question_id] = result
     with tracked_run(run_name, run_config):
         for question_id in identifiers:
             row = gold[question_id]
@@ -183,9 +218,7 @@ def run_evidence_retrieval(
                         selected = _rank_bm25(str(row["question"]), candidates, 20)
                         latency = 0.0
                     else:
-                        selected, latency = rank_snippets_cross_encoder(
-                            str(row["question"]), candidates, reranker, 20
-                        )
+                        selected, latency = cross_ranked[question_id]
                 predicted = [_annotation(item) for item in selected]
                 metrics = snippet_span_f1(predicted, row["snippets"])
                 gold_pmids = {

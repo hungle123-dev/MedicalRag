@@ -1,0 +1,33 @@
+{
+  "created_at": "2026-07-13T20:52:28.045004+00:00",
+  "status": "observed_real_data",
+  "scope": "gold snippet offsets are used only after evidence selection",
+  "config": {
+    "family": "E04",
+    "arm": "sentence3_cross_encoder",
+    "population": "validation200",
+    "rows": 200,
+    "offset": 0,
+    "retrieval_predictions_hash": "5d09bd274e379640e71afe764dbfc807458b38f45851e3f42dd48f4ed1e27099",
+    "document_count": 10,
+    "snippet_count": 20,
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "77262b7a45a95653a0e09e2c2065e38408b0b347",
+    "purpose": "candidate_evaluation",
+    "cross_encoder_revision": "71caf65d4927987813984f54c284405a13fcca49",
+    "config_hash": "30de53ae41aa1d73e955946713694d360c665f3723884b3bf3aa433d4ab982d6"
+  },
+  "metrics": {
+    "snippet_span_precision": 0.15081752736040152,
+    "snippet_span_recall": 0.5278463155365699,
+    "snippet_span_f1": 0.21340436880529023,
+    "gold_pmid_recall": 0.6124058493722816,
+    "questions": 200,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "latency_ms_p50": 390.7310750000761
+  },
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E04-sentence3_cross_encoder-validation200-30de53ae41\\predictions.jsonl"
+  }
+}

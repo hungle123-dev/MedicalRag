@@ -1,0 +1,45 @@
+{
+  "created_at": "2026-07-13T23:10:27.797923+00:00",
+  "status": "observed_real_data_real_gateway",
+  "config": {
+    "family": "E10",
+    "arm": "L0_closed_book",
+    "stage": "sealed_context_generation",
+    "population": "validation200",
+    "rows": 200,
+    "model": "cerebras/gpt-oss-120b",
+    "workers": 2,
+    "provider": "api.futureppo.top",
+    "contexts_sha256": "6a5a02412dd7466d6e16acb004ecb02c8626801251ffec0c0854876c83f12684",
+    "prompt_style": "closed_book",
+    "system_prompt_hash": "487a6d80ab2bdef76b643e8a496b0c403d2c390a613b543dfe4fea927b767892",
+    "response_format": "json_object",
+    "pre_inference_gold_access": "none",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "77262b7a45a95653a0e09e2c2065e38408b0b347",
+    "purpose": "candidate_evaluation",
+    "config_hash": "d442ee38e0bcf9cdc1f706ab0706bf4b78ab77575039d1350c76a3c9777f7a9a"
+  },
+  "metrics": {
+    "rouge_su4_f1": 0.0,
+    "rouge2_f1": 0.0,
+    "question_type_accuracy": 0.0,
+    "citation_validity": 1.0,
+    "citation_coverage": 0.0,
+    "abstention_rate": 0.0,
+    "retry_rate": 0.0,
+    "questions": 200,
+    "failures": 200,
+    "failure_rate": 1.0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "latency_ms_p50": 0.0,
+    "latency_ms_p95": 0.0
+  },
+  "resolved_models": [],
+  "pricing_status": "USD cost unavailable from gateway; token and latency totals reported",
+  "artifacts": {
+    "inference": "artifacts\\runs\\E10-L0_closed_book-validation200-d442ee38e0\\inference.jsonl",
+    "scored": "artifacts\\runs\\E10-L0_closed_book-validation200-d442ee38e0\\scored.jsonl"
+  }
+}
