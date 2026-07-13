@@ -1,8 +1,11 @@
+import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from medrag_lab.evidence.chunking import fixed_token_chunks
 from medrag_lab.evidence.packing import source_diverse, strongest_in_middle
 from medrag_lab.evidence.snippets import Snippet, sentence_windows
+from medrag_lab.experiments import evidence
 from medrag_lab.query.mesh import MeshExpander
 from medrag_lab.schemas import RetrievedDocument
 
@@ -54,3 +57,33 @@ def test_evidence_chunks_preserve_bioasq_character_offsets() -> None:
     for chunk in fixed_token_chunks([document], size=32, overlap=8):
         assert chunk.begin is not None and chunk.end is not None
         assert text[chunk.begin : chunk.end] == chunk.text
+
+
+def test_merge_evidence_shards_requires_exact_coverage(tmp_path, monkeypatch) -> None:
+    (tmp_path / "data" / "manifests").mkdir(parents=True)
+    (tmp_path / "data" / "manifests" / "splits.json").write_text(
+        json.dumps({"selection4849": ["q1", "q2"], "freeze_hash": "f"})
+    )
+    monkeypatch.setattr(evidence, "ROOT", tmp_path)
+    monkeypatch.setattr(
+        evidence, "settings", lambda: SimpleNamespace(medrag_artifact_dir=tmp_path / "artifacts")
+    )
+    paths = []
+    for question_id in ("q1", "q2"):
+        path = tmp_path / f"{question_id}.jsonl"
+        path.write_text(
+            json.dumps(
+                {
+                    "question_id": question_id,
+                    "snippets": [],
+                    "metrics": {"precision": 1, "recall": 1, "f1": 1, "gold_pmid_recall": 1},
+                    "latency_ms": 1,
+                    "failed": False,
+                }
+            )
+            + "\n"
+        )
+        paths.append(path)
+    result = evidence.merge_evidence_shards(paths, "selection4849", "sentence3_cross_encoder")
+    assert result["metrics"]["questions"] == 2
+    assert Path(result["artifacts"]["predictions"]).name == "predictions.jsonl"

@@ -10,7 +10,7 @@ import mlflow
 from rank_bm25 import BM25Okapi
 
 from medrag_lab.data.loaders import iter_jsonl
-from medrag_lab.data.manifests import stable_hash
+from medrag_lab.data.manifests import sha256, stable_hash
 from medrag_lab.evaluation.bioasq import snippet_span_f1
 from medrag_lab.evidence.chunking import fixed_token_chunks
 from medrag_lab.evidence.snippets import Snippet, sentence_windows
@@ -103,6 +103,7 @@ def run_evidence_retrieval(
     retrieval_predictions: Path,
     population: str = "selection4849",
     limit: int | None = None,
+    offset: int = 0,
 ) -> dict[str, Any]:
     """Evaluate E04 with the exact same ranked PMIDs for every evidence arm."""
     if arm not in {
@@ -128,10 +129,11 @@ def run_evidence_retrieval(
     identifiers = sorted(set(retrieval) & set(gold))
     if set(identifiers) != allowed:
         raise ValueError("Retrieval predictions do not cover the requested population exactly")
-    if limit is not None:
-        if limit < 1:
-            raise ValueError("limit must be positive")
-        identifiers = identifiers[:limit]
+    if offset < 0:
+        raise ValueError("offset must be non-negative")
+    if limit is not None and limit < 1:
+        raise ValueError("limit must be positive")
+    identifiers = identifiers[offset : offset + limit if limit is not None else None]
     corpus = {str(row["id"]): row for row in iter_jsonl(config.medrag_data_dir / "corpus.jsonl")}
     reranker = None
     if arm == "sentence3_cross_encoder":
@@ -143,6 +145,7 @@ def run_evidence_retrieval(
         "arm": arm,
         "population": population,
         "rows": len(identifiers),
+        "offset": offset,
         "retrieval_predictions_hash": stable_hash(
             {question_id: retrieval[question_id]["ranked_pmids"] for question_id in identifiers}
         ),
@@ -150,7 +153,7 @@ def run_evidence_retrieval(
         "snippet_count": 20,
         "split_freeze_hash": splits["freeze_hash"],
         "git_sha": git_sha(),
-        "purpose": "feasibility_only" if limit is not None else "candidate_evaluation",
+        "purpose": "candidate_shard" if limit is not None or offset else "candidate_evaluation",
     }
     if reranker:
         run_config["cross_encoder_revision"] = reranker.revision
@@ -272,4 +275,79 @@ def run_evidence_retrieval(
         mlflow.log_metrics({key: float(value) for key, value in aggregate.items()})
         log_artifact(predictions_path)
         log_artifact(summary_path)
+    return summary
+
+
+def merge_evidence_shards(
+    source_paths: list[Path], population: str, arm: EvidenceArm
+) -> dict[str, Any]:
+    """Merge bounded E04 cross-encoder shards after verifying exact population coverage."""
+    if not source_paths:
+        raise ValueError("At least one evidence shard is required")
+    config = settings()
+    splits = json.loads((ROOT / "data" / "manifests" / "splits.json").read_text("utf-8"))
+    allowed = set(map(str, splits[population]))
+    selected: dict[str, dict[str, Any]] = {}
+    for path in source_paths:
+        for row in iter_jsonl(path):
+            question_id = str(row["question_id"])
+            if question_id not in allowed:
+                continue
+            previous = selected.get(question_id)
+            if previous is None or (previous.get("failed") and not row.get("failed")):
+                selected[question_id] = row
+            elif (
+                not previous.get("failed")
+                and not row.get("failed")
+                and previous.get("snippets") != row.get("snippets")
+            ):
+                raise ValueError(f"Conflicting evidence predictions for {question_id}")
+    if set(selected) != allowed:
+        raise ValueError(f"Evidence shards are missing {len(allowed - set(selected))} question IDs")
+    rows = [selected[question_id] for question_id in sorted(selected)]
+    failures = sum(bool(row.get("failed")) for row in rows)
+    if failures:
+        raise ValueError(f"Merged evidence still contains {failures} failures")
+    run_config = {
+        "family": "E04",
+        "arm": arm,
+        "population": population,
+        "rows": len(rows),
+        "merge_policy": "successful_retry_replaces_failed_attempt",
+        "source_sha256": [sha256(path) for path in source_paths],
+        "split_freeze_hash": splits["freeze_hash"],
+        "git_sha": git_sha(),
+        "purpose": "candidate_evaluation",
+    }
+    run_config["config_hash"] = stable_hash(run_config)
+    run_name = f"E04-{arm}-{population}-{run_config['config_hash'][:10]}"
+    output_dir = config.medrag_artifact_dir / run_name
+    predictions_path, summary_path = output_dir / "predictions.jsonl", output_dir / "summary.json"
+    _write_jsonl(predictions_path, rows)
+    metrics = {
+        f"snippet_span_{name}": statistics.fmean(float(row["metrics"][name]) for row in rows)
+        for name in ("precision", "recall", "f1")
+    }
+    metrics |= {
+        "gold_pmid_recall": statistics.fmean(
+            float(row["metrics"]["gold_pmid_recall"]) for row in rows
+        ),
+        "questions": len(rows),
+        "failures": 0,
+        "failure_rate": 0.0,
+        "latency_ms_p50": statistics.median(float(row["latency_ms"]) for row in rows),
+    }
+    summary = {
+        "created_at": datetime.now(UTC).isoformat(),
+        "status": "observed_real_data_merged_shards",
+        "scope": "gold snippet offsets are used only after evidence selection",
+        "config": run_config,
+        "metrics": metrics,
+        "artifacts": {"predictions": str(predictions_path.relative_to(ROOT))},
+    }
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    report_path = ROOT / "reports" / "runs" / f"{run_name}.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return summary

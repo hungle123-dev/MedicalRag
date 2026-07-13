@@ -20,7 +20,7 @@ from medrag_lab.experiments.analysis import (
     evaluate_query_strategy_gate,
     verify_context_invariant,
 )
-from medrag_lab.experiments.evidence import run_evidence_retrieval
+from medrag_lab.experiments.evidence import merge_evidence_shards, run_evidence_retrieval
 from medrag_lab.experiments.final import apply_final_holm, freeze_finalists, verify_final_freeze
 from medrag_lab.experiments.generation import (
     prepare_contexts,
@@ -138,6 +138,20 @@ def parser() -> argparse.ArgumentParser:
     evidence.add_argument("--retrieval-predictions", type=Path, required=True)
     evidence.add_argument("--population", default="selection4849")
     evidence.add_argument("--limit", type=int)
+    evidence.add_argument("--offset", type=int, default=0)
+    merge_evidence = experiment_commands.add_parser("merge-evidence")
+    merge_evidence.add_argument("--source", type=Path, action="append", required=True)
+    merge_evidence.add_argument("--population", default="selection4849")
+    merge_evidence.add_argument(
+        "--arm",
+        choices=(
+            "full_document_fields",
+            "fixed256_bm25",
+            "sentence3_bm25",
+            "sentence3_cross_encoder",
+        ),
+        required=True,
+    )
     context = experiment_commands.add_parser("prepare-contexts")
     context.add_argument("--family", required=True)
     context.add_argument("--arm", required=True)
@@ -335,10 +349,13 @@ def main() -> None:
                     args.retrieval_predictions,
                     args.population,
                     args.limit,
+                    args.offset,
                 ),
                 indent=2,
             )
         )
+    elif args.command == "experiment" and args.action == "merge-evidence":
+        print(json.dumps(merge_evidence_shards(args.source, args.population, args.arm), indent=2))
     elif args.command == "experiment" and args.action == "prepare-contexts":
         print(
             json.dumps(
