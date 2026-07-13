@@ -1,0 +1,33 @@
+{
+  "created_at": "2026-07-13T18:26:12.970720+00:00",
+  "status": "observed_real_data",
+  "scope": "gold snippet offsets are used only after evidence selection",
+  "config": {
+    "family": "E04",
+    "arm": "sentence3_cross_encoder",
+    "population": "selection4849",
+    "rows": 800,
+    "offset": 0,
+    "retrieval_predictions_hash": "77debcf3b6c975c2b256ce61d0d4aa9edd21d409eaa0c5e5e30dde12c454f80b",
+    "document_count": 10,
+    "snippet_count": 20,
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "adf3c488f6478831e329fb73ae44f6d0dbbd32c3",
+    "purpose": "candidate_shard",
+    "cross_encoder_revision": "71caf65d4927987813984f54c284405a13fcca49",
+    "config_hash": "763f267c61abf60fba7b33f4b9c4c7cc7989f2944e53b5f152eeaed610e05e34"
+  },
+  "metrics": {
+    "snippet_span_precision": 0.09943963098389419,
+    "snippet_span_recall": 0.25620313676063633,
+    "snippet_span_f1": 0.12567474172207305,
+    "gold_pmid_recall": 0.4555600938734697,
+    "questions": 800,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "latency_ms_p50": 360.75775000063004
+  },
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E04-sentence3_cross_encoder-selection4849-763f267c61\\predictions.jsonl"
+  }
+}

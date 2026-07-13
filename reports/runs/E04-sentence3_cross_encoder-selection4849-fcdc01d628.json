@@ -1,0 +1,38 @@
+{
+  "created_at": "2026-07-13T18:58:13.874324+00:00",
+  "status": "observed_real_data_merged_shards",
+  "scope": "gold snippet offsets are used only after evidence selection",
+  "config": {
+    "family": "E04",
+    "arm": "sentence3_cross_encoder",
+    "population": "selection4849",
+    "rows": 4849,
+    "merge_policy": "successful_retry_replaces_failed_attempt",
+    "source_sha256": [
+      "a61f89d1c73d14440b7833e1a38d3dca439eedab0371edef014b251557efc54a",
+      "12e39354e4cbdad2bdfc6d8bc90706b424601198fc90454008becd9f93b9454c",
+      "4cfa14da49d98a659e0fbf1205cbd4d0a275426582c79302527c53bfb5cec987",
+      "892792fab8b92d3702e22582b1c2b51db27b517c5e16639074cbcc643da4b168",
+      "f8fafb87f9d857c2c3130ec00b48be5b382531aeccf9d234c24644417a1af239",
+      "1d624a02af68b4dc2f67ba395798fbd299db12f5edb7a7258fc8ccb3d1d94544",
+      "0d2907f5bed0b8ac2dd8de9c192da6878eabb27b25cf3e6eaa97ac93d31c716e"
+    ],
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "adf3c488f6478831e329fb73ae44f6d0dbbd32c3",
+    "purpose": "candidate_evaluation",
+    "config_hash": "fcdc01d628efea9fadb8e1844a346f2952250ae077933ace8742b6166e38aabf"
+  },
+  "metrics": {
+    "snippet_span_precision": 0.1586249050470845,
+    "snippet_span_recall": 0.5132838300476178,
+    "snippet_span_f1": 0.21288522217423492,
+    "gold_pmid_recall": 0.6000115088600976,
+    "questions": 4849,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "latency_ms_p50": 361.34429999947315
+  },
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E04-sentence3_cross_encoder-selection4849-fcdc01d628\\predictions.jsonl"
+  }
+}
