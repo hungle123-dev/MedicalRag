@@ -1,0 +1,52 @@
+{
+  "run_id": "bioasq_dev_evidence_extraction_20260713",
+  "population": "frozen BioASQ dev-300 B3 top-8 rankings",
+  "budget": "1,800 whitespace words; title visible; no gold used by extractors",
+  "metrics": {
+    "P0_prefix_600_chars": {
+      "questions": 300,
+      "questions_with_retrieved_gold": 284,
+      "question_any_visible_rate": 0.8,
+      "retrieved_gold_snippet_visibility": 0.52436,
+      "mean_context_words": 676.09,
+      "extraction_mean_ms": 0.067
+    },
+    "P1_full_abstract_budgeted": {
+      "questions": 300,
+      "questions_with_retrieved_gold": 284,
+      "question_any_visible_rate": 0.92,
+      "retrieved_gold_snippet_visibility": 0.909593,
+      "mean_context_words": 1526.63,
+      "extraction_mean_ms": 0.118
+    },
+    "P2_lexical_sentence_windows": {
+      "questions": 300,
+      "questions_with_retrieved_gold": 284,
+      "question_any_visible_rate": 0.913333,
+      "retrieved_gold_snippet_visibility": 0.90005,
+      "mean_context_words": 1454.06,
+      "extraction_mean_ms": 2.157
+    }
+  },
+  "paired_bootstrap": {
+    "P1_full_abstract_budgeted_minus_P0_any_visible": {
+      "mean_delta_right_minus_left": 0.12,
+      "ci95": [
+        0.08333333333333333,
+        0.15666666666666668
+      ],
+      "resamples": 10000
+    },
+    "P2_lexical_sentence_windows_minus_P0_any_visible": {
+      "mean_delta_right_minus_left": 0.11333333333333333,
+      "ci95": [
+        0.07666666666666666,
+        0.15
+      ],
+      "resamples": 10000
+    }
+  },
+  "selection_rule": "highest any-gold visibility, then snippet visibility, then extraction latency",
+  "selected": "P1_full_abstract_budgeted",
+  "limitations": "Gold-snippet visibility is a component diagnostic, not final answer correctness."
+}

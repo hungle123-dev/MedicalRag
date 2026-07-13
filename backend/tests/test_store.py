@@ -20,3 +20,15 @@ def test_restart_fails_incomplete_jobs():
         job = store.create("B0", "A valid question?")
         restarted = JobStore(root / "jobs.db", root / "artifacts").get(job["id"])
         assert restarted["status"] == "failed" and restarted["error"] == "SERVER_RESTARTED"
+
+
+def test_cancelled_job_cannot_be_overwritten_by_worker():
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        store = JobStore(root / "jobs.db", root / "artifacts")
+        job = store.create("B0", "What is asthma?")
+        assert store.set_status(job["id"], "running", allowed_from={"queued"})
+        assert store.cancel(job["id"])
+        assert not store.set_status(job["id"], "failed", error="late worker",
+                                    allowed_from={"running"})
+        assert store.get(job["id"])["status"] == "cancelled"

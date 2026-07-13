@@ -52,6 +52,12 @@ def main() -> None:
         CREATE INDEX edges_x ON edges(x);
         CREATE INDEX edges_y ON edges(y);
         CREATE INDEX edges_xy ON edges(x, y);
+        CREATE TABLE node_degrees (id INTEGER PRIMARY KEY, degree INTEGER NOT NULL);
+        INSERT INTO node_degrees
+        SELECT n.id,
+               (SELECT count(*) FROM edges WHERE x=n.id) +
+               (SELECT count(*) FROM edges WHERE y=n.id)
+        FROM nodes n;
         ANALYZE;
     """)
     connection.commit()

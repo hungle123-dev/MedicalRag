@@ -67,7 +67,9 @@ def main() -> None:
     corpus = load_jsonl(RAW / "bioasq/corpus.jsonl")
     dev = load_jsonl(RAW / "bioasq/dev.jsonl")
     evaluation = load_jsonl(RAW / "bioasq/eval.jsonl")
-    tokenizer = AutoTokenizer.from_pretrained("ncbi/MedCPT-Article-Encoder")
+    tokenizer = AutoTokenizer.from_pretrained(
+        "ncbi/MedCPT-Article-Encoder",
+        revision="d05a736da4bb84ee4057b7f7999485be6ed85465")
     lengths = [len(tokenizer(row["title"], row["text"], truncation=False)["input_ids"]) for row in corpus]
 
     uf = UnionFind(129375)

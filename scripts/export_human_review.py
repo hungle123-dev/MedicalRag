@@ -46,9 +46,12 @@ def main() -> None:
                      "answer_a": answer_a, "evidence_a": evidence_a,
                      "answer_b": answer_b, "evidence_b": evidence_b,
                      "correctness_a_0_2": "", "completeness_a_0_2": "",
-                     "graph_usefulness_a": "", "error_code_a": "", "rationale_a": "",
+                     "graph_usefulness_a": "", "medical_harm_a": "",
+                     "error_code_a": "", "rationale_a": "",
                      "correctness_b_0_2": "", "completeness_b_0_2": "",
-                     "graph_usefulness_b": "", "error_code_b": "", "rationale_b": ""})
+                     "graph_usefulness_b": "", "medical_harm_b": "",
+                     "error_code_b": "", "rationale_b": "",
+                     "pair_preference": "", "pair_rationale": ""})
         mapping_rows.append({"question_id": question_id, "a": first, "b": second})
     packet = output / f"reviewer_{args.reviewer}.csv"
     with packet.open("w", encoding="utf-8-sig", newline="") as stream:

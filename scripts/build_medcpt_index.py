@@ -25,6 +25,8 @@ def atomic_json(path: Path, value: dict) -> None:
 
 
 SENTENCE = re.compile(r"(?<=[.!?])\s+")
+ARTICLE_MODEL = "ncbi/MedCPT-Article-Encoder"
+ARTICLE_REVISION = "d05a736da4bb84ee4057b7f7999485be6ed85465"
 
 
 def read_documents(corpus: Path, strategy: str, tokenizer) -> list[dict]:
@@ -64,7 +66,7 @@ def main() -> None:
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
 
-    tokenizer = AutoTokenizer.from_pretrained("ncbi/MedCPT-Article-Encoder")
+    tokenizer = AutoTokenizer.from_pretrained(ARTICLE_MODEL, revision=ARTICLE_REVISION)
     documents = read_documents(args.corpus, args.strategy, tokenizer)
     count, dimension = len(documents), 768
     vectors_path = args.output / "article_vectors.f32"
@@ -87,7 +89,7 @@ def main() -> None:
         completed = int(state.get("completed", 0))
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = AutoModel.from_pretrained("ncbi/MedCPT-Article-Encoder").to(device).eval()
+    model = AutoModel.from_pretrained(ARTICLE_MODEL, revision=ARTICLE_REVISION).to(device).eval()
     started = time.perf_counter()
     for start in range(completed, count, args.batch_size):
         end = min(start + args.batch_size, count)
@@ -118,7 +120,8 @@ def main() -> None:
     atomic_json(state_path, {
         "status": "complete", "document_count": count, "completed": count,
         "dimension": dimension, "similarity": "inner_product", "device": device,
-        "batch_size": args.batch_size, "article_encoder": "ncbi/MedCPT-Article-Encoder",
+        "batch_size": args.batch_size, "article_encoder": ARTICLE_MODEL,
+        "article_encoder_revision": ARTICLE_REVISION,
         "strategy": args.strategy,
     })
     print(f"completed {args.output / 'articles.faiss'}", flush=True)

@@ -13,7 +13,7 @@ export type Details = {
   degraded?: boolean;
   degraded_reason?: string;
   linked_entities?: { name: string; type: string; confidence: number }[];
-  budget?: { token_budget?: number; graph_tokens_actual?: number; text_tokens_actual?: number; evidence_items?: number };
+  budget?: { word_budget?: number; graph_words_actual?: number; text_words_actual?: number; evidence_items?: number };
   generator?: { provider: string; model: string; cached: boolean };
 };
 

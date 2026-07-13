@@ -14,11 +14,13 @@ class PrimeKGIndexTest(unittest.TestCase):
             connection.executescript("""
                 CREATE TABLE nodes (id INTEGER PRIMARY KEY, external_id TEXT, type TEXT, name TEXT, name_norm TEXT, source TEXT);
                 CREATE TABLE edges (relation TEXT, display_relation TEXT, x INTEGER, y INTEGER);
+                CREATE TABLE node_degrees (id INTEGER PRIMARY KEY, degree INTEGER NOT NULL);
                 INSERT INTO nodes VALUES (1,'a','drug','Propranolol','propranolol','test'),(2,'b','disease','Asthma','asthma','test'),
                   (3,'c','biological_process','metabolic process','metabolic process','test'),
                   (4,'d','biological_process','polyprenol metabolic process','polyprenol metabolic process','test');
                 INSERT INTO edges VALUES ('contraindication','contraindication',1,2),
                   ('a','associated with',1,3),('b','associated with',3,4),('c','associated with',4,2);
+                INSERT INTO node_degrees SELECT id, 1 FROM nodes;
             """)
             connection.close()
             index = PrimeKGIndex(database)
@@ -26,6 +28,9 @@ class PrimeKGIndexTest(unittest.TestCase):
             self.assertEqual({seed["name"] for seed in seeds}, {"Propranolol", "Asthma"})
             self.assertTrue(index.paths(seeds))
             self.assertTrue(any(path["hop_count"] == 3 for path in index.paths(seeds, limit=20, max_hops=3)))
+            controls = index.background_paths([1, 2], seed=7, exclude_node_ids={"1"})
+            self.assertEqual([path["hop_count"] for path in controls], [1, 2])
+            self.assertTrue(all(path["provenance_valid"] for path in controls))
             nested = index.link("How does polyprenol metabolic process work?")
             self.assertEqual([seed["name"] for seed in nested], ["polyprenol metabolic process"])
 

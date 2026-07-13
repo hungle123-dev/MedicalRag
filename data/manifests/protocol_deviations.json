@@ -13,6 +13,13 @@
       "description": "The single locked fallback run used the frozen v1 retriever with at most two hops. Three-hop traversal was implemented and unit-tested only after the run.",
       "impact": "The reported locked metrics do not establish 4-node/three-hop capability; low 4-node F1 must be interpreted as a v1 limitation.",
       "mitigation": "Do not rerun or retune on the same locked split. Validate the three-hop implementation on dev and use a future untouched release for confirmation."
+    },
+    {
+      "id": "DEV-003",
+      "track": "BioASQ E5 development",
+      "description": "The v7 dev pilot was stopped before completion after audit found an undocumented 600-character per-abstract crop and incomplete X2 sham paths.",
+      "impact": "The 78 evidence snapshots and 308 generated arm outputs are design-pilot artifacts only and cannot support the final graph-value claim.",
+      "mitigation": "A frozen dev-300 component experiment selected full abstracts under the 1,800-word global budget. X2 now uses structurally valid unlinked background paths; ITT and complete-control sensitivity are both mandatory. E5-v8 must be rerun before any locked evaluation."
     }
   ]
 }

@@ -5,6 +5,7 @@ import json
 import re
 import sqlite3
 import math
+import random
 from contextlib import closing
 from pathlib import Path
 
@@ -60,6 +61,9 @@ class PrimeKGIndex:
         question = question or " ".join(seed["name"] for seed in seeds)
         paths = []
         with closing(self.connect()) as connection:
+            has_degree_table = bool(connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='node_degrees'"
+            ).fetchone())
             for seed in seeds:
                 rows = connection.execute(
                     """SELECT e.display_relation relation, x.id x_id, x.name x_name, x.type x_type,
@@ -80,10 +84,10 @@ class PrimeKGIndex:
                     endpoint_overlap = len(set(WORD.findall(endpoint.casefold())) & set(WORD.findall(question.casefold())))
                     relation_overlap = len(set(WORD.findall(row["relation"].casefold())) & set(WORD.findall(question.casefold())))
                     endpoint_id = row["y_id"] if row["x_id"] == seed["id"] else row["x_id"]
-                    degree = connection.execute(
-                        "SELECT (SELECT count(*) FROM edges WHERE x=?) + (SELECT count(*) FROM edges WHERE y=?)",
-                        (endpoint_id, endpoint_id),
-                    ).fetchone()[0]
+                    degree_row = (connection.execute(
+                        "SELECT degree FROM node_degrees WHERE id=?", (endpoint_id,)
+                    ).fetchone() if has_degree_table else None)
+                    degree = degree_row[0] if degree_row else 0
                     score = seed["confidence"] + 0.5 * endpoint_overlap + 0.25 * relation_overlap - 0.05 * math.log1p(degree)
                     paths.append(canonical | {"id": f"primekg:path:{identifier}", "score": round(score, 6),
                                                "hop_count": 1, "provenance_valid": True})
@@ -138,3 +142,76 @@ class PrimeKGIndex:
                                                            "hop_count": 3, "provenance_valid": True})
         unique = {path["id"]: path for path in paths}
         return sorted(unique.values(), key=lambda path: (-path["score"], path["id"]))[:limit]
+
+    def background_paths(self, hop_counts: list[int], seed: int,
+                         exclude_node_ids: set[str] | None = None) -> list[dict]:
+        """Sample deterministic, structurally valid sham paths away from linked target nodes."""
+        excluded = exclude_node_ids or set()
+        rng, paths, used = random.Random(seed), [], set()
+        with closing(self.connect()) as connection:
+            maximum = int(connection.execute("SELECT coalesce(max(rowid), 0) FROM edges").fetchone()[0])
+            if not maximum:
+                return []
+            for hop_count in hop_counts:
+                for _ in range(200):
+                    start = rng.randint(1, maximum)
+                    edge = connection.execute(
+                        "SELECT rowid edge_id,display_relation relation,x,y FROM edges WHERE rowid=?",
+                        (start,),
+                    ).fetchone()
+                    if edge is None:
+                        continue
+                    node_rows = connection.execute(
+                        "SELECT id,name,type FROM nodes WHERE id IN (?,?)", (edge["x"], edge["y"])
+                    ).fetchall()
+                    node_by_id = {row["id"]: row for row in node_rows}
+                    if len(node_by_id) != 2:
+                        continue
+                    first = {"edge_id": edge["edge_id"], "relation": edge["relation"],
+                             "x_id": edge["x"], "x_name": node_by_id[edge["x"]]["name"],
+                             "x_type": node_by_id[edge["x"]]["type"],
+                             "y_id": edge["y"], "y_name": node_by_id[edge["y"]]["name"],
+                             "y_type": node_by_id[edge["y"]]["type"]}
+                    nodes = {str(first["x_id"]), str(first["y_id"])}
+                    if nodes & excluded:
+                        continue
+                    canonical = {
+                        "nodes": [
+                            {"id": str(first["x_id"]), "name": first["x_name"], "type": first["x_type"]},
+                            {"id": str(first["y_id"]), "name": first["y_name"], "type": first["y_type"]},
+                        ],
+                        "edges": [{"source_id": str(first["x_id"]), "relation": first["relation"],
+                                   "target_id": str(first["y_id"]), "source_dataset": "PrimeKG"}],
+                    }
+                    if hop_count == 2:
+                        continuations = connection.execute(
+                            """SELECT e.display_relation relation,
+                                      y.id y_id,y.name y_name,y.type y_type
+                               FROM edges e JOIN nodes y ON y.id=e.y
+                               WHERE e.x=? AND e.y<>? ORDER BY e.rowid LIMIT 50""",
+                            (first["y_id"], first["x_id"]),
+                        ).fetchall()
+                        continuations = [row for row in continuations
+                                         if str(row["y_id"]) not in excluded]
+                        if not continuations:
+                            continue
+                        second = rng.choice(continuations)
+                        canonical["nodes"].append(
+                            {"id": str(second["y_id"]), "name": second["y_name"], "type": second["y_type"]})
+                        canonical["edges"].append(
+                            {"source_id": str(first["y_id"]), "relation": second["relation"],
+                             "target_id": str(second["y_id"]), "source_dataset": "PrimeKG"})
+                    elif hop_count != 1:
+                        continue
+                    identifier = hashlib.sha256(
+                        json.dumps(canonical, sort_keys=True).encode()).hexdigest()
+                    if identifier in used:
+                        continue
+                    used.add(identifier)
+                    paths.append(canonical | {
+                        "id": f"primekg:control:{identifier}", "score": 0.0,
+                        "hop_count": hop_count, "provenance_valid": True,
+                        "control_sampling": "deterministic_unlinked_background_v1",
+                    })
+                    break
+        return paths

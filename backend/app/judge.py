@@ -5,6 +5,7 @@ import json
 import os
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 
@@ -46,6 +47,10 @@ def validate_judgement(task: str, parsed: dict) -> None:
     if not isinstance(parsed, dict) or not required.issubset(parsed):
         keys = sorted(parsed) if isinstance(parsed, dict) else [type(parsed).__name__]
         raise ValueError(f"Judge response is missing required fields; keys={keys}")
+    if not isinstance(parsed["claims"], list):
+        raise ValueError("Judge claims must be a list")
+    if not isinstance(parsed["justification"], str) or not parsed["justification"].strip():
+        raise ValueError("Judge justification must be non-empty")
     for key, (minimum, maximum) in numeric.items():
         if not isinstance(parsed[key], (int, float)) or not minimum <= float(parsed[key]) <= maximum:
             raise ValueError(f"Judge field {key} is outside its rubric")
@@ -60,6 +65,10 @@ class GatewayJudge:
         self.key = os.getenv("OPENAI_API_KEY")
         self.base_url = os.getenv("OPENAI_BASE_URL", "https://api.futureppo.top/v1").rstrip("/")
         if not self.key: raise RuntimeError("OPENAI_API_KEY is not configured")
+        parsed = urlparse(self.base_url)
+        if parsed.scheme != "https" and not (parsed.scheme == "http" and
+                                               parsed.hostname in {"localhost", "127.0.0.1", "::1"}):
+            raise RuntimeError("OPENAI_BASE_URL must use HTTPS except for loopback development")
         self.cache = root / "artifacts/model_cache/gateway_judge"; self.cache.mkdir(parents=True, exist_ok=True)
 
     def evaluate(self, payload: dict) -> dict:

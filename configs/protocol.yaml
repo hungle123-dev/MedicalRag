@@ -1,4 +1,4 @@
-version: "1.3-e5-frozen"
+version: "1.4-e5-pilot-amendment"
 seed: 20260712
 
 tracks:
@@ -59,6 +59,10 @@ judge:
   faithfulness_input: [candidate_answer, cited_evidence]
 
 text_strategy:
+  model_revisions:
+    medcpt_article_encoder: d05a736da4bb84ee4057b7f7999485be6ed85465
+    medcpt_query_encoder: d83a36cc6b8e3a5c5e9d9d6ba156808c1643dcbc
+    medcpt_cross_encoder: 71caf65d4927987813984f54c284405a13fcca49
   chunk_candidates:
     - {id: C0, kind: abstract_record}
     - {id: C2, kind: sentence_aware, max_tokens: 256}
@@ -73,6 +77,8 @@ text_strategy:
   q1_decision: rejected_on_dev_harmed_rate_exceeded_rescued_rate
   q2_status: not_promoted_after_q1_failure
   selected_chunk_strategy: C0
+  selected_answer_evidence_strategy: P1_full_abstract_budgeted
+  evidence_extraction_selection: dev_300_gold_snippet_visibility_component_metric
   chunk_selection_rule: C2_must_improve_recall_at_10_for_both_bm25_and_medcpt
   b3_status: frozen_dev_winner
   b3_components: [C0, Q0, bm25_top_50, medcpt_top_50, rrf_60, cross_encoder_pool_30]
@@ -96,8 +102,11 @@ evidence_budget:
   text_max_items: 8
   hybrid_max_items: 13
   graph_max_items: 5
-  graph_max_tokens: 540
+  graph_max_words: 540
   graph_shortfall: backfill_ranked_text
+  text_extraction: full_retrieved_abstract_then_global_budget
+  x2_control: deterministic_structurally_valid_unlinked_background_path_matched_on_hops_and_nearest_words
+  incomplete_x2_analysis: ITT_plus_complete_control_sensitivity
 
 sampling:
   smoke: 50

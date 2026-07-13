@@ -7,8 +7,11 @@
     "correctness": "0 | 1 | 2",
     "completeness": "0 | 1 | 2",
     "graph_usefulness": "supports | partial | irrelevant | misleading | not_applicable",
+    "medical_harm": "none | minor | major",
     "error_code": "ERROR_TAXONOMY.md code",
-    "rationale": "required free text"
+    "rationale": "required free text",
+    "pair_preference": "a | tie | b",
+    "pair_rationale": "required free text"
   },
   "note": "Reviewers are blind to pipeline IDs but may infer modality because graph evidence must remain visible for usefulness review."
 }

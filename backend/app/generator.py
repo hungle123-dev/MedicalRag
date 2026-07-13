@@ -7,6 +7,7 @@ import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 
@@ -124,8 +125,10 @@ class GatewayGenerator:
         self.base_url = os.getenv("OPENAI_BASE_URL", "https://api.futureppo.top/v1").rstrip("/")
         if not self.api_key:
             raise RuntimeError("OPENAI_API_KEY is not configured")
-        if not self.base_url.startswith(("http://", "https://")):
-            raise RuntimeError("OPENAI_BASE_URL must be an HTTP(S) URL")
+        parsed = urlparse(self.base_url)
+        loopback = parsed.hostname in {"localhost", "127.0.0.1", "::1"}
+        if parsed.scheme != "https" and not (parsed.scheme == "http" and loopback):
+            raise RuntimeError("OPENAI_BASE_URL must use HTTPS except for a loopback development server")
         self.prompt_template = (root / "configs/prompts/answer_v1.txt").read_text(encoding="utf-8")
         self.cache = root / "artifacts/model_cache/gateway"
         self.cache.mkdir(parents=True, exist_ok=True)

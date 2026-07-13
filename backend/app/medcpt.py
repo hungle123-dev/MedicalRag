@@ -7,6 +7,12 @@ import faiss
 import numpy as np
 
 
+MEDCPT_REVISIONS = {
+    "ncbi/MedCPT-Query-Encoder": "d83a36cc6b8e3a5c5e9d9d6ba156808c1643dcbc",
+    "ncbi/MedCPT-Cross-Encoder": "71caf65d4927987813984f54c284405a13fcca49",
+}
+
+
 def reciprocal_rank_fusion(*rankings: list[dict], k: int = 60) -> list[dict]:
     """Fuse ranked lists by document id without calibrating incompatible scores."""
     fused: dict[str, dict] = {}
@@ -44,8 +50,9 @@ class MedCPTIndex:
 
         selected = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         model_id = "ncbi/MedCPT-Query-Encoder"
-        self._tokenizer = AutoTokenizer.from_pretrained(model_id)
-        self._model = AutoModel.from_pretrained(model_id).to(selected).eval()
+        revision = MEDCPT_REVISIONS[model_id]
+        self._tokenizer = AutoTokenizer.from_pretrained(model_id, revision=revision)
+        self._model = AutoModel.from_pretrained(model_id, revision=revision).to(selected).eval()
         self.device = selected
 
     def search(self, question: str, k: int = 8) -> list[dict]:
@@ -83,8 +90,10 @@ class MedCPTReranker:
 
         self.device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         model_id = "ncbi/MedCPT-Cross-Encoder"
-        self._tokenizer = AutoTokenizer.from_pretrained(model_id)
-        self._model = AutoModelForSequenceClassification.from_pretrained(model_id).to(self.device).eval()
+        revision = MEDCPT_REVISIONS[model_id]
+        self._tokenizer = AutoTokenizer.from_pretrained(model_id, revision=revision)
+        self._model = AutoModelForSequenceClassification.from_pretrained(
+            model_id, revision=revision).to(self.device).eval()
 
     def rerank(self, question: str, candidates: list[dict], k: int = 8) -> list[dict]:
         import torch

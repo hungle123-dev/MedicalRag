@@ -24,7 +24,7 @@ function ResultPanel({ id, result }: { id: "B3" | "G2"; result: Result }) {
       </li>)}
     </ol>
     {result.details.generator && <p>Generator: {result.details.generator.provider}/{result.details.generator.model}</p>}
-    {result.details.budget && <p>Budget: text {result.details.budget.text_tokens_actual ?? 0}, graph {result.details.budget.graph_tokens_actual ?? 0} / {result.details.budget.token_budget ?? 0} words.</p>}
+    {result.details.budget && <p>Budget: text {result.details.budget.text_words_actual ?? 0}, graph {result.details.budget.graph_words_actual ?? 0} / {result.details.budget.word_budget ?? 0} whitespace words.</p>}
   </article>;
 }
 
@@ -65,6 +65,7 @@ export default function App() {
     try {
       if (compare) {
         const b3 = await streamAnswer(cleanQuestion, "B3", controller.current.signal, () => undefined);
+        setComparison({ B3: b3 });
         const g2 = await streamAnswer(cleanQuestion, "G2", controller.current.signal, () => undefined);
         setComparison({ B3: b3, G2: g2 });
         setStatus("done");
@@ -115,7 +116,9 @@ export default function App() {
             {pipelines.map(([value, label]) => <option key={value} value={value} disabled={readiness ? !readiness.pipelines[value] : false}>{label}</option>)}
           </select>
           <label className="compare-toggle"><input type="checkbox" checked={compare} onChange={(event) => setCompare(event.target.checked)} /> Compare B3/G2</label>
-          <button type="submit" disabled={status === "loading" || !question.trim() || Boolean(readiness && !readiness.pipelines[pipeline])}>
+          <button type="submit" disabled={status === "loading" || !question.trim() || Boolean(readiness && (
+            compare ? (!readiness.pipelines.B3 || !readiness.pipelines.G2) : !readiness.pipelines[pipeline]
+          ))}>
             {status === "loading" ? "Retrieving…" : "Ask"}
           </button>
           {status === "loading" && <button className="secondary" type="button" onClick={() => controller.current?.abort()}>Stop</button>}
@@ -130,12 +133,13 @@ export default function App() {
         </div>
       </section>}
 
+      {error && <p className="error" role="alert">{error}</p>}
+
       {!compare && <section className="answer" aria-live="polite" aria-busy={status === "loading"}>
         <h2>Answer</h2>
         {status === "idle" && !answer && <p className="muted">Your grounded answer will appear here.</p>}
         {answer && <p className="answer-text">{answer}</p>}
         {status === "loading" && <span className="status">Searching evidence and generating an answer…</span>}
-        {error && <p className="error" role="alert">{error}</p>}
       </section>}
 
       {!compare && (evidence.length > 0 || citations.length > 0) && (
@@ -164,7 +168,7 @@ export default function App() {
           {details.degraded && <p className="error">Degraded pipeline: {details.degraded_reason}</p>}
           {details.latency_ms !== undefined && <p>Latency: {details.latency_ms.toLocaleString()} ms</p>}
           {details.generator && <p>Generator: {details.generator.provider}/{details.generator.model}{details.generator.cached ? " (cached)" : ""}</p>}
-          {details.budget && <p>Evidence budget: text {details.budget.text_tokens_actual ?? 0}, graph {details.budget.graph_tokens_actual ?? 0} / {details.budget.token_budget ?? 1800} tokens.</p>}
+          {details.budget && <p>Evidence budget: text {details.budget.text_words_actual ?? 0}, graph {details.budget.graph_words_actual ?? 0} / {details.budget.word_budget ?? 1800} whitespace words.</p>}
           {details.linked_entities?.length && <p>Linked entities: {details.linked_entities.map((entity) => `${entity.name} (${entity.type})`).join(", ")}</p>}
           {details.graph_paths?.map((path) => <code key={path}>{path}</code>)}
         </details>

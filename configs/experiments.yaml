@@ -17,6 +17,13 @@ experiments:
     change: [B1, B2, B3]
     fixed: [C0_or_E1_winner, Q0_or_E2_winner, BioASQ dev IDs]
     primary_metric: document_recall_at_10
+  E3b_evidence_extraction:
+    hypothesis: Full retrieved abstracts under one global budget expose more gold support than a hidden fixed prefix or lexical sentence windows.
+    change: [P0_prefix_600_chars, P1_full_abstract_budgeted, P2_lexical_sentence_windows]
+    fixed: [frozen_B3_top_8_rankings, BioASQ_dev_300, 1800_whitespace_word_budget]
+    primary_metric: question_any_gold_snippet_visible_rate
+    selection_rule: Highest any-gold visibility, then retrieved-snippet visibility, then extraction latency.
+    selected: P1_full_abstract_budgeted
   E4_graph_component:
     hypothesis: Rule-based entity linking and bounded traversal recover PrimeKGQA answers/patterns.
     change: [full, one_hop, no_path_reranker, matched_random_path]
@@ -26,7 +33,7 @@ experiments:
   E5_graph_value:
     hypothesis: Relevant PrimeKG paths improve answer correctness beyond equal-budget text.
     change: [B3, G2, X1_extra_text_sham, X2_seed_matched_random_path]
-    fixed: [question IDs, generator, prompt, actual whitespace-word budget, output limit, retries]
+    fixed: [question IDs, generator, prompt, P1 full-abstract evidence, actual whitespace-word budget, output limit, retries]
     primary_metric: paired_mean_correctness_0_2
     sampling: 80 frozen BioASQ dev IDs after excluding the first 20 generator-calibration IDs
-    decision_rule: Claim benefit only when all three G2-minus-control CIs exclude zero and human review finds no harm increase.
+    decision_rule: Claim benefit only when all three ITT G2-minus-control CIs and the complete-X2 sensitivity CI exclude zero, and human review finds no harm increase.

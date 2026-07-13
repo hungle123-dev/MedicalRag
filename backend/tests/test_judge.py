@@ -22,3 +22,8 @@ def test_judge_inputs_mask_modality_and_validate_schema():
     assert payload["candidate_answer"] == "claim [E1]"
     with pytest.raises(ValueError):
         validate_judgement("correctness_completeness", {"correctness": 9})
+    with pytest.raises(ValueError):
+        validate_judgement("correctness_completeness", {
+            "claims": {}, "justification": "", "correctness": 1,
+            "completeness": 1, "confidence": .5,
+        })

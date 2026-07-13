@@ -13,7 +13,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 from app.env import load_dotenv
-from app.pipelines import PIPELINES, build_e5_arms, generate_from_evidence
+from app.pipelines import (PIPELINES, bm25_index_path, build_e5_arms, generate_from_evidence,
+                           graph_index_path, medcpt_index_path)
 
 ARMS = ("B3", "G2", "X1", "X2")
 
@@ -27,6 +28,21 @@ def median(values: list[float]) -> float:
     return ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
 
 
+def percentile(values: list[float], probability: float) -> float:
+    ordered = sorted(values)
+    position = round((len(ordered) - 1) * probability)
+    return ordered[position]
+
+
+def file_fingerprint(path: Path) -> dict:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return {"path": str(path.relative_to(ROOT)), "bytes": path.stat().st_size,
+            "sha256": digest.hexdigest()}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", choices=("dev", "eval"), default="dev")
@@ -38,6 +54,9 @@ def main() -> None:
     args = parser.parse_args()
     if args.split == "eval" and not args.confirm_locked:
         raise SystemExit("Locked eval requires --confirm-locked after the protocol is frozen")
+    if args.split == "eval" and (args.questions is not None or args.exclude_first is not None
+                                 or args.force or args.allow_dirty):
+        raise SystemExit("Locked eval forbids population overrides, force, and dirty-worktree execution")
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, check=True,
                             text=True, capture_output=True).stdout.strip()
     dirty = bool(subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT,
@@ -60,7 +79,7 @@ def main() -> None:
     generator = os.getenv("MEDICAL_RAG_GENERATOR", "mock")
     model = os.getenv("GATEWAY_GENERATOR_MODEL", "local") if generator == "gateway" else generator
     model_slug = "".join(character if character.isalnum() else "-" for character in model).strip("-")
-    run_id = f"bioasq_{args.split}_e5_{generator}_{model_slug}_v7_{count}_{commit[:8]}"
+    run_id = f"bioasq_{args.split}_e5_{generator}_{model_slug}_v8_{count}_{commit[:8]}"
     directory = ROOT / "artifacts/experiments/bioasq" / run_id
     directory.mkdir(parents=True, exist_ok=True)
 
@@ -72,34 +91,48 @@ def main() -> None:
         row = by_id[question_id]
         snapshot_target = directory / f"{question_id}_evidence.json"
         arms = build_e5_arms(row["question"], seed=frozen["seed"] + question_index)
-        snapshot = {"question_id": question_id, "arms": arms,
+        snapshot = {"question_id": question_id, "question_type": row.get("type"), "arms": arms,
                     "experiment_config_hash": sha(ROOT / "configs/experiments.yaml")}
         snapshot_text = json.dumps(snapshot, ensure_ascii=False, sort_keys=True)
         snapshot_hash = hashlib.sha256(snapshot_text.encode()).hexdigest()
         snapshot_hashes.append(snapshot_hash)
-        snapshot_target.write_text(json.dumps(snapshot | {"snapshot_hash": snapshot_hash},
-                                              ensure_ascii=False, indent=2), encoding="utf-8")
+        if snapshot_target.exists() and not args.force:
+            existing = json.loads(snapshot_target.read_text(encoding="utf-8"))
+            if existing.get("snapshot_hash") != snapshot_hash:
+                raise RuntimeError(f"Evidence snapshot changed while resuming {question_id}")
+            arms = existing["arms"]
+        else:
+            snapshot_target.write_text(json.dumps(snapshot | {"snapshot_hash": snapshot_hash},
+                                                  ensure_ascii=False, indent=2), encoding="utf-8")
         offset = question_index % len(ARMS)
         order = ARMS[offset:] + ARMS[:offset]
         for arm_id in order:
             target = directory / f"{question_id}_{arm_id}.json"
             if target.exists() and not args.force:
                 record = json.loads(target.read_text(encoding="utf-8"))
+                if record.get("evidence_snapshot_hash") != snapshot_hash:
+                    raise RuntimeError(f"Answer/evidence hash mismatch while resuming {target.name}")
             else:
                 try:
                     result = generate_from_evidence(row["question"], arm_id, arms[arm_id])
                     record = {"status": "completed", "question_id": question_id, "pipeline_id": arm_id,
-                              "question": row["question"], "reference_answer": row["answer"],
+                              "question": row["question"], "question_type": row.get("type"),
+                              "reference_answer": row["answer"],
                               "evidence_snapshot_hash": snapshot_hash, "result": result}
                 except Exception as exc:
                     record = {"status": "failed", "question_id": question_id, "pipeline_id": arm_id,
-                              "question": row["question"], "reference_answer": row["answer"],
+                              "question": row["question"], "question_type": row.get("type"),
+                              "reference_answer": row["answer"],
                               "evidence_snapshot_hash": snapshot_hash,
                               "error": f"{type(exc).__name__}"}
                 temporary = target.with_suffix(".json.tmp")
                 temporary.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
                 os.replace(temporary, target)
             records.append(record)
+    index_files = [bm25_index_path(), medcpt_index_path() / "articles.faiss",
+                   medcpt_index_path() / "metadata.jsonl", graph_index_path()]
+    if not all(path.is_file() for path in index_files):
+        raise RuntimeError("A frozen index disappeared during the run")
     manifest = {
         "run_id": run_id, "track": "bioasq_e5_answer_stage", "split": args.split,
         "locked_execution": args.split == "eval", "arms": list(ARMS), "question_ids": ids,
@@ -113,23 +146,40 @@ def main() -> None:
                           "prompt": sha(ROOT / "configs/prompts/answer_v1.txt"),
                           "data": sha(ROOT / "data/manifests/files.json"),
                           "population": sha(id_manifest)},
+        "index_fingerprints": {path.name: file_fingerprint(path) for path in index_files},
         "evidence_population_hash": hashlib.sha256("".join(snapshot_hashes).encode()).hexdigest(),
         "started_at": started, "ended_at": datetime.now(timezone.utc).isoformat(),
         "records": len(records), "failures": sum(record["status"] == "failed" for record in records),
     }
     (directory / "run_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     completed = [record for record in records if record["status"] == "completed"]
+    response_models = sorted({record["result"]["details"]["generator"].get("response_model")
+                              or record["result"]["details"]["generator"]["model"]
+                              for record in completed})
+    usage_by_arm = {arm: [record["result"]["details"]["generator"].get("usage") or {}
+                          for record in completed if record["pipeline_id"] == arm] for arm in ARMS}
+    latency_by_arm = {arm: [record["result"]["details"]["latency_ms"] for record in completed
+                            if record["pipeline_id"] == arm] for arm in ARMS}
     summary = {"run_id": run_id, "split": args.split, "questions": len(ids), "arms": list(ARMS),
                "generator_model": model, "code_commit": commit,
-               "graph_positive_questions": sum(arms["G2"]["graph_positive"] for arms in (
+               "observed_response_models": response_models,
+               "response_model_consistent": len(response_models) == 1,
+               "graph_retrieval_positive_questions": sum(
+                   arms["G2"]["graph_retrieval_positive"] for arms in (
                    json.loads((directory / f"{question_id}_evidence.json").read_text(encoding="utf-8"))["arms"]
                    for question_id in ids)),
                "failure_rate": round((len(records) - len(completed)) / len(records), 6),
-               "mean_latency_ms": {arm: round(sum(record["result"]["details"]["latency_ms"] for record in completed
-                                                    if record["pipeline_id"] == arm) / max(1, sum(
-                                                        record["pipeline_id"] == arm for record in completed)), 3)
-                                   for arm in ARMS},
-               "citation_integrity_rate": {arm: round(sum(record["result"]["details"]["citation_integrity"]["valid"]
+               "latency_ms": {arm: {
+                   "mean": round(sum(latency_by_arm[arm]) / max(1, len(latency_by_arm[arm])), 3),
+                   "p50": round(median(latency_by_arm[arm]), 3) if latency_by_arm[arm] else None,
+                   "p95": round(percentile(latency_by_arm[arm], .95), 3) if latency_by_arm[arm] else None,
+               } for arm in ARMS},
+               "api_usage": {arm: {
+                   "calls": len(usage_by_arm[arm]),
+                   "prompt_tokens": sum(int(row.get("prompt_tokens", 0)) for row in usage_by_arm[arm]),
+                   "completion_tokens": sum(int(row.get("completion_tokens", 0)) for row in usage_by_arm[arm]),
+               } for arm in ARMS},
+               "no_invented_citation_id_rate": {arm: round(sum(record["result"]["details"]["citation_integrity"]["valid"]
                                                            for record in completed if record["pipeline_id"] == arm) /
                                                           max(1, sum(record["pipeline_id"] == arm for record in completed)), 6)
                                            for arm in ARMS},

@@ -1,0 +1,46 @@
+{
+  "run_id": "bioasq_dev_graph_coverage_20260713",
+  "questions": 300,
+  "entity_linker": "exact longest PrimeKG name with type-cue tiebreak",
+  "path_acceptance_threshold": 0.8,
+  "max_hops": 2,
+  "any_entity_link_rate": 0.5,
+  "accepted_path_rate": 0.456667,
+  "mean_linked_entities": 0.743,
+  "mean_accepted_paths": 2.077,
+  "linked_entity_types": {
+    "drug": 45,
+    "disease": 42,
+    "effect/phenotype": 24,
+    "exposure": 10,
+    "pathway": 21,
+    "biological_process": 11,
+    "gene/protein": 41,
+    "anatomy": 9,
+    "molecular_function": 3,
+    "cellular_component": 7
+  },
+  "by_question_type": {
+    "factoid": {
+      "n": 81,
+      "any_entity_link_rate": 0.530864,
+      "accepted_path_rate": 0.444444
+    },
+    "list": {
+      "n": 68,
+      "any_entity_link_rate": 0.338235,
+      "accepted_path_rate": 0.308824
+    },
+    "summary": {
+      "n": 68,
+      "any_entity_link_rate": 0.441176,
+      "accepted_path_rate": 0.411765
+    },
+    "yesno": {
+      "n": 83,
+      "any_entity_link_rate": 0.650602,
+      "accepted_path_rate": 0.626506
+    }
+  },
+  "interpretation": "Retrieval coverage only; this is not a gold entity-link accuracy or graph-answerability label."
+}

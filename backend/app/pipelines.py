@@ -2,8 +2,11 @@ import os
 import time
 import hashlib
 from dataclasses import asdict, dataclass
+from functools import lru_cache
 from pathlib import Path
 from threading import Lock
+
+import yaml
 
 from .retrieval import BM25Index
 from .graph import PrimeKGIndex
@@ -24,13 +27,31 @@ def project_root() -> Path:
     return Path(os.getenv("MEDICAL_RAG_ROOT", Path(__file__).parents[2]))
 
 
+@lru_cache(maxsize=1)
+def pipeline_defaults() -> dict:
+    """Load the frozen runtime values instead of silently duplicating config constants."""
+    payload = yaml.safe_load((project_root() / "configs/pipelines.yaml").read_text(encoding="utf-8"))
+    return payload["defaults"]
+
+
+def bm25_index_path() -> Path:
+    return Path(os.getenv("MEDICAL_RAG_BM25_INDEX", project_root() / "indexes" / "bm25_c0.pkl"))
+
+
+def graph_index_path() -> Path:
+    return Path(os.getenv("MEDICAL_RAG_GRAPH_INDEX", project_root() / "indexes" / "primekg.sqlite3"))
+
+
+def medcpt_index_path() -> Path:
+    return Path(os.getenv("MEDICAL_RAG_MEDCPT_INDEX", project_root() / "indexes" / "medcpt"))
+
+
 def bm25() -> BM25Index:
     global _bm25
     if _bm25 is None:
         with _init_lock:
             if _bm25 is None:
-                root = project_root()
-                path = Path(os.getenv("MEDICAL_RAG_BM25_INDEX", root / "indexes" / "bm25_c0.pkl"))
+                path = bm25_index_path()
                 if not path.exists():
                     raise RuntimeError(f"BM25 index unavailable: run python scripts/build_indexes.py ({path})")
                 _bm25 = BM25Index.load(path)
@@ -42,7 +63,7 @@ def graph() -> PrimeKGIndex:
     if _graph is None:
         with _init_lock:
             if _graph is None:
-                path = Path(os.getenv("MEDICAL_RAG_GRAPH_INDEX", project_root() / "indexes" / "primekg.sqlite3"))
+                path = graph_index_path()
                 if not path.exists():
                     raise RuntimeError(f"PrimeKG index unavailable: run python scripts/build_graph_index.py ({path})")
                 _graph = PrimeKGIndex(path)
@@ -54,7 +75,7 @@ def medcpt() -> MedCPTIndex:
     if _medcpt is None:
         with _init_lock:
             if _medcpt is None:
-                path = Path(os.getenv("MEDICAL_RAG_MEDCPT_INDEX", project_root() / "indexes" / "medcpt"))
+                path = medcpt_index_path()
                 if not (path / "articles.faiss").exists():
                     raise RuntimeError(f"MedCPT index unavailable: run python scripts/build_medcpt_index.py ({path})")
                 _medcpt = MedCPTIndex(path)
@@ -83,20 +104,20 @@ def file_hash(path: Path) -> str | None:
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
 
 
-def trim_item(item: dict, token_limit: int) -> tuple[dict, int]:
+def trim_item(item: dict, word_limit: int) -> tuple[dict, int]:
     words = item.get("snippet", "").split()
-    used = min(len(words), max(token_limit, 0))
+    used = min(len(words), max(word_limit, 0))
     return item | {"snippet": " ".join(words[:used])}, used
 
 
-def evidence_budget(texts: list[dict], graphs: list[dict], *, token_budget: int = 1800,
-                    max_items: int = 8, graph_budget: int = 540) -> tuple[list[dict], dict]:
+def evidence_budget(texts: list[dict], graphs: list[dict], *, word_budget: int = 1800,
+                    max_items: int = 8, graph_word_budget: int = 540) -> tuple[list[dict], dict]:
     """Apply an explicit word-proxy budget; hybrid arms may use extra evidence slots."""
     # ponytail: provider tokenizers are unavailable offline; replace proxy when the generator API exposes countTokens.
     selected_graphs: list[dict] = []
     selected_texts: list[dict] = []
     graph_used = text_used = 0
-    graph_limit = min(graph_budget, token_budget)
+    graph_limit = min(graph_word_budget, word_budget)
     for item in graphs[:5]:
         if len(selected_graphs) == max_items or graph_used >= graph_limit:
             break
@@ -104,9 +125,9 @@ def evidence_budget(texts: list[dict], graphs: list[dict], *, token_budget: int 
         if used:
             selected_graphs.append(trimmed); graph_used += used
     for item in texts:
-        if len(selected_graphs) + len(selected_texts) == max_items or graph_used + text_used >= token_budget:
+        if len(selected_graphs) + len(selected_texts) == max_items or graph_used + text_used >= word_budget:
             break
-        trimmed, used = trim_item(item, token_budget - graph_used - text_used)
+        trimmed, used = trim_item(item, word_budget - graph_used - text_used)
         if used:
             selected_texts.append(trimmed); text_used += used
     selected = []
@@ -114,19 +135,20 @@ def evidence_budget(texts: list[dict], graphs: list[dict], *, token_budget: int 
         if index < len(selected_texts): selected.append(selected_texts[index])
         if index < len(selected_graphs): selected.append(selected_graphs[index])
     return selected, {
-        "token_count_method": "whitespace_proxy_v1", "token_budget": token_budget,
+        "word_count_method": "whitespace_split_v1", "word_budget": word_budget,
         "max_items": max_items,
         "ordering": "rank_interleave_text_first_v1",
-        "graph_tokens_requested": graph_limit if graphs else 0, "graph_tokens_actual": graph_used,
-        "text_tokens_actual": text_used, "evidence_items": len(selected),
+        "graph_words_requested": graph_limit if graphs else 0, "graph_words_actual": graph_used,
+        "text_words_actual": text_used, "evidence_items": len(selected),
     }
 
 
 def rows_to_text_evidence(rows: list[dict]) -> list[dict]:
+    """Expose the retrieved C0 abstract; the global budget performs the only truncation."""
     return [
         {
             "id": f"PMID:{row['id']}", "type": "text", "title": row["title"],
-            "snippet": row["text"][:600], "url": row["url"],
+            "snippet": row["text"], "url": row["url"],
             "source": "PubMed", "pmid": str(row["id"]),
             "score": row.get("rerank_score", row.get("rrf_score", row["score"])),
             "retrievers": row.get("retrievers", [row.get("retriever")]),
@@ -136,14 +158,17 @@ def rows_to_text_evidence(rows: list[dict]) -> list[dict]:
 
 
 def text_evidence(question: str, strategy: str = "bm25", k: int = 8) -> list[dict]:
+    defaults = pipeline_defaults()
     if strategy == "bm25":
         rows = bm25().search(question, k=k)
     elif strategy == "medcpt":
         rows = medcpt().search(question, k=k)
     elif strategy == "hybrid":
         candidates = reciprocal_rank_fusion(
-            bm25().search(question, k=50), medcpt().search(question, k=50), k=60
-        )[:30]
+            bm25().search(question, k=defaults["bm25_fetch_k"]),
+            medcpt().search(question, k=defaults["medcpt_fetch_k"]),
+            k=defaults["rrf_k"],
+        )[:defaults["rerank_pool_k"]]
         rows = reranker().rerank(question, candidates, k=k)
     else:
         raise ValueError(f"Unknown text retrieval strategy: {strategy}")
@@ -166,8 +191,10 @@ def path_to_evidence(path: dict) -> dict:
 
 
 def graph_evidence(question: str, *, limit: int = 5, threshold: float | None = 0.8) -> tuple[list[dict], list[dict]]:
-    seeds = graph().link(question)
-    paths = graph().paths(seeds, question=question, limit=limit)
+    defaults = pipeline_defaults()
+    seeds = graph().link(question, limit=defaults["max_seed_entities"])
+    paths = graph().paths(seeds, question=question, limit=limit,
+                          max_hops=defaults["bioasq_graph_hops"])
     if threshold is not None:
         paths = [path for path in paths if path["score"] >= threshold]
     return [path_to_evidence(path) for path in paths], seeds
@@ -177,36 +204,51 @@ def evidence_words(items: list[dict]) -> int:
     return sum(len(item.get("snippet", "").split()) for item in items)
 
 
+def background_control_evidence(target_graphs: list[dict], seeds: list[dict], seed: int) -> list[dict]:
+    excluded_nodes = {str(node["id"]) for item in target_graphs for node in item.get("nodes", [])}
+    excluded_nodes.update(str(item["id"]) for item in seeds)
+    return [path_to_evidence(path) for path in graph().background_paths(
+        [item["hop_count"] for item in target_graphs], seed=seed,
+        exclude_node_ids=excluded_nodes,
+    )]
+
+
 def build_e5_arms(question: str, seed: int) -> dict[str, dict]:
     """Build B3/G2 and two matched controls once, before any answer is generated."""
-    texts = text_evidence(question, "hybrid", k=13)
-    base_texts = texts[:8]
-    target_budget = min(1800, evidence_words(base_texts))
-    b3, b3_budget = evidence_budget(base_texts, [], token_budget=target_budget, max_items=8)
-    relevant, seeds = graph_evidence(question)
-    g2, g2_budget = evidence_budget(base_texts, relevant, token_budget=target_budget,
-                                    max_items=13, graph_budget=min(540, target_budget))
+    defaults = pipeline_defaults()
+    text_k = defaults["hybrid_max_items"]
+    base_k = defaults["text_final_k"]
+    max_words = defaults["evidence_total_words"]
+    graph_words_limit = defaults["graph_max_words"]
+    texts = text_evidence(question, "hybrid", k=text_k)
+    base_texts = texts[:base_k]
+    target_budget = min(max_words, evidence_words(base_texts))
+    b3, b3_budget = evidence_budget(base_texts, [], word_budget=target_budget, max_items=base_k)
+    relevant, seeds = graph_evidence(question, limit=defaults["final_paths"],
+                                     threshold=defaults["graph_path_quality_threshold"])
+    g2, g2_budget = evidence_budget(base_texts, relevant, word_budget=target_budget,
+                                    max_items=text_k, graph_word_budget=min(graph_words_limit, target_budget))
     selected_graphs = [item for item in g2 if item["type"] == "graph"]
     graph_words = evidence_words(selected_graphs)
     if not selected_graphs:
         return {arm: {"evidence": b3, "budget": b3_budget, "linked": seeds,
-                      "graph_positive": False, "control_complete": True}
+                      "graph_retrieval_positive": False, "control_complete": True}
                 for arm in ("B3", "G2", "X1", "X2")}
-    extra = matched_extra_text(texts[8:13], selected_graphs)
-    x1, x1_budget = evidence_budget(base_texts, extra, token_budget=target_budget,
-                                    max_items=13, graph_budget=graph_words)
-    candidates, _ = graph_evidence(question, limit=100, threshold=None)
+    extra = matched_extra_text(texts[base_k:text_k], selected_graphs)
+    x1, x1_budget = evidence_budget(base_texts, extra, word_budget=target_budget,
+                                    max_items=text_k, graph_word_budget=graph_words)
+    candidates = background_control_evidence(selected_graphs, seeds, seed)
     random_paths = matched_random_paths(candidates, selected_graphs, seed)
-    x2, x2_budget = evidence_budget(base_texts, random_paths, token_budget=target_budget,
-                                    max_items=13, graph_budget=graph_words)
+    x2, x2_budget = evidence_budget(base_texts, random_paths, word_budget=target_budget,
+                                    max_items=text_k, graph_word_budget=graph_words)
     return {
-        "B3": {"evidence": b3, "budget": b3_budget, "linked": [], "graph_positive": True,
+        "B3": {"evidence": b3, "budget": b3_budget, "linked": [], "graph_retrieval_positive": True,
                "control_complete": True},
-        "G2": {"evidence": g2, "budget": g2_budget, "linked": seeds, "graph_positive": True,
+        "G2": {"evidence": g2, "budget": g2_budget, "linked": seeds, "graph_retrieval_positive": True,
                "control_complete": True},
-        "X1": {"evidence": x1, "budget": x1_budget, "linked": seeds, "graph_positive": True,
+        "X1": {"evidence": x1, "budget": x1_budget, "linked": seeds, "graph_retrieval_positive": True,
                "control_complete": len(extra) == len(selected_graphs)},
-        "X2": {"evidence": x2, "budget": x2_budget, "linked": seeds, "graph_positive": True,
+        "X2": {"evidence": x2, "budget": x2_budget, "linked": seeds, "graph_retrieval_positive": True,
                "control_complete": len(random_paths) == len(selected_graphs)},
     }
 
@@ -228,7 +270,7 @@ def generate_from_evidence(question: str, pipeline_id: str, arm: dict, started: 
         "details": {"pipeline": pipeline_id, "linked_entities": linked,
                     "graph_paths": [item["snippet"] for item in evidence if item["type"] == "graph"],
                     "degraded": False, "degraded_reason": None, "budget": budget,
-                    "graph_positive": arm.get("graph_positive"),
+                    "graph_retrieval_positive": arm.get("graph_retrieval_positive"),
                     "control_complete": arm.get("control_complete", True),
                     "citation_integrity": integrity,
                     "generator": {"provider": generation.provider, "model": generation.model,
@@ -260,7 +302,8 @@ class Pipeline:
             linked = []
         elif self.id == "B3":
             texts = text_evidence(question, "hybrid")
-            evidence, budget = evidence_budget(texts, [], token_budget=evidence_words(texts))
+            evidence, budget = evidence_budget(
+                texts, [], word_budget=min(pipeline_defaults()["evidence_total_words"], evidence_words(texts)))
             linked = []
         elif self.id == "G1":
             graphs, seeds = graph_evidence(question)
@@ -269,13 +312,14 @@ class Pipeline:
         elif self.id == "G2":
             texts = text_evidence(question, "hybrid")
             graphs, linked = graph_evidence(question)
-            target = evidence_words(texts)
-            evidence, budget = evidence_budget(texts, graphs, token_budget=target,
-                                                max_items=13, graph_budget=min(540, target))
+            target = min(pipeline_defaults()["evidence_total_words"], evidence_words(texts))
+            evidence, budget = evidence_budget(texts, graphs, word_budget=target,
+                                                max_items=pipeline_defaults()["hybrid_max_items"],
+                                                graph_word_budget=min(pipeline_defaults()["graph_max_words"], target))
         else:
             raise ValueError(f"Unsupported pipeline: {self.id}")
         arm = {"evidence": evidence, "budget": budget, "linked": linked,
-               "graph_positive": any(item["type"] == "graph" for item in evidence),
+               "graph_retrieval_positive": any(item["type"] == "graph" for item in evidence),
                "control_complete": True}
         return generate_from_evidence(question, self.id, arm, started)
 

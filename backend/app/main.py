@@ -12,7 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from .pipelines import PIPELINES, list_pipelines
+from .pipelines import (PIPELINES, bm25_index_path, graph_index_path,
+                        list_pipelines, medcpt_index_path)
 from .store import JobStore
 from .env import load_dotenv
 
@@ -31,7 +32,9 @@ class QuestionRequest(BaseModel):
 
 
 def create_app(database: Path | None = None, artifacts: Path | None = None) -> FastAPI:
-    data_dir = Path(os.getenv("MEDICAL_RAG_DATA_DIR", Path(__file__).parents[1] / "data"))
+    configured_data_dir = os.getenv("MEDICAL_RAG_DATA_DIR")
+    data_dir = (Path(configured_data_dir).expanduser().resolve() if configured_data_dir
+                else Path(__file__).parents[1] / "data")
     store = JobStore(database or data_dir / "jobs.sqlite3", artifacts or data_dir / "artifacts")
 
     @asynccontextmanager
@@ -57,10 +60,10 @@ def create_app(database: Path | None = None, artifacts: Path | None = None) -> F
     @app.get("/ready")
     @app.get("/api/v1/ready")
     def ready():
-        root = Path(os.getenv("MEDICAL_RAG_ROOT", Path(__file__).parents[2]))
-        bm25_ready = (root / "indexes" / "bm25_c0.pkl").exists()
-        graph_ready = (root / "indexes" / "primekg.sqlite3").exists()
-        dense_ready = (root / "indexes" / "medcpt" / "articles.faiss").exists()
+        bm25_ready = bm25_index_path().is_file()
+        graph_ready = graph_index_path().is_file()
+        dense_root = medcpt_index_path()
+        dense_ready = (dense_root / "articles.faiss").is_file() and (dense_root / "metadata.jsonl").is_file()
         selected_generator = os.getenv("MEDICAL_RAG_GENERATOR", "mock").casefold()
         generator_ready = selected_generator == "mock" or (
             selected_generator == "gateway" and bool(os.getenv("OPENAI_API_KEY"))
@@ -85,16 +88,18 @@ def create_app(database: Path | None = None, artifacts: Path | None = None) -> F
         if not job or job["status"] == "cancelled":
             return
         if not capacity.acquire(timeout=1):
-            store.set_status(job_id, "failed", error="PIPELINE_BUSY")
+            store.set_status(job_id, "failed", error="PIPELINE_BUSY", allowed_from={"queued"})
             return
-        store.set_status(job_id, "running")
+        if not store.set_status(job_id, "running", allowed_from={"queued"}):
+            capacity.release()
+            return
         try:
             result = PIPELINES[pipeline_id].run(question)
-            if store.get(job_id)["status"] != "cancelled":
-                store.set_status(job_id, "completed", result=result)
+            store.set_status(job_id, "completed", result=result, allowed_from={"running"})
         except Exception as exc:  # boundary: persist failures for reproducible runs
             logger.exception("Pipeline execution failed for job_id=%s pipeline_id=%s", job_id, pipeline_id)
-            store.set_status(job_id, "failed", error=f"PIPELINE_FAILED:{type(exc).__name__}")
+            store.set_status(job_id, "failed", error=f"PIPELINE_FAILED:{type(exc).__name__}",
+                             allowed_from={"running"})
         finally:
             capacity.release()
 

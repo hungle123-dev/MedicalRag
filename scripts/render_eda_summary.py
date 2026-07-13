@@ -10,6 +10,29 @@ rows = [("bioasq", "corpus", eda["bioasq"]["corpus"]["rows"]),
         ("bioasq", "eval", eda["bioasq"]["eval"]["rows"]),
         ("primekg", "nodes", eda["primekg"]["nodes"]), ("primekg", "edges", eda["primekg"]["edges"])]
 rows += [("primekgqa", split, eda["primekgqa"][split]["rows"]) for split in ("train", "val", "test")]
+corpus = eda["bioasq"]["corpus"]
+rows += [("bioasq_corpus", "text_chars_mean", corpus["text_chars"]["mean"]),
+         ("bioasq_corpus", "text_chars_p95", corpus["text_chars"]["p95"]),
+         ("bioasq_corpus", "empty_text", corpus["empty_text"]),
+         ("bioasq_corpus", "missing_title", corpus["missing_title"]),
+         ("bioasq_corpus", "missing_doi", corpus["missing_doi"])]
+for split in ("dev", "eval"):
+    item = eda["bioasq"][split]
+    rows += [(f"bioasq_{split}", "question_chars_mean", item["question_chars"]["mean"]),
+             (f"bioasq_{split}", "answer_chars_mean", item["answer_chars"]["mean"]),
+             (f"bioasq_{split}", "gold_passage_id_coverage", item["gold_passage_id_coverage"]),
+             (f"bioasq_{split}", "snippet_chars_mean", item["snippet_chars"]["mean"]),
+             (f"bioasq_{split}", "empty_answers", item["empty_answers"])]
+degree = eda["primekg"]["degree"]
+rows += [("primekg", "degree_median", degree["median"]), ("primekg", "degree_p95", degree["p95"]),
+         ("primekg", "degree_max", degree["max"]),
+         ("primekg", "duplicate_normalized_names", eda["primekg"]["duplicate_normalized_names"]),
+         ("primekg", "missing_edge_endpoints", eda["primekg"]["missing_edge_endpoints"])]
+for split in ("train", "val", "test"):
+    rows.append((f"primekgqa_{split}", "missing_natural_language_question",
+                 eda["primekgqa"][split]["missing_natural_language_question"]))
+for pair, count in eda["primekgqa"]["exact_question_overlap"].items():
+    rows.append(("primekgqa", f"exact_question_overlap_{pair}", count))
 with (ROOT / "data/manifests/eda_summary.csv").open("w", encoding="utf-8", newline="") as stream:
     writer = csv.writer(stream); writer.writerow(("dataset", "metric", "value")); writer.writerows(rows)
 

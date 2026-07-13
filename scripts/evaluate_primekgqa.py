@@ -69,6 +69,16 @@ def aggregate(rows: list[dict]) -> dict:
     return {key: round(sum(row[key] for row in rows) / len(rows), 6) if rows else None for key in keys} | {"n": len(rows)}
 
 
+def structurally_valid(path: dict) -> bool:
+    node_ids = {str(node["id"]) for node in path.get("nodes", [])}
+    edges = path.get("edges", [])
+    endpoints_exist = all(str(edge.get("source_id")) in node_ids and
+                          str(edge.get("target_id")) in node_ids for edge in edges)
+    chain_is_connected = all(str(left.get("target_id")) == str(right.get("source_id"))
+                             for left, right in zip(edges, edges[1:]))
+    return bool(edges) and endpoints_exist and chain_is_connected
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", choices=("val", "test"), default="val")
@@ -86,11 +96,11 @@ def main() -> None:
     for row in rows:
         question = str(row["generated_question"])
         seeds = graph.link(question)
-        paths = graph.paths(seeds, question=question)
+        paths = graph.paths(seeds, question=question, max_hops=3)
         if args.variant == "one_hop":
             paths = one_hop(paths)
         elif args.variant in {"no_path_reranker", "random_path"}:
-            pool = graph.paths(seeds, limit=200, question=question)
+            pool = graph.paths(seeds, limit=200, question=question, max_hops=3)
             paths = no_path_reranker(pool) if args.variant == "no_path_reranker" else matched_random_paths(pool, paths, args.seed + int(row.get("id", 0)))
         kind = answer_kind(str(row.get("sparql", "")))
         gold = {norm(value) for value in row.get("answer_sparql", [])}
@@ -111,8 +121,9 @@ def main() -> None:
             "answer_type": kind, "seen_pattern": (entity_pattern, relation_pattern) in train_patterns if train_patterns else None,
             **metrics, "entity_f1": entity_metrics["f1"] if entity_metrics else None,
             "linked_entities": sorted(linked), "gold_mentions": sorted(mentioned),
-            "relation_f1": relation_metrics["f1"], "path_valid": float(bool(paths)),
-            "graph_answerability": "full" if metrics["f1"] == 1 else "partial" if metrics["f1"] > 0 else "none"})
+            "relation_f1": relation_metrics["f1"], "path_returned": float(bool(paths)),
+            "all_returned_paths_structurally_valid": float(bool(paths) and all(structurally_valid(path) for path in paths)),
+            "answer_recovery": "exact" if metrics["f1"] == 1 else "partial" if metrics["f1"] > 0 else "none"})
     strata = defaultdict(list)
     for record in records:
         strata[f"nodes_{record['node_count']}"] .append(record)
@@ -124,9 +135,11 @@ def main() -> None:
         "entity_link_f1": round(sum(r["entity_f1"] for r in records if r["entity_f1"] is not None) /
                                 max(sum(r["entity_f1"] is not None for r in records), 1), 6),
         "relation_f1": round(sum(r["relation_f1"] for r in records) / len(records), 6),
-        "path_valid_rate": round(sum(r["path_valid"] for r in records) / len(records), 6),
-        "graph_answerability": {label: sum(r["graph_answerability"] == label for r in records)
-                                for label in ("full", "partial", "none")},
+        "path_return_rate": round(sum(r["path_returned"] for r in records) / len(records), 6),
+        "all_paths_structurally_valid_rate": round(
+            sum(r["all_returned_paths_structurally_valid"] for r in records) / len(records), 6),
+        "answer_recovery": {label: sum(r["answer_recovery"] == label for r in records)
+                            for label in ("exact", "partial", "none")},
         "strata": {name: aggregate(values) for name, values in sorted(strata.items())}, "records": records}
     run_id = f"primekgqa_{args.split}_{args.variant}_patterns_{args.seed}_{len(records)}"
     artifact = ROOT / "artifacts/experiments/primekgqa" / run_id

@@ -63,19 +63,26 @@ class JobStore:
         job["result"] = json.loads(job["result"]) if job["result"] else None
         return job
 
-    def set_status(self, job_id: str, status: str, *, result: dict | None = None, error: str | None = None) -> bool:
+    def set_status(self, job_id: str, status: str, *, result: dict | None = None,
+                   error: str | None = None, allowed_from: set[str] | None = None) -> bool:
         now = utc_now()
+        where, values = "id = ?", [status, json.dumps(result) if result else None, error, now, job_id]
+        if allowed_from:
+            placeholders = ",".join("?" for _ in allowed_from)
+            where += f" AND status IN ({placeholders})"
+            values.extend(sorted(allowed_from))
+        with self.lock, self._connection() as connection:
+            cursor = connection.execute(
+                f"UPDATE jobs SET status = ?, result = ?, error = ?, updated_at = ? WHERE {where}", values,
+            )
+        if cursor.rowcount != 1:
+            return False
         if result:
             target = self.artifacts / f"{job_id}.json"
             temporary = target.with_suffix(".json.tmp")
             temporary.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
             os.replace(temporary, target)
-        with self.lock, self._connection() as connection:
-            cursor = connection.execute(
-                "UPDATE jobs SET status = ?, result = ?, error = ?, updated_at = ? WHERE id = ?",
-                (status, json.dumps(result) if result else None, error, now, job_id),
-            )
-        return cursor.rowcount == 1
+        return True
 
     def cancel(self, job_id: str) -> bool:
         with self.lock, self._connection() as connection:
