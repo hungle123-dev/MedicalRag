@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Kiến trúc hệ thống, pipeline, workflow và ma trận thực nghiệm MedicalRAG từ dữ liệu đến sản phẩm.">
+  <title>MedicalRAG — Kiến trúc hệ thống, pipeline & workflow</title>
+  <script>
+    (() => {
+      const saved = localStorage.getItem("medrag-doc-theme");
+      const dark = saved ? saved === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.classList.toggle("dark", dark);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f1e8; --paper: #fffdf8; --ink: #20231f; --muted: #62685f;
+      --line: #d7d2c8; --soft: #ece7dc; --olive: #5d6d52; --clay: #a34f35;
+      --blue: #446780; --gold: #9b7629; --green: #39705b; --red: #a34040;
+      --shadow: 0 12px 32px rgba(45, 40, 30, .08);
+    }
+    html.dark {
+      color-scheme: dark;
+      --bg: #171916; --paper: #20231f; --ink: #eef0e9; --muted: #b4b9af;
+      --line: #3a3f38; --soft: #292d28; --olive: #a9bd99; --clay: #e48b6e;
+      --blue: #88b5d2; --gold: #d4b56a; --green: #7bc3a3; --red: #ed8d8d;
+      --shadow: 0 12px 32px rgba(0, 0, 0, .22);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 82px; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    button, input { font: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .91em; }
+    h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; line-height: 1.15; }
+    h1 { max-width: 900px; margin: 18px 0; font-size: clamp(2.35rem, 6vw, 5.6rem); letter-spacing: -.055em; }
+    h2 { margin: 0 0 18px; font-size: clamp(1.75rem, 3vw, 2.75rem); letter-spacing: -.025em; }
+    h3 { margin: 0 0 10px; font-size: 1.25rem; }
+    p { margin: 0 0 14px; }
+    .topbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 62px; padding: 10px max(20px, calc((100vw - 1240px) / 2)); background: color-mix(in srgb, var(--paper) 93%, transparent); border-bottom: 1px solid var(--line); backdrop-filter: blur(14px); }
+    .brand { color: var(--ink); text-decoration: none; font-weight: 800; letter-spacing: -.02em; }
+    .brand span { color: var(--clay); }
+    .theme { border: 1px solid var(--line); border-radius: 999px; background: var(--soft); color: var(--ink); padding: 7px 12px; cursor: pointer; }
+    .wrap { width: min(1240px, calc(100% - 40px)); margin: auto; }
+    .hero { padding: 86px 0 62px; border-bottom: 1px solid var(--line); }
+    .eyebrow { color: var(--clay); font: 750 .74rem/1.2 ui-monospace, monospace; letter-spacing: .15em; text-transform: uppercase; }
+    .lead { max-width: 850px; color: var(--muted); font-size: 1.16rem; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 26px; }
+    .pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); font-size: .83rem; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+    .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 44px; padding: 42px 0 100px; }
+    nav { position: sticky; top: 88px; align-self: start; max-height: calc(100vh - 105px); overflow: auto; }
+    nav strong { display: block; margin-bottom: 9px; font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    nav a { display: block; padding: 6px 9px; border-left: 2px solid var(--line); color: var(--muted); text-decoration: none; font-size: .88rem; }
+    nav a:hover, nav a:focus { color: var(--ink); border-color: var(--clay); }
+    main > section { padding: 38px 0 54px; border-bottom: 1px solid var(--line); }
+    .callout { padding: 20px; border: 1px solid var(--line); border-left: 5px solid var(--clay); border-radius: 4px; background: var(--paper); box-shadow: var(--shadow); }
+    .callout strong { color: var(--clay); }
+    .grid { display: grid; gap: 16px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card { padding: 20px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); }
+    .card p:last-child { margin-bottom: 0; }
+    .number { display: inline-grid; place-items: center; width: 30px; height: 30px; margin-bottom: 13px; border-radius: 50%; color: var(--paper); background: var(--clay); font: 800 .85rem ui-monospace, monospace; }
+    .kicker { display: block; color: var(--muted); font-size: .78rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+    .plain { color: var(--muted); }
+    .diagram { overflow-x: auto; margin: 22px 0; padding: 22px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); }
+    .flow { display: flex; align-items: stretch; min-width: 940px; }
+    .flow-step { flex: 1; min-width: 128px; padding: 14px 12px; border: 1px solid var(--line); background: var(--soft); text-align: center; }
+    .flow-step b { display: block; font-family: Georgia, serif; }
+    .flow-step small { display: block; margin-top: 4px; color: var(--muted); line-height: 1.35; }
+    .arrow { display: grid; place-items: center; width: 32px; flex: 0 0 32px; color: var(--clay); font-size: 1.4rem; }
+    .lanes { min-width: 980px; display: grid; grid-template-columns: 130px repeat(5, 1fr); gap: 8px; align-items: stretch; }
+    .lane-label { display: grid; place-items: center start; color: var(--muted); font: 750 .78rem ui-monospace, monospace; text-transform: uppercase; }
+    .lane-box { padding: 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--soft); font-size: .86rem; }
+    .lane-box.online { border-top: 4px solid var(--blue); }
+    .lane-box.offline { border-top: 4px solid var(--gold); }
+    .lane-box.shared { border-top: 4px solid var(--green); }
+    .firewall { border: 2px dashed var(--red); color: var(--red); background: transparent; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 13px; color: var(--muted); font-size: .82rem; }
+    .legend i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; background: currentColor; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); }
+    table { width: 100%; border-collapse: collapse; min-width: 850px; }
+    th, td { padding: 13px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: var(--soft); color: var(--muted); font-size: .73rem; letter-spacing: .07em; text-transform: uppercase; }
+    tbody tr:last-child td { border-bottom: 0; }
+    td:first-child { font-weight: 800; color: var(--clay); }
+    .stage { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 16px; position: relative; padding: 0 0 24px; }
+    .stage:not(:last-child)::before { content: ""; position: absolute; left: 28px; top: 48px; bottom: 0; width: 1px; background: var(--line); }
+    .stage-no { z-index: 1; display: grid; place-items: center; width: 56px; height: 56px; border: 1px solid var(--line); border-radius: 50%; background: var(--paper); color: var(--clay); font: 800 .9rem ui-monospace, monospace; }
+    .stage-body { padding: 14px 17px; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); }
+    .stage-body ul { margin: 8px 0 0; padding-left: 20px; }
+    details { border: 1px solid var(--line); border-radius: 5px; background: var(--paper); margin-bottom: 10px; }
+    summary { cursor: pointer; padding: 15px 17px; font-weight: 750; }
+    details > div { padding: 0 17px 17px; color: var(--muted); }
+    .code { overflow-x: auto; margin: 0; padding: 17px; border: 1px solid var(--line); border-radius: 5px; background: #151813; color: #edf1e8; font: .83rem/1.55 ui-monospace, Consolas, monospace; }
+    .metric { border-top: 4px solid var(--olive); }
+    .status { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: .75rem; font-weight: 800; }
+    .done { color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); }
+    .running { color: var(--gold); background: color-mix(in srgb, var(--gold) 15%, transparent); }
+    .pending { color: var(--muted); background: var(--soft); }
+    .danger { color: var(--red); }
+    .checklist { list-style: none; padding: 0; }
+    .checklist li { position: relative; padding: 8px 0 8px 30px; border-bottom: 1px solid var(--line); }
+    .checklist li::before { content: "✓"; position: absolute; left: 3px; color: var(--green); font-weight: 900; }
+    footer { padding: 26px 0 60px; color: var(--muted); font-size: .85rem; }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      nav { position: static; display: flex; overflow-x: auto; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+      nav strong { display: none; } nav a { flex: 0 0 auto; border-left: 0; border-bottom: 2px solid var(--line); }
+      .grid.three { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 620px) {
+      .wrap { width: min(100% - 24px, 1240px); }
+      .hero { padding-top: 54px; }
+      .grid.two, .grid.three { grid-template-columns: 1fr; }
+      .topbar { padding-inline: 12px; }
+    }
+    @media print {
+      .topbar, nav { display: none; } .layout { display: block; } body { background: white; color: black; }
+      main > section { break-inside: avoid; } .diagram, .table-wrap { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top">MedicalRAG <span>/ Architecture</span></a>
+    <button class="theme" id="theme" type="button" aria-label="Đổi giao diện sáng tối">◐ Đổi màu</button>
+  </header>
+
+  <div class="wrap hero" id="top">
+    <span class="eyebrow">Tài liệu kiến trúc chuẩn · từ dữ liệu đến sản phẩm</span>
+    <h1>Hệ thống làm gì, chạy ra sao, và thực nghiệm chính xác cái gì?</h1>
+    <p class="lead">Một bản đồ đầy đủ cho MedicalRAG: câu hỏi văn bản đi qua retrieval, evidence và generator để trở thành câu trả lời có PMID; cùng pipeline đó được đưa vào quy trình thí nghiệm có kiểm soát để biết module nào thật sự giúp.</p>
+    <div class="hero-meta">
+      <span class="pill"><i class="dot"></i> Source of truth: code + config hiện tại</span>
+      <span class="pill">BioASQ closed corpus</span>
+      <span class="pill">FastAPI + React/Vite</span>
+      <span class="pill">Cập nhật 13/07/2026 · Git <span class="mono">a5ae97b</span></span>
+    </div>
+  </div>
+
+  <div class="wrap layout">
+    <nav aria-label="Mục lục">
+      <strong>Mục lục</strong>
+      <a href="#tldr">1. Tóm tắt</a>
+      <a href="#scope">2. Input / Output</a>
+      <a href="#data">3. Dữ liệu</a>
+      <a href="#architecture">4. Kiến trúc</a>
+      <a href="#online">5. Pipeline online</a>
+      <a href="#offline">6. Workflow thực nghiệm</a>
+      <a href="#experiments">7. E01–E12</a>
+      <a href="#metrics">8. Metrics</a>
+      <a href="#modules">9. Module & repo</a>
+      <a href="#api">10. API / frontend</a>
+      <a href="#reliability">11. An toàn & lỗi</a>
+      <a href="#status">12. Trạng thái</a>
+      <a href="#teacher">13. Cách trình bày</a>
+    </nav>
+
+    <main>
+      <section id="tldr">
+        <span class="eyebrow">01 · đọc phần này trước</span>
+        <h2>Toàn bộ đề tài trong một phút</h2>
+        <div class="callout">
+          <p><strong>Input:</strong> một câu hỏi biomedical dạng text.</p>
+          <p><strong>Output:</strong> câu trả lời text có cấu trúc, loại câu hỏi, PMID trích dẫn, mức hỗ trợ bằng chứng, thông tin model/độ trễ và trace để kiểm tra lại.</p>
+          <p><strong>Mục tiêu nghiên cứu:</strong> không chứng minh “RAG luôn tốt”, mà đo có kiểm soát xem <em>retriever, query strategy, cách tạo evidence, context, prompt và generator</em> ảnh hưởng thế nào đến retrieval, chất lượng trả lời, độ trung thực, chi phí và tốc độ.</p>
+          <p><strong>Phạm vi:</strong> hỏi đáp nghiên cứu y sinh trên một corpus BioASQ đóng. Không chẩn đoán bệnh và không dùng cho quyết định lâm sàng.</p>
+        </div>
+        <div class="grid three" style="margin-top:16px">
+          <article class="card"><span class="number">A</span><h3>Một lõi dùng chung</h3><p class="plain"><code>MedicalRAGPipeline</code> phục vụ cả sản phẩm lẫn thí nghiệm; không có hai code path bí mật cho cùng một chức năng.</p></article>
+          <article class="card"><span class="number">B</span><h3>Thay một biến</h3><p class="plain">Mỗi family thực nghiệm đổi một factor, giữ các factor còn lại cố định và dùng cùng tập câu hỏi để so sánh theo cặp.</p></article>
+          <article class="card"><span class="number">C</span><h3>Gold không được rò rỉ</h3><p class="plain">Gold PMID/snippet/ideal answer chỉ vào evaluator sau inference; pipeline trả lời không nhìn thấy chúng.</p></article>
+        </div>
+      </section>
+
+      <section id="scope">
+        <span class="eyebrow">02 · hợp đồng bài toán</span>
+        <h2>Input và output cụ thể</h2>
+        <div class="grid two">
+          <div>
+            <h3>Request người dùng</h3>
+            <pre class="code">POST /v1/answer
+{
+  "question": "What is the role of BRCA1 mutations in breast cancer risk?",
+  "pipeline_id": "rrf_rag"
+}</pre>
+          </div>
+          <div>
+            <h3>Response hệ thống</h3>
+            <pre class="code">{
+  "predicted_type": "factoid",
+  "exact_answer": ["..."],
+  "ideal_answer": "...",
+  "citations": [{"pmid": "...", "snippet": "..."}],
+  "abstained": false,
+  "evidence_support_score": 0.82,
+  "trace_id": "...",
+  "latency_ms": 1240,
+  "model": "..."
+}</pre>
+          </div>
+        </div>
+        <p class="plain" style="margin-top:14px"><strong>Bốn loại câu hỏi:</strong> yes/no, factoid (một thực thể/sự kiện), list (danh sách) và summary (câu trả lời diễn giải). Exact answer của summary là <code>null</code> theo contract.</p>
+      </section>
+
+      <section id="data">
+        <span class="eyebrow">03 · một benchmark bundle, hai vai trò</span>
+        <h2>BioASQ và PubMed liên quan thế nào?</h2>
+        <div class="diagram" role="img" aria-label="Sơ đồ vai trò corpus và QA trong BioASQ">
+          <div class="flow">
+            <div class="flow-step"><b>PubMed</b><small>Kho bài báo y sinh gốc trên thế giới</small></div><div class="arrow">→</div>
+            <div class="flow-step"><b>BioASQ bundle</b><small>Nhóm benchmark đã chuẩn bị và gắn nhãn</small></div><div class="arrow">→</div>
+            <div class="flow-step"><b>Corpus</b><small>49.513 abstract để retriever tìm</small></div><div class="arrow">+</div>
+            <div class="flow-step"><b>QA labels</b><small>Câu hỏi + gold PMID/snippet/ideal answer</small></div><div class="arrow">→</div>
+            <div class="flow-step"><b>Controlled RAG</b><small>Tìm trong corpus, chấm bằng QA labels</small></div>
+          </div>
+        </div>
+        <div class="grid two">
+          <article class="card">
+            <span class="kicker">Dữ liệu hệ thống được phép thấy</span>
+            <h3>Retrieval corpus</h3>
+            <p><strong>49.513 PubMed abstracts</strong>, mỗi document có PMID, title, abstract, URL, ngày công bố và MeSH terms nếu có.</p>
+            <p class="plain">Đây là “thư viện” để BM25/MedCPT tìm bằng chứng. Nó không phải nhãn đánh giá.</p>
+          </article>
+          <article class="card">
+            <span class="kicker">Dữ liệu chỉ evaluator được thấy</span>
+            <h3>QA benchmark</h3>
+            <p><strong>5.049 câu development + 340 câu held-out</strong>, gồm question, type, gold relevant PMIDs, gold snippets và ideal answer.</p>
+            <p class="plain">Đây là “đề thi + đáp án”. Không được đưa đáp án vào retriever/generator khi chạy bình thường.</p>
+          </article>
+        </div>
+        <div class="callout" style="margin-top:16px">
+          <p><strong>Không phải hai dataset độc lập.</strong> Gold PMID trong mỗi câu QA trỏ tới tài liệu trong corpus. Nói ngắn gọn: corpus là sách mở để tra; QA là đề và đáp án để chấm việc tra.</p>
+          <p><strong>Giới hạn khoa học:</strong> corpus hiện tại là positive-only, gold-conditioned candidate pool; vì vậy kết quả phản ánh reranking có kiểm soát, không đại diện cho tìm kiếm trên toàn bộ PubMed.</p>
+        </div>
+        <h3 style="margin-top:26px">Các split và vì sao không dùng chung tất cả</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Population</th><th>Số câu</th><th>Dùng cho</th><th>Được phép quyết định model?</th></tr></thead>
+          <tbody>
+            <tr><td>smoke40</td><td>40</td><td>Kiểm tra code/API chạy được, ước lượng thời gian/chi phí</td><td>Không chọn theo chất lượng</td></tr>
+            <tr><td>selection4849</td><td>4.849</td><td>Thực nghiệm retrieval lớn E01/E02/E04</td><td>Có, theo gate đã đăng ký</td></tr>
+            <tr><td>query800</td><td>800</td><td>So sánh query expansion/HyDE đủ rẻ</td><td>Có</td></tr>
+            <tr><td>generation160</td><td>160</td><td>Thử context/generator/prompt tốn API</td><td>Sàng lọc</td></tr>
+            <tr><td>validation200</td><td>200</td><td>Xác nhận cấu hình và oracle/error analysis</td><td>Freeze final</td></tr>
+            <tr><td>heldout340</td><td>340</td><td>Đánh giá cuối một lần sau khi freeze</td><td>Không tuning lại</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section id="architecture">
+        <span class="eyebrow">04 · system landscape</span>
+        <h2>Kiến trúc high-level tổng thể</h2>
+        <div class="diagram" role="img" aria-label="Kiến trúc nhiều lane của MedicalRAG">
+          <div class="lanes">
+            <div class="lane-label">Product plane</div>
+            <div class="lane-box online">React/Vite UI<br><small>nhập câu hỏi, chọn/so sánh pipeline</small></div>
+            <div class="lane-box online">FastAPI<br><small>validate request, route answer/compare</small></div>
+            <div class="lane-box online">MedicalRAGPipeline<br><small>điều phối shared core</small></div>
+            <div class="lane-box online">LLM gateway<br><small>OpenAI-compatible provider</small></div>
+            <div class="lane-box online">Answer + citations<br><small>trace ID, latency, tokens</small></div>
+
+            <div class="lane-label">Shared core</div>
+            <div class="lane-box shared">Query<br><small>original / MeSH / HyDE*</small></div>
+            <div class="lane-box shared">Retrieval<br><small>BM25 / MedCPT / RRF / rerank</small></div>
+            <div class="lane-box shared">Evidence<br><small>chunk/snippet, rank, dedupe</small></div>
+            <div class="lane-box shared">Context + prompt<br><small>budget, order, citation contract</small></div>
+            <div class="lane-box shared">Parser + validator<br><small>JSON schema, valid packed PMID only</small></div>
+
+            <div class="lane-label">Research plane</div>
+            <div class="lane-box offline">Registry E01–E12<br><small>hypothesis + controlled arms</small></div>
+            <div class="lane-box offline">Experiment runner<br><small>same pipeline, config overrides</small></div>
+            <div class="lane-box firewall">GOLD FIREWALL<br><small>gold chỉ vào evaluator</small></div>
+            <div class="lane-box offline">Metrics + statistics<br><small>paired CI, permutation, Holm</small></div>
+            <div class="lane-box offline">MLflow + reports<br><small>artifacts, gate decisions</small></div>
+
+            <div class="lane-label">Storage plane</div>
+            <div class="lane-box">data/raw<br><small>frozen BioASQ bundle</small></div>
+            <div class="lane-box">artifacts/indexes<br><small>BM25 pickle, FAISS MedCPT</small></div>
+            <div class="lane-box">configs/<br><small>pipeline/protocol/registry</small></div>
+            <div class="lane-box">traces.sqlite3<br><small>redacted reproducibility trace</small></div>
+            <div class="lane-box">reports/results<br><small>predictions, metrics, decisions</small></div>
+          </div>
+          <div class="legend"><span style="color:var(--blue)"><i></i>Sản phẩm online</span><span style="color:var(--green)"><i></i>Lõi dùng chung</span><span style="color:var(--gold)"><i></i>Thực nghiệm offline</span><span style="color:var(--red)"><i></i>Ranh giới chống rò rỉ gold</span></div>
+        </div>
+        <p><strong>Nguyên tắc kiến trúc:</strong> frontend không tự làm RAG; FastAPI không tự viết retrieval; runner không có pipeline riêng. Tất cả đi qua một orchestrator <code>medrag_lab.pipeline.MedicalRAGPipeline</code>. Gold labels chỉ được evaluation layer nạp sau khi prediction đã sinh.</p>
+      </section>
+
+      <section id="online">
+        <span class="eyebrow">05 · online inference</span>
+        <h2>Một câu hỏi đi từ đầu đến cuối như thế nào?</h2>
+        <div class="diagram"><div class="flow">
+          <div class="flow-step"><b>Question</b><small>text + pipeline_id</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Query</b><small>giữ nguyên hoặc biến đổi</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Retrieve</b><small>xếp hạng PMIDs</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Evidence</b><small>abstract → snippet</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Pack</b><small>chọn trong token budget</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Generate</b><small>LLM trả JSON</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Validate</b><small>lọc citation bịa</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Answer</b><small>text + evidence + trace</small></div>
+        </div></div>
+
+        <div class="stage"><div class="stage-no">00</div><div class="stage-body"><h3>Khởi động và index</h3><p>Đọc config theo <code>pipeline_id</code>. Nạp BM25 index; nếu dùng dense/hybrid thì nạp FAISS MedCPT; nếu dùng rerank thì nạp cross-encoder. Index chưa có thì BM25 có thể build từ <code>corpus.jsonl</code>.</p></div></div>
+        <div class="stage"><div class="stage-no">01</div><div class="stage-body"><h3>Nhận và kiểm tra input</h3><p>FastAPI/Pydantic chỉ nhận question dài 3–2.000 ký tự và pipeline ID hợp lệ. Dữ liệu dư bị từ chối, tránh request mơ hồ.</p></div></div>
+        <div class="stage"><div class="stage-no">02</div><div class="stage-body"><h3>Chuẩn hóa/biến đổi query</h3><p>Mặc định giữ nguyên câu hỏi. Arm thí nghiệm có thể thêm MeSH terms hoặc sinh pseudo-document bằng HyDE. Bước này không được nhìn gold answer.</p></div></div>
+        <div class="stage"><div class="stage-no">03</div><div class="stage-body"><h3>Retrieval</h3><ul><li><strong>BM25:</strong> khớp từ khóa, nhanh, dễ giải thích.</li><li><strong>MedCPT:</strong> embedding biomedical, bắt tương đồng ngữ nghĩa.</li><li><strong>RRF:</strong> hợp nhất thứ hạng BM25 + MedCPT.</li><li><strong>Cross-encoder:</strong> đọc lại cặp question–document để rerank top candidates.</li></ul><p>Kết quả là danh sách document có PMID, score, rank và nguồn retriever.</p></div></div>
+        <div class="stage"><div class="stage-no">04</div><div class="stage-body"><h3>Tạo evidence</h3><p>Biến abstract dài thành bằng chứng dùng được: full abstract, chunk 256 token overlap 64, hoặc cửa sổ 3 câu. Các snippet được chấm theo mức liên quan rồi lấy top-N.</p></div></div>
+        <div class="stage"><div class="stage-no">05</div><div class="stage-body"><h3>Diversity, thứ tự và context packing</h3><p>Có thể giới hạn một snippet mỗi PMID để giảm lặp. Chọn evidence theo token budget 600/1.200/2.400; thứ tự relevance-descending hoặc strongest-in-middle. Mỗi block mang nhãn <code>[PMID:...]</code>.</p></div></div>
+        <div class="stage"><div class="stage-no">06</div><div class="stage-body"><h3>Prompt và generator</h3><p>System prompt yêu cầu JSON đúng schema, chỉ dùng evidence, không bịa PMID, biết abstain khi thiếu bằng chứng và không đưa lời khuyên cá nhân. Gateway gọi model được cấu hình và thu latency/tokens/cost.</p></div></div>
+        <div class="stage"><div class="stage-no">07</div><div class="stage-body"><h3>Parse và kiểm chứng citation</h3><p>Pydantic kiểm tra loại câu hỏi, answer, score và PMID chỉ chứa chữ số. Sau đó pipeline chỉ giữ citation xuất hiện trong packed context. PMID model tự bịa bị loại.</p></div></div>
+        <div class="stage"><div class="stage-no">08</div><div class="stage-body"><h3>Trả kết quả và lưu trace</h3><p>API trả answer + citations + metadata. SQLite trace lưu request, query, ranking, packed context, prompt hash, raw response và output; secret được redact. Nếu generator lỗi, failure trace vẫn được lưu.</p></div></div>
+      </section>
+
+      <section id="offline">
+        <span class="eyebrow">06 · offline research workflow</span>
+        <h2>Quy trình thực nghiệm có “não”, không test bừa</h2>
+        <div class="diagram"><div class="flow">
+          <div class="flow-step"><b>Hypothesis</b><small>tại sao factor có thể giúp?</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Registry</b><small>arm, metric, gate, split</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Smoke</b><small>chạy được? giá bao nhiêu?</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Selection</b><small>cùng câu hỏi, paired scores</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Gate</b><small>effect + CI + failure + cost</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Freeze</b><small>khóa winner/config/hash</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Held-out</b><small>chạy một lần cuối</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Report</b><small>kết luận + giới hạn</small></div>
+        </div></div>
+        <div class="grid two">
+          <article class="card"><h3>Điều được thay đổi</h3><p>Mỗi family chỉ đổi factor ghi trong registry: indexed fields, retriever, query, evidence, context budget/order/diversity, model, prompt hoặc evidence source.</p></article>
+          <article class="card"><h3>Điều phải giữ cố định</h3><p>Cùng corpus hash, cùng question IDs, seed, metric implementation và các module nằm ngoài factor đang test. Thí nghiệm generator còn phải dùng đúng cùng context string.</p></article>
+          <article class="card"><h3>Quy tắc chọn winner</h3><p>Không chọn chỉ vì mean cao hơn. Cần vượt minimum effect, paired CI, failure-rate guard; khi quan tâm efficiency còn xét latency/cost.</p></article>
+          <article class="card"><h3>Chống overfit</h3><p>Smoke không chọn chất lượng; validation để freeze; held-out không mở khi đang tuning. Sau held-out không quay lại chỉnh cấu hình rồi báo lại như kết quả final.</p></article>
+        </div>
+        <div class="callout" style="margin-top:16px"><strong>Failure policy:</strong> request lỗi vẫn nằm trong mẫu và nhận điểm 0 (intention-to-treat). Chạy chất lượng song song không được dùng để kết luận latency; latency phải đo lại tuần tự.</div>
+      </section>
+
+      <section id="experiments">
+        <span class="eyebrow">07 · experiment matrix</span>
+        <h2>Thực nghiệm chính xác cái gì?</h2>
+        <p class="plain">Bảng dưới là xương sống của ablation study. “Winner” của bước trước được freeze làm control cho bước sau; không ghép mọi biến thành một ma trận khổng lồ.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>ID</th><th>Câu hỏi nghiên cứu</th><th>Các arm so sánh</th><th>Giữ cố định</th><th>Đo chính / quyết định</th></tr></thead>
+          <tbody>
+            <tr><td>E01</td><td>Trường nào nên đưa vào BM25?</td><td>title; abstract; title+abstract; boosted title+abstract+MeSH</td><td>original query, BM25 params, corpus, top depth</td><td>MAP@10; superiority gate</td></tr>
+            <tr><td>E02</td><td>Dense/hybrid có cứu semantic miss?</td><td>BM25 champion; MedCPT; RRF; RRF + cross-encoder</td><td>original query, candidate 100, submit 10</td><td>MAP@10, Recall@100, latency; superiority/efficiency</td></tr>
+            <tr><td>E03</td><td>Biến đổi query giúp hay gây query drift?</td><td>original; MeSH expansion; HyDE; iterative*</td><td>retriever champion, corpus, no gold</td><td>MAP@10 + severe-harm rate &lt;5%</td></tr>
+            <tr><td>E04</td><td>Evidence ngắn nào bám gold snippet tốt?</td><td>full abstract; chunk256/64; 3-sentence BM25; 3-sentence cross-encoder</td><td>cùng ranked PMIDs và số evidence</td><td>Snippet span F1</td></tr>
+            <tr><td>E05</td><td>Context dài bao nhiêu là đủ?</td><td>600; 1.200; 2.400 reference tokens</td><td>evidence rank, serializer, model, prompt</td><td>ROUGE-SU4 + faithfulness + cost</td></tr>
+            <tr><td>E06</td><td>Lost-in-the-middle có xuất hiện?</td><td>relevance descending; strongest evidence in middle</td><td>đúng cùng snippets/budget/model/prompt</td><td>ROUGE-SU4; diagnostic</td></tr>
+            <tr><td>E07</td><td>Đa dạng nguồn giảm lặp mà không mất gold?</td><td>top-score; one-per-source/MMR*</td><td>budget, model, prompt</td><td>Packed gold-PMID recall + non-inferiority answer</td></tr>
+            <tr><td>E08</td><td>Model nào đạt trade-off quality/cost tốt?</td><td>GPT-4.1-nano; Gemini 2.5 Flash Lite; DeepSeek V3.2; Qwen 3.5 122B-A10B</td><td>exact context string, prompt, parser, schema</td><td>ROUGE-SU4, faithfulness, latency, token, cost Pareto</td></tr>
+            <tr><td>E09</td><td>Prompt feature nào thật sự giúp?</td><td>generic JSON; citation constraint; type-aware schema; gold-type oracle; abstention*</td><td>generator champion, exact evidence, parser</td><td>ROUGE-SU4, parse success, citation validity</td></tr>
+            <tr><td>E10</td><td>Nút thắt nằm ở retrieval hay generation?</td><td>closed-book; predicted evidence; gold docs + predicted snippets; gold snippets</td><td>model, prompt, caps, token budget</td><td>Khoảng cách ROUGE-SU4 giữa các oracle level</td></tr>
+            <tr><td>E12</td><td>Winner từng module có tương tác xấu không?</td><td>2×2 retriever×query; các check context/model có chọn lọc*</td><td>các module còn lại, validation IDs</td><td>Difference-in-differences + rank change</td></tr>
+            <tr><td>E11</td><td>Pipeline final có hơn baseline trên dữ liệu chưa thấy?</td><td>closed-book; vanilla BM25 RAG; best RAG; drop-one; gold-evidence oracle</td><td>held-out IDs, provider snapshot, output contract</td><td>3 contrast đăng ký trước + Holm correction</td></tr>
+          </tbody>
+        </table></div>
+        <p class="plain" style="margin-top:10px"><strong>* Stretch:</strong> chỉ chạy nếu core experiments hoàn tất và còn đủ thời gian/chi phí. Đây là cắt scope có chủ đích, không phải thiếu sót.</p>
+        <h3 style="margin-top:28px">Ablation và oracle khác nhau</h3>
+        <div class="grid two">
+          <article class="card"><h3>Drop-one ablation</h3><p>Lấy best pipeline rồi bỏ đúng một component quan trọng đã chọn trước. Nếu chất lượng giảm đáng tin cậy, component đó có đóng góp trong pipeline hoàn chỉnh.</p></article>
+          <article class="card"><h3>Gold oracle</h3><p>Thay predicted evidence bằng gold documents/snippets chỉ ở evaluator. Khoảng cách đến oracle cho biết còn bao nhiêu tiềm năng nếu sửa retrieval/evidence; oracle không phải sản phẩm deploy.</p></article>
+        </div>
+      </section>
+
+      <section id="metrics">
+        <span class="eyebrow">08 · evaluation harness</span>
+        <h2>Metric đo gì và có ý nghĩa gì?</h2>
+        <div class="grid three">
+          <article class="card metric"><h3>MAP@10</h3><p>Thưởng khi gold PMID xuất hiện sớm và đủ trong top 10. Metric chính cho retrieval ranking; càng cao càng tốt.</p></article>
+          <article class="card metric"><h3>Recall@100</h3><p>Trong 100 candidate có thu được bao nhiêu gold documents. Nếu thấp, reranker/generator không thể cứu tài liệu chưa được lấy về.</p></article>
+          <article class="card metric"><h3>MRR / nDCG / Hit</h3><p>MRR nhìn gold đầu tiên; nDCG nhìn chất lượng thứ hạng; Hit cho biết có ít nhất một gold trong top-k. Là metric phụ để hiểu nguyên nhân.</p></article>
+          <article class="card metric"><h3>Snippet span F1</h3><p>Độ trùng theo vị trí giữa snippet dự đoán và gold snippet. Dùng chọn evidence construction, không dùng chấm văn phong answer.</p></article>
+          <article class="card metric"><h3>ROUGE-SU4 F1</h3><p>So độ phủ unigram và skip-bigram của ideal answer với reference. Là metric answer chính hiện có, nhưng không tự đủ để khẳng định đúng y khoa.</p></article>
+          <article class="card metric"><h3>Citation metrics</h3><p>Validity: PMID có trong packed context. Coverage/support: claim có được evidence hỗ trợ. Citation bịa bị validator loại trước khi trả.</p></article>
+          <article class="card metric"><h3>LLM panel proxy</h3><p>Nhiều judge model chấm correctness/faithfulness theo rubric đã freeze; đo agreement. Đây là đánh giá tự động giả lập chuyên gia, không được gọi sai là human review.</p></article>
+          <article class="card metric"><h3>Cost / latency / failure</h3><p>Input/output tokens, USD ước lượng, p50/p95 latency, attempts và failure rate. Chất lượng hơn rất ít nhưng đắt/chậm quá có thể không qua gate.</p></article>
+          <article class="card metric"><h3>Paired statistics</h3><p>Bootstrap CI trên cùng question groups, paired permutation p-value, effect size; Holm sửa multiple comparisons ở final. Nhờ vậy không chọn theo dao động ngẫu nhiên.</p></article>
+        </div>
+        <div class="callout" style="margin-top:16px"><strong>Exact-answer caveat:</strong> bundle local chưa có official exact-answer labels. Vì vậy accuracy/MRR exact answer bị tắt thay vì tự bịa label từ ideal prose hoặc nhờ LLM sinh “gold”.</div>
+      </section>
+
+      <section id="modules">
+        <span class="eyebrow">09 · code ownership</span>
+        <h2>Module nào nằm ở đâu trong repo?</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Layer</th><th>Trách nhiệm</th><th>Source of truth</th><th>Không được làm</th></tr></thead>
+          <tbody>
+            <tr><td>Data</td><td>Schema, loader, audit, manifest, split freeze</td><td><code>medrag_lab/data/</code></td><td>Không đưa gold vào inference</td></tr>
+            <tr><td>Indexing</td><td>Build/load BM25 và MedCPT FAISS</td><td><code>medrag_lab/indexing/</code></td><td>Không chọn model theo held-out</td></tr>
+            <tr><td>Query</td><td>Original, MeSH, HyDE, iterative</td><td><code>medrag_lab/query/</code></td><td>Không nhìn answer/gold PMID</td></tr>
+            <tr><td>Retrieval</td><td>Sparse, dense, RRF, reranker</td><td><code>medrag_lab/retrieval/</code></td><td>Không sinh câu trả lời</td></tr>
+            <tr><td>Evidence</td><td>Chunk/snippet/rank/diversity/pack/citation blocks</td><td><code>medrag_lab/evidence/</code></td><td>Không gọi LLM tùy tiện</td></tr>
+            <tr><td>Generation</td><td>Prompt, gateway, schema, parser</td><td><code>medrag_lab/generation/</code></td><td>Không chấp nhận PMID ngoài context</td></tr>
+            <tr><td>Pipeline</td><td>Điều phối shared online flow</td><td><code>medrag_lab/pipeline.py</code></td><td>Không import gold evaluator</td></tr>
+            <tr><td>Evaluation</td><td>Metric, LLM panel, statistics, error taxonomy</td><td><code>medrag_lab/evaluation/</code></td><td>Không sửa prediction đã sinh</td></tr>
+            <tr><td>Experiments</td><td>Registry, runner, gate, final freeze</td><td><code>medrag_lab/experiments/</code> + <code>configs/</code></td><td>Không chạy arm ngoài registry rồi cherry-pick</td></tr>
+            <tr><td>Tracking</td><td>MLflow artifact + SQLite trace</td><td><code>medrag_lab/tracking/</code></td><td>Không log API secret</td></tr>
+            <tr><td>API / Web</td><td>HTTP contract và giao diện</td><td><code>apps/api/</code>, <code>apps/web/</code></td><td>Không duplicate RAG logic</td></tr>
+          </tbody>
+        </table></div>
+        <h3 style="margin-top:26px">Luồng artifact</h3>
+        <pre class="code">data/raw/bioasq/       → raw bundle, không commit
+configs/               → protocol + pipeline + experiment registry, có version
+artifacts/indexes/     → BM25 / MedCPT indexes
+artifacts/traces.sqlite3 → inspect từng request
+reports/runs/          → prediction + metric từng run
+reports/gates/         → quyết định pass/reject có lý do
+mlruns/ hoặc MLflow DB → params, metrics, artifacts
+docs/                  → kế hoạch, kiến trúc và báo cáo đọc được</pre>
+      </section>
+
+      <section id="api">
+        <span class="eyebrow">10 · product delivery</span>
+        <h2>Frontend, backend và lifecycle request</h2>
+        <div class="grid two">
+          <article class="card"><h3>React/Vite frontend</h3><p>Người dùng nhập question, chọn pipeline hoặc compare hai pipeline. UI hiển thị exact/ideal answer, citations, latency, tokens, model và trace ID. UI không được xem API key và không xử lý retrieval.</p></article>
+          <article class="card"><h3>FastAPI backend</h3><p><code>/v1/answer</code> trả một answer; <code>/v1/compare</code> chạy đúng hai pipeline; <code>/v1/traces/{id}</code> phục vụ audit; <code>/v1/experiments</code> công bố registry; <code>/health</code> và <code>/ready</code> kiểm tra dịch vụ.</p></article>
+        </div>
+        <div class="diagram"><div class="flow">
+          <div class="flow-step"><b>Browser</b><small>question + choice</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>POST API</b><small>Pydantic validation</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Shared pipeline</b><small>retrieval → generation</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Gateway</b><small>real external LLM</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>Validated response</b><small>citation whitelist</small></div><div class="arrow">→</div>
+          <div class="flow-step"><b>AnswerCard</b><small>answer + sources</small></div>
+        </div></div>
+      </section>
+
+      <section id="reliability">
+        <span class="eyebrow">11 · trust boundaries</span>
+        <h2>Lỗi, abstention và an toàn</h2>
+        <details open><summary>Nếu retrieval không tìm đúng tài liệu?</summary><div>Recall@100 và oracle E10 tách lỗi retrieval khỏi lỗi generation. Sản phẩm có thể trả lời yếu hoặc abstain; không được lén dùng gold document.</div></details>
+        <details><summary>Nếu LLM trả JSON sai?</summary><div>Parser/schema từ chối output không hợp lệ; gateway có attempts được ghi lại. Failure vẫn tính điểm 0 trong evaluation, không loại khỏi mẫu.</div></details>
+        <details><summary>Nếu LLM bịa PMID?</summary><div>Pipeline dựng whitelist từ packed evidence. Chỉ PMID có trong whitelist mới trở thành citation response; phần còn lại bị loại và trace giữ raw response để audit.</div></details>
+        <details><summary>Nếu API provider lỗi hoặc hết quota?</summary><div>API trả upstream error phù hợp và lưu failure trace. Experiment runner ghi failure vào denominator; không rerun có chọn lọc chỉ các câu điểm thấp.</div></details>
+        <details><summary>LLM panel có phải human medical review?</summary><div>Không. Nó là proxy evaluation bằng 2–3 model judge. Báo cáo phải ghi đúng tên, rubric, model snapshot, agreement và hạn chế bias; không gắn nhãn “human” khi không có người thật.</div></details>
+        <details><summary>Hệ thống có được dùng cho bệnh nhân?</summary><div>Không. Scope là research QA trên corpus đóng, có disclaimer rõ và chưa được clinical validation.</div></details>
+      </section>
+
+      <section id="status">
+        <span class="eyebrow">12 · execution status</span>
+        <h2>Hiện tại đã tới đâu?</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Khối</th><th>Trạng thái</th><th>Kết quả/việc còn lại</th></tr></thead>
+          <tbody>
+            <tr><td>Data + split + protocol</td><td><span class="status done">Đã xây</span></td><td>Corpus/QA roles, split và leakage boundary đã định nghĩa.</td></tr>
+            <tr><td>E01 indexed fields</td><td><span class="status done">Đã chạy</span></td><td>Boosted title+abstract+MeSH là lexical recipe tốt nhất hiện quan sát (MAP@10 ≈ 0,680).</td></tr>
+            <tr><td>E02 retriever</td><td><span class="status running">Đang hoàn tất</span></td><td>RRF vượt BM25; RRF+cross-encoder đang chạy đủ selection set trước khi freeze.</td></tr>
+            <tr><td>E03 query</td><td><span class="status done">Đã sàng lọc</span></td><td>Original query đang là control; MeSH và HyDE không qua gate quan sát.</td></tr>
+            <tr><td>E04–E10, E12</td><td><span class="status pending">Chờ</span></td><td>Evidence, context, generator, prompt, oracle, interaction chưa có kết luận final.</td></tr>
+            <tr><td>E11 held-out</td><td><span class="status pending">Khóa</span></td><td>Chỉ chạy sau khi best pipeline và drop-one được freeze.</td></tr>
+            <tr><td>API + frontend</td><td><span class="status done">Đã có lõi</span></td><td>Answer/compare/trace/experiments routes và React UI đã tồn tại; cần nghiệm thu end-to-end sau freeze.</td></tr>
+          </tbody>
+        </table></div>
+        <p class="danger" style="margin-top:12px"><strong>Không được đọc bảng này như kết quả final.</strong> E02 còn recovery run; E04–E12 chưa hoàn tất; held-out chưa mở. Mọi con số hiện tại chỉ thuộc phase tương ứng.</p>
+      </section>
+
+      <section id="teacher">
+        <span class="eyebrow">13 · presentation checklist</span>
+        <h2>Thầy hoặc thành viên nhóm nên kiểm tra gì?</h2>
+        <ul class="checklist">
+          <li>Input/output và giới hạn “research only” có phát biểu rõ.</li>
+          <li>Giải thích đúng: corpus là kho tìm; QA rows là đề + gold labels để chấm.</li>
+          <li>Gold firewall được thực thi trong code, không chỉ ghi trong slide.</li>
+          <li>Mỗi experiment có hypothesis, changed factor, fixed controls, population, metric và gate.</li>
+          <li>Run lưu data hash, split hash, config hash, Git SHA, predictions, latency và failures.</li>
+          <li>So sánh paired trên cùng question IDs; không so hai run dùng hai tập khác nhau.</li>
+          <li>Không gọi LLM panel là human review.</li>
+          <li>Không dùng smoke hoặc held-out để tuning.</li>
+          <li>Final report có cả kết quả âm: module nào không giúp, tại sao, lỗi thuộc taxonomy nào.</li>
+          <li>Demo frontend dùng đúng frozen pipeline đã đánh giá, không phải cấu hình “đẹp demo” riêng.</li>
+        </ul>
+        <div class="callout"><strong>Câu chốt đồ án:</strong> “Chúng em xây một RAG y sinh theo module, rồi dùng một protocol preregistered để thay từng factor trên cùng benchmark, định lượng cả quality–faithfulness–cost–latency, dùng oracle và drop-one để xác định nút thắt, sau đó mới khóa cấu hình và đánh giá held-out.”</div>
+      </section>
+
+      <footer>
+        <p><strong>MedicalRAG Architecture & Workflow.</strong> Tài liệu này mô tả code/config tại Git <span class="mono">a5ae97b</span>. Registry thực nghiệm chuẩn nằm tại <span class="mono">configs/experiments/registry.yaml</span>; protocol tại <span class="mono">configs/protocol.yaml</span>.</p>
+        <p>Không phải tư vấn y khoa. Không sử dụng cho chẩn đoán hoặc điều trị.</p>
+      </footer>
+    </main>
+  </div>
+  <script>
+    document.getElementById("theme").addEventListener("click", () => {
+      const dark = !document.documentElement.classList.contains("dark");
+      document.documentElement.classList.toggle("dark", dark);
+      localStorage.setItem("medrag-doc-theme", dark ? "dark" : "light");
+    });
+  </script>
+</body>
+</html>

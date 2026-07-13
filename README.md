@@ -7,6 +7,8 @@ over all PubMed, and the chatbot is not medical advice.
 
 The binding protocol is
 [`docs/KE_HOACH_THUC_NGHIEM_MEDICAL_RAG.html`](docs/KE_HOACH_THUC_NGHIEM_MEDICAL_RAG.html).
+The end-to-end system map is
+[`docs/KIEN_TRUC_HE_THONG_PIPELINE_WORKFLOW.html`](docs/KIEN_TRUC_HE_THONG_PIPELINE_WORKFLOW.html).
 
 ## Architecture
 
