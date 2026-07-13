@@ -1,4 +1,4 @@
-version: "1.5-e5-v9-control-fix"
+version: "1.6-e5-v10-control-pool-amendment"
 seed: 20260712
 
 tracks:
@@ -101,6 +101,7 @@ evidence_budget:
   actual_budget: match_each_question_B3_context
   text_max_items: 8
   hybrid_max_items: 13
+  x1_ranked_candidate_pool: 30
   graph_max_items: 5
   graph_max_words: 540
   graph_shortfall: backfill_ranked_text

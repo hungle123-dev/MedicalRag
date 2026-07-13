@@ -15,6 +15,16 @@ def test_graph_controls_preserve_requested_hops():
     assert extra[0]["snippet"] == "one two"
 
 
+def test_extra_text_skips_short_ranked_candidate_without_reusing_items():
+    candidates = [{"id": "short", "type": "text", "snippet": "one"},
+                  {"id": "long", "type": "text", "snippet": "one two three four"},
+                  {"id": "next", "type": "text", "snippet": "five six seven"}]
+    targets = [{"id": "g1", "snippet": "a b c"}, {"id": "g2", "snippet": "d e"}]
+    selected = matched_extra_text(candidates, targets)
+    assert [item["id"] for item in selected] == ["long", "next"]
+    assert [len(item["snippet"].split()) for item in selected] == [3, 2]
+
+
 def test_random_path_stays_structural_and_post_budget_audit_detects_missing_slot():
     targets = [{"id": "g1", "type": "graph", "hop_count": 1, "snippet": "a —r→ b",
                 "nodes": [{"id": 1, "name": "a"}, {"id": 2, "name": "b"}],

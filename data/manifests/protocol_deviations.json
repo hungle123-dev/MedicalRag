@@ -27,6 +27,13 @@
       "description": "A strict post-budget audit of the completed v8 dev run found 10/43 graph-positive X2 questions with malformed visible paths; one also lost one of five sham-path slots, although every stored pre-budget control_complete flag was true.",
       "impact": "All arms retained equal total word budgets and generation had no failures, but X2 was not a structurally valid matched control. The entire v8 run is therefore a design pilot and cannot be the final E5 ablation.",
       "mitigation": "Graph paths are now atomic and never truncated; X1 and X2 have separate post-budget validators for target coverage, type, word length, hop count, canonical path syntax, and forbidden-node overlap. A clean v9 dev run is required before locked evaluation."
+    },
+    {
+      "id": "DEV-005",
+      "track": "BioASQ locked preflight",
+      "description": "The first eval-340 preflight stopped at question 68 because one of five ranked X1 extra-text candidates was shorter than its target graph slot. Zero answer outputs were generated and no output score was observed.",
+      "impact": "The v9 locked generation never started, so it is an aborted design preflight rather than a locked answer execution. The fixed candidate-pool behavior must be revalidated on dev and all 340 eval questions before generation.",
+      "mitigation": "X1 now selects the earliest unused lower-ranked abstract that is long enough from a frozen top-30 reranked pool, then trims it to the exact target length. Run dev-80 and eval-340 evidence-only preflights from a clean v10 commit; start the single locked answer execution only after both pass. No gold answer, machine score, or model output informed this amendment."
     }
   ]
 }

@@ -28,13 +28,16 @@ def matched_random_paths(candidates: list[dict], target: list[dict], seed: int) 
 
 
 def matched_extra_text(candidates: list[dict], target_graphs: list[dict]) -> list[dict]:
-    """Replace every graph item with one text item trimmed to the same word count."""
-    selected = []
-    for item, target in zip(candidates, target_graphs):
-        words = item.get("snippet", "").split()
+    """Use the earliest unused ranked text long enough for each graph slot."""
+    selected, used_indices = [], set()
+    for target in target_graphs:
         limit = len(target.get("snippet", "").split())
-        if limit:
-            selected.append(item | {"snippet": " ".join(words[:limit]),
+        match = next(((index, item) for index, item in enumerate(candidates)
+                      if index not in used_indices and len(item.get("snippet", "").split()) >= limit), None)
+        if limit and match:
+            index, item = match
+            used_indices.add(index)
+            selected.append(item | {"snippet": " ".join(item["snippet"].split()[:limit]),
                                     "matched_target_id": target["id"]})
     return selected
 

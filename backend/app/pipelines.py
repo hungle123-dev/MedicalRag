@@ -220,10 +220,11 @@ def build_e5_arms(question: str, seed: int) -> dict[str, dict]:
     """Build B3/G2 and two matched controls once, before any answer is generated."""
     defaults = pipeline_defaults()
     text_k = defaults["hybrid_max_items"]
+    control_candidate_k = defaults["control_text_candidate_k"]
     base_k = defaults["text_final_k"]
     max_words = defaults["evidence_total_words"]
     graph_words_limit = defaults["graph_max_words"]
-    texts = text_evidence(question, "hybrid", k=text_k)
+    texts = text_evidence(question, "hybrid", k=control_candidate_k)
     base_texts = texts[:base_k]
     target_budget = min(max_words, evidence_words(base_texts))
     b3, b3_budget = evidence_budget(base_texts, [], word_budget=target_budget, max_items=base_k)
@@ -237,7 +238,7 @@ def build_e5_arms(question: str, seed: int) -> dict[str, dict]:
         return {arm: {"evidence": b3, "budget": b3_budget, "linked": seeds,
                       "graph_retrieval_positive": False, "control_complete": True}
                 for arm in ("B3", "G2", "X1", "X2")}
-    extra = matched_extra_text(texts[base_k:text_k], selected_graphs)
+    extra = matched_extra_text(texts[base_k:control_candidate_k], selected_graphs)
     x1, x1_budget = evidence_budget(base_texts, extra, word_budget=target_budget,
                                     max_items=text_k, graph_word_budget=graph_words)
     candidates = background_control_evidence(selected_graphs, seeds, seed)

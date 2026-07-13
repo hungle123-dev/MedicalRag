@@ -75,6 +75,8 @@ def main() -> None:
     parser.add_argument("--confirm-locked", action="store_true")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--allow-dirty", action="store_true")
+    parser.add_argument("--preflight-only", action="store_true",
+                        help="Freeze and validate all evidence snapshots without generating answers")
     args = parser.parse_args()
     if args.split == "eval" and not args.confirm_locked:
         raise SystemExit("Locked eval requires --confirm-locked after the protocol is frozen")
@@ -106,7 +108,7 @@ def main() -> None:
     if args.split == "eval" and (generator != "gateway" or model != protocol["generator"]["model"]):
         raise SystemExit("Locked eval generator/provider/model do not match configs/protocol.yaml")
     model_slug = "".join(character if character.isalnum() else "-" for character in model).strip("-")
-    run_id = f"bioasq_{args.split}_e5_{generator}_{model_slug}_v9_{count}_{commit[:8]}"
+    run_id = f"bioasq_{args.split}_e5_{generator}_{model_slug}_v10_{count}_{commit[:8]}"
     directory = ROOT / "artifacts/experiments/bioasq" / run_id
     directory.mkdir(parents=True, exist_ok=True)
 
@@ -158,6 +160,30 @@ def main() -> None:
                                                    ensure_ascii=False, indent=2), encoding="utf-8")
         prepared[question_id] = {"arms": arms, "snapshot_hash": snapshot_hash}
         print(f"prepared_evidence={question_index + 1}/{len(ids)}", flush=True)
+
+    if args.preflight_only:
+        if {name: sha(path) for name, path in config_paths.items()} != config_hashes:
+            raise RuntimeError("A frozen config or population file changed during preflight")
+        if {name: sha(path) for name, path in runtime_paths.items()} != runtime_code_hashes:
+            raise RuntimeError("Frozen runtime code changed during preflight")
+        if {path.name: file_fingerprint(path) for path in index_files} != index_fingerprints:
+            raise RuntimeError("A frozen index changed during preflight")
+        preflight = {
+            "run_id": run_id, "split": args.split, "questions": len(ids),
+            "generation_started": False, "code_commit": commit,
+            "config_hashes": config_hashes, "runtime_code_hashes": runtime_code_hashes,
+            "index_fingerprints": index_fingerprints,
+            "graph_retrieval_positive_questions": sum(
+                item["arms"]["G2"]["graph_retrieval_positive"] for item in prepared.values()),
+            "x1_complete_questions": sum(item["arms"]["X1"]["control_complete"]
+                                         for item in prepared.values()),
+            "x2_complete_questions": sum(item["arms"]["X2"]["control_complete"]
+                                         for item in prepared.values()),
+        }
+        (directory / "preflight_manifest.json").write_text(
+            json.dumps(preflight, indent=2), encoding="utf-8")
+        print(json.dumps(preflight, indent=2))
+        return
 
     dev_warmup = json.loads((ROOT / "data/raw/bioasq/dev.jsonl").read_text(encoding="utf-8").splitlines()[-1])
     PIPELINES["B3"].run(dev_warmup["question"])
