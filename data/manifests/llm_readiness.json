@@ -1,0 +1,10 @@
+{
+  "gemini": {
+    "available": false,
+    "blocker": "GEMINI_API_KEY missing"
+  },
+  "groq_judge": {
+    "available": false,
+    "blocker": "GROQ_API_KEY missing"
+  }
+}

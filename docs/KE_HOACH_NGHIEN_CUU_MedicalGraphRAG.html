@@ -40,7 +40,7 @@
       <div class="eyebrow">Research brief · 12/07/2026</div>
       <h1>Medical QA, grounded in text <em>and</em> graph.</h1>
       <p class="lede"><strong>Input là câu hỏi text. Output là câu trả lời text có dẫn chứng.</strong> Nghiên cứu không cố chứng minh Graph-RAG luôn tốt hơn; nó đo chính xác graph giúp loại câu hỏi nào khi so với một Text-RAG đủ mạnh.</p>
-      <div class="chips"><span class="chip good">BioASQ + MedQA</span><span class="chip good">MedCPT + PrimeKG</span><span class="chip good">Gemini API core</span><span class="chip">Groq judge</span><span class="chip no">Không crawl</span><span class="chip no">Không fine-tune</span><span class="chip no">Không clinical deployment</span></div>
+      <div class="chips"><span class="chip good">BioASQ + PrimeKGQA</span><span class="chip good">MedCPT + PrimeKG</span><span class="chip good">Gemini API core</span><span class="chip">Groq judge</span><span class="chip no">Không crawl</span><span class="chip no">Không fine-tune</span><span class="chip no">Không clinical deployment</span></div>
     </header>
 
     <section id="scope">
@@ -54,7 +54,7 @@ Sources: PMID… · PrimeKG path…</div></div>
       </div>
       <div class="grid" style="margin-top:14px">
         <article class="card wide"><div class="kicker">Primary track</div><h3>BioASQ long-form QA</h3><p>Đánh giá chatbot text-to-text và retrieval nhờ ideal answer, PubMed document IDs và gold snippets.</p></article>
-        <article class="card wide"><div class="kicker">Secondary track</div><h3>MedQA clinical reasoning</h3><p>Chatbot vẫn giải thích bằng text; lựa chọn A/B/C/D chỉ dùng để tính exact accuracy tự động.</p></article>
+        <article class="card wide"><div class="kicker">Graph component track</div><h3>PrimeKGQA</h3><p>Đánh giá entity/relation linking, graph traversal và KG reasoning bằng question, answer và SPARQL sinh từ PrimeKG; báo riêng 2/3/4-node complexity.</p></article>
         <article class="card"><h3>Research question</h3><p>PrimeKG có thêm giá trị ngoài BM25 + MedCPT + reranker không?</p></article>
         <article class="card"><h3>Expected nuance</h3><p>Graph có thể giúp drug–disease, contraindication và multi-hop; không chắc giúp literature-specific QA.</p></article>
         <article class="card"><h3>Responsible boundary</h3><p>Prototype nghiên cứu, không thay bác sĩ, không dùng để đưa quyết định điều trị.</p></article>
@@ -64,24 +64,24 @@ Sources: PMID… · PrimeKG path…</div></div>
     <section id="resources">
       <div class="section-head"><div class="num">02 · ASSETS</div><div><h2>Cái gì đã có, cái gì phải xây</h2><p>Building blocks phần lớn đã public. Contribution nằm ở lớp nối, protocol và phân tích — không phải crawl hay train lại mọi model.</p></div></div>
       <div class="grid">
-        <article class="card wide"><div class="kicker">Ready</div><h3>Có sẵn</h3><ul><li>BioASQ corpus, QA, ideal answers và gold text evidence</li><li>MIRAGE/MedQA benchmark</li><li>BM25, MedCPT encoders và cross-encoder</li><li>PrimeKG edge list và clinical descriptions</li><li>MedRAG baseline code và metric libraries</li></ul></article>
+        <article class="card wide"><div class="kicker">Ready</div><h3>Có sẵn</h3><ul><li>BioASQ corpus, QA, ideal answers và gold text evidence</li><li>PrimeKGQA question/answer/SPARQL train–validation–test</li><li>BM25, MedCPT encoders và cross-encoder</li><li>PrimeKG edge list và clinical descriptions</li><li>MedRAG baseline code và metric libraries</li></ul></article>
         <article class="card wide"><div class="kicker">Build</div><h3>Team phải tích hợp</h3><ul><li>Question → PrimeKG entity linking</li><li>Constrained graph path retrieval và ranking</li><li>Text–graph evidence fusion</li><li>Citation/provenance schema</li><li>Evaluation harness, labels hỗ trợ và error analysis</li></ul></article>
       </div>
       <div class="table-wrap" style="margin-top:14px"><table><caption>Metric phải gắn với component; không dùng final answer score để đoán lỗi retrieval.</caption><thead><tr><th>Component</th><th>Evaluation data/gold</th><th>Primary metric</th><th>Câu hỏi metric trả lời</th></tr></thead><tbody>
         <tr><td class="id">Chunking</td><td>BioASQ gold PMID/snippets</td><td>Document Recall@10</td><td>Top-10 có chứa ít nhất một tài liệu gold không?</td></tr>
         <tr><td class="id">Text retrieval</td><td>Gold PMID/snippets</td><td>Recall@10; nDCG@10</td><td>Tìm được evidence và xếp evidence gold lên cao không?</td></tr>
         <tr><td class="id">Query expansion</td><td>Cùng question IDs, paired Q0/Q1/Q2</td><td>ΔRecall@10</td><td>Expansion cứu được miss hay chỉ tạo noise?</td></tr>
-        <tr><td class="id">Entity linking</td><td>Blind manually labeled mentions/nodes</td><td>Accuracy + coverage</td><td>Mention có map đúng PrimeKG node không?</td></tr>
-        <tr><td class="id">Graph paths</td><td>Annotated 150-question graph subset</td><td>Useful path rate</td><td>Path hợp lệ có thực sự hỗ trợ trả lời không?</td></tr>
+        <tr><td class="id">Entity linking</td><td>PrimeKGQA gold query/answer + checked sample</td><td>Accuracy + coverage</td><td>Mention có map đúng PrimeKG resource không?</td></tr>
+        <tr><td class="id">Graph KGQA</td><td>PrimeKGQA official test</td><td>Answer-set F1 + execution accuracy</td><td>Retriever/query có trả đúng denotation không?</td></tr>
         <tr><td class="id">Answer</td><td>Ideal answer + retrieved evidence</td><td>Correctness 0–2</td><td>Câu trả lời có đúng medical content mong đợi không?</td></tr>
         <tr><td class="id">Citation</td><td>Atomic claims + cited evidence</td><td>Precision/recall</td><td>Citation có support claim và major claim có citation không?</td></tr>
         <tr><td class="id">End-to-end</td><td>Paired B3/G2 locked outputs</td><td>Mean paired Δ + 95% CI</td><td>Graph tạo improvement bao nhiêu và uncertainty thế nào?</td></tr>
       </tbody></table></div>
       <div class="table-wrap" style="margin-top:14px"><table><caption>Phân biệt ba loại dữ liệu — cùng một benchmark bundle nhưng không dùng lẫn vai trò.</caption><thead><tr><th>Loại</th><th>Nguồn dự kiến</th><th>Hệ thống dùng thế nào</th><th>Có phải nhãn đánh giá?</th></tr></thead><tbody>
-        <tr><td class="id">Retrieval corpus</td><td>BioASQ <code>text-corpus</code>, khoảng 49k PubMed abstracts; số chính xác freeze W1</td><td>Clean → chunk → BM25 index + MedCPT/FAISS index</td><td>Không; đây là kho kiến thức để tìm</td></tr>
-        <tr><td class="id">QA benchmark</td><td>BioASQ <code>question-answer-passages</code>, khoảng 5k questions; split/count xác minh W1</td><td>Question là input; ideal answer, PMID và snippets làm gold labels</td><td>Có; chia smoke/dev/locked test</td></tr>
-        <tr><td class="id">Knowledge graph</td><td>PrimeKG node/edge tables</td><td>Entity linking + constrained 1–2 hop path retrieval</td><td>Không có sẵn gold path cho BioASQ; team annotate subset</td></tr>
-        <tr><td class="id">Secondary QA</td><td>MedQA-USMLE</td><td>Question stem vào retriever; options chỉ xuất hiện ở answer stage</td><td>Có; exact option accuracy, supportive only</td></tr>
+        <tr><td class="id">Retrieval corpus</td><td>BioASQ <code>text-corpus</code>: chính xác 49.513 PubMed abstracts</td><td>Clean → chunk → BM25 index + MedCPT/FAISS index</td><td>Không; đây là kho kiến thức để tìm</td></tr>
+        <tr><td class="id">QA benchmark</td><td>BioASQ <code>question-answer-passages</code>: dev 5.049, locked eval 340 câu</td><td>Question là input; ideal answer, PMID và snippets làm gold labels</td><td>Có; smoke/dev/locked test</td></tr>
+        <tr><td class="id">Knowledge graph</td><td>PrimeKG node/edge tables</td><td>Knowledge source: entity linking + constrained path retrieval</td><td>Không; đây là graph được truy vấn</td></tr>
+        <tr><td class="id">Graph benchmark</td><td>PrimeKGQA generated-question release · Zenodo DOI 10.5281/zenodo.13829395; 85.368 records</td><td>Question/answer/SPARQL để test graph component</td><td>Có; không phải graph thứ hai</td></tr>
       </tbody></table></div>
       <div class="grid" style="margin-top:14px">
         <article class="card wide"><h3>EDA bắt buộc</h3><p>Ghi số record/split; null/duplicate; phân phối độ dài title/abstract/question; question type; số gold PMID/snippet mỗi câu; tỷ lệ gold PMID tồn tại trong corpus; entity type và PrimeKG coverage. Xuất bảng + histogram + manifest hash.</p></article>
@@ -124,31 +124,33 @@ nguyên nhân cải thiện là retrieval, graph hay generator.</pre></div>
       <div class="section-head"><div class="num">04 · PROTOCOL</div><div><h2>Frozen research protocol</h2><p>Các contract phải được kiểm tra, hash và ký freeze trước locked test. Chỉ revision dữ liệu và quota tài khoản còn cần xác minh W1; vai trò model đã được chốt ở trên.</p></div></div>
       <div class="grid">
         <article class="card"><span class="status locked">DEFAULT LOCKED</span><h3>Primary track</h3><p>BioASQ 12B RAG trên Hugging Face; long-form QA và gold textual evidence.</p></article>
-        <article class="card"><span class="status locked">DEFAULT LOCKED</span><h3>Secondary track</h3><p>MedQA-USMLE chỉ đánh giá final answer; retriever chỉ thấy question stem, không thấy options.</p></article>
-        <article class="card"><span class="status">VERIFY W1</span><h3>Runtime</h3><p>Gemini generator, Groq judge, exact returned model IDs, GPU/VRAM/RAM/disk, free quota và hard cost cap $0 cho core.</p></article>
+        <article class="card"><span class="status locked">COMPONENT LOCKED</span><h3>PrimeKGQA track</h3><p>Official test đánh giá answer-set/query execution; phân tầng 2/3/4-node. Không gộp score với BioASQ.</p></article>
+        <article class="card"><span class="status">EXTERNAL BLOCKER</span><h3>Runtime</h3><p>Local CUDA/MedCPT đã xác minh. Gemini/Groq exact API model ID và quota chưa xác minh vì môi trường không có credential; không tự bật billing và không giảm confirmatory population.</p></article>
       </div>
-      <div class="contract"><h3>DATA_MANIFEST · nguồn và integrity</h3><pre>BioASQ HF repo   mattmorgis/bioasq-12b-rag @ TBD_COMMIT_SHA
-Question config  MUST_VERIFY_W1 (expected: question-answer-passages)
-Question splits  MUST_VERIFY_W1; dev ≤ 300 · smoke 50 · locked test once
-Corpus config    MUST_VERIFY_W1 (expected: text-corpus); record-level retrieval
-MedQA repo       mkieffer/MedQA-USMLE @ TBD_COMMIT_SHA
-PrimeKG          Harvard Dataverse DOI/version + SHA-256 · no redistribution
+      <div class="contract"><h3>DATA_MANIFEST · nguồn và integrity</h3><pre>BioASQ HF repo   mattmorgis/bioasq-12b-rag @ 6d6add1a6ec2090991386b5ae7608b71fd637bc4
+Question data    dev 5.049 · locked eval 340 · development sample 300
+Corpus data      49.513 record-level abstracts; SHA-256 in files.json
+PrimeKG          Dataverse files 6180616/6180617; 129.375 nodes, 8.100.498 edges
+PrimeKGQA        Zenodo 10.5281/zenodo.13829395 + source MD5
+                  train_call_bioLLM.json · val_call_bioLLM.json · test_call_bioLLM.json
+compatibility    recreate matching RDF/IRI schema; filter MONDO group resources
+                  execute 100 gold SPARQL; gate executable rate ≥99%
 Seed             20260712
 
 Required artifacts
-  data/manifests/files.sha256
+  data/manifests/files.json (source MD5 + local SHA-256)
   data/manifests/schema.json
   data/manifests/counts.json
   data/manifests/licenses.md
   data/manifests/leakage_audit.json
   data/manifests/exclusions.jsonl</pre></div>
       <div class="grid" style="margin-top:14px">
-        <article class="card wide"><h3>Leakage audit</h3><ul><li>Exact/near duplicate giữa dev và test</li><li>Question, ideal answer và gold options không được index</li><li>Retriever MedQA không nhìn options</li><li>Gold document IDs phải tồn tại trong frozen corpus</li><li>Mọi exclusion có lý do độc lập pipeline</li></ul></article>
+        <article class="card wide"><h3>Leakage audit</h3><ul><li>BioASQ exact/near duplicate giữa dev và eval</li><li>Question, ideal answer, gold snippets/SPARQL không được đưa vào inference</li><li>PrimeKGQA overlap: normalized question, entity pair, relation sequence và graph motif</li><li>Gold document IDs phải tồn tại trong frozen corpus</li><li>Mọi exclusion có lý do độc lập pipeline</li></ul></article>
         <article class="card wide"><h3>Freeze discipline</h3><ul><li>Pin revision/DOI/checksum và preprocessing</li><li>Hash manifest, prompt, taxonomy và configs</li><li>Không tune sau khi mở locked test</li><li>API snapshot đổi giữa B3/G2 → run invalid</li><li>Không silently drop failure/no-graph cases</li></ul></article>
       </div>
       <p class="small">Expected config/split/field names come from the community dataset card and are not considered frozen until W1 loads the pinned revision, records exact schema/counts and verifies them in <code>schema.json</code>.</p>
       <div class="contract"><h3>Confirmatory comparison và primary endpoints</h3>
-        <div class="table-wrap"><table><caption>Hai track báo cáo độc lập; không gộp thành một “medical score”.</caption><thead><tr><th>Track</th><th>Role</th><th>Comparison / endpoint</th><th>Analysis</th></tr></thead><tbody><tr><td>BioASQ</td><td>Confirmatory primary</td><td>B3 vs G2 · mean model-judged correctness 0–2 trên toàn locked test</td><td>Paired question-level bootstrap 10.000 resamples, two-sided 95% CI; improvement khi CI không chứa 0 và difference &gt; 0</td></tr><tr><td>MedQA</td><td>Supportive secondary</td><td>B3 vs G2 · exact option accuracy; parse/API failure = incorrect</td><td>Exact paired McNemar + bootstrap CI; không Holm chung với BioASQ</td></tr></tbody></table></div>
+        <div class="table-wrap"><table><caption>Hai track báo cáo độc lập; không gộp thành một “medical score”.</caption><thead><tr><th>Track</th><th>Role</th><th>Endpoint</th><th>Analysis</th></tr></thead><tbody><tr><td>BioASQ</td><td>End-to-end confirmatory</td><td>B3 vs G2 · paired correctness 0–2; human random sample là estimand chính, calibrated full-set LLM judge là scale-up</td><td>Paired question bootstrap 10.000 resamples, 95% CI; không dùng McNemar cho ordinal score</td></tr><tr><td>PrimeKGQA</td><td>Graph-component confirmatory</td><td>Answer-set EM/F1, executable-query rate, execution accuracy; node và relation answers</td><td>Official test; paired bootstrap; báo riêng 2/3/4-node và seen/unseen entity-pattern subsets</td></tr></tbody></table></div>
         <p class="small">Subgroup/ablation analyses là exploratory. Nếu đưa ra inferential claim trong cùng metric family, áp dụng Holm trong family đó; luôn báo effect size và CI.</p>
       </div>
       <div class="contract"><h3>Frozen generator, evidence và retrieval defaults</h3><pre>generator          google/gemini-3.5-flash; exact API model ID verified W1
@@ -162,12 +164,14 @@ G2 hybrid budget   graph≤540; text nhận phần còn lại trong tổng 1,800
                    log requested/actual text + graph tokens
 text retrieval     BM25 k50 + MedCPT k50 → RRF(60) → rerank pool30 → final8
 query default      Q0 original; Q1 entity expansion is dev ablation
-                   Q2 conditional multi-query only after measured Q0/Q1 failure
-chunk default      C0 one abstract/record; preserve parent PMID for all variants
-chunk ablations    C1 fixed 256 tokens overlap32 · C2 sentence-aware ≤256 tokens
+                   Q2 multi-query is exploratory; runtime trigger uses a frozen
+                   retrieval-confidence rule, never knowledge of gold misses
+chunk candidates   C0 abstract record · C2 sentence-aware ≤256 tokens
+                   test both with BM25 and MedCPT; preserve parent PMID/offset
 graph retrieval    confidence≥0.80 · seeds≤5 · hops={1,2}
                    candidates≤200/seed · rerank pool30 · final paths≤5
-sampling           dev≤300 · smoke=50 · graph annotation=150</pre></div>
+PrimeKGQA graph    allow≤3 hops; answer may be node or relation
+sampling           BioASQ dev≤300 · smoke=50 · human random=100</pre></div>
       <div class="contract"><h3>Experiment registry · record bắt buộc</h3><pre>run_id · pipeline_id · track · split · question_ids_file
 code_commit · data_manifest_hash · config_hash · prompt_hash
 exact generator model/snapshot · hardware · seed · start/end time
@@ -179,7 +183,8 @@ prompt/data thay giữa B3 và G2, hoặc thiếu raw output/provenance.</pre></
 core configs       max 6 (B0–B3, G1, G2)
 locked pipelines   exactly B3 + G2; others dev-only unless pre-registered
 graph ablations    max 4 after core completes
-core paid cost cap USD 0; stop instead of silently switching to paid tier
+API policy         free-tier-first + cache-first; never auto-switch to paid
+confirmatory       preserve frozen population; quota may drop exploratory runs only
 optional budget    GPT-4o requires explicit prepaid budget before registration
 no interim rule    do not add/drop experiments after locked outcome
 dev-only tune      final_k∈{3,5,8} · rerank_pool∈{20,30,50}
@@ -190,9 +195,10 @@ frozen IDs         configs/annotations/annotation_question_ids.json + SHA-256</p
     <section id="architecture">
       <div class="section-head"><div class="num">05 · RAG SYSTEM</div><div><h2>Kiến trúc end-to-end: offline → online → evaluation</h2><p>Offline chuẩn bị index một lần. Online nhận question và trả answer. Evaluation replay đúng pipeline online trên question IDs đã khóa; gold labels không bao giờ đi vào retriever hoặc prompt sinh đáp án.</p></div></div>
       <div class="contract"><h3>High-level architecture</h3><pre>OFFLINE BUILD (chạy khi data/config đổi)
-BioASQ text-corpus → validate/EDA → C0/C1/C2 chunks ─┬→ BM25 index
+BioASQ text-corpus → validate/EDA → C0/C2 chunks ─┬→ BM25 index
                                                      └→ MedCPT Article Encoder → FAISS
 PrimeKG nodes/edges → normalize aliases/types → adjacency + provenance index
+PrimeKGQA → validate answer/SPARQL → RDF/version compatibility smoke
 
 ONLINE QA (chạy cho mỗi câu hỏi)
 Question → normalize + medical entity detection ─┬→ Q0/Q1/Q2 query
@@ -228,8 +234,8 @@ Frozen QA IDs + gold PMID/snippets/ideal answer → shared harness
         </svg>
       </div>
       <div class="table-wrap" style="margin-top:14px"><table><caption>Từng stage nhận gì, trả gì và được đánh giá bằng gì.</caption><thead><tr><th>Stage</th><th>Input</th><th>Output</th><th>Trách nhiệm / metric</th></tr></thead><tbody>
-        <tr><td class="id">0 · Ingestion</td><td>BioASQ + PrimeKG files</td><td>Validated records, manifests</td><td>Schema/count/null/duplicate/leakage checks</td></tr>
-        <tr><td class="id">1 · Chunking</td><td>Title + abstract + PMID</td><td>Chunks giữ <code>parent_pmid</code></td><td>So C0/C1/C2 bằng document Recall@10 và snippet coverage</td></tr>
+        <tr><td class="id">0 · Ingestion</td><td>BioASQ + PrimeKG + PrimeKGQA</td><td>Validated records, manifests</td><td>Schema/count/null/duplicate/leakage/RDF compatibility</td></tr>
+        <tr><td class="id">1 · Chunking</td><td>Title + abstract + PMID</td><td>Chunks giữ <code>parent_pmid</code></td><td>So C0/C2 trên cả BM25/MedCPT bằng Recall@10 và nDCG@10</td></tr>
         <tr><td class="id">2 · Query processing</td><td>Question text</td><td>Normalized query, entities, optional expansions</td><td>Q0/Q1/Q2; expansion không được nhìn gold answer</td></tr>
         <tr><td class="id">3 · Text retrieval</td><td>Query variants</td><td>Top-8 PubMed evidence</td><td>BM25 + MedCPT → RRF → MedCPT cross-encoder</td></tr>
         <tr><td class="id">4 · Graph retrieval</td><td>Linked PrimeKG seed nodes</td><td>Top-5 valid paths</td><td>Coverage, entity-link accuracy, valid/useful path rate</td></tr>
@@ -238,8 +244,8 @@ Frozen QA IDs + gold PMID/snippets/ideal answer → shared harness
         <tr><td class="id">7 · Validation</td><td>Answer + evidence registry</td><td>Validated answer/artifact</td><td>Reject invented citation IDs; record unsupported claims/failure</td></tr>
       </tbody></table></div>
       <div class="grid" style="margin-top:14px">
-        <article class="card wide"><div class="kicker">Query strategies</div><h3>Q0 → Q1 → Q2 có điều kiện</h3><p><strong>Q0</strong> giữ nguyên question. <strong>Q1</strong> thêm normalized medical entities/aliases nhưng không sinh đáp án. <strong>Q2</strong> dùng cheap LLM tạo tối đa ba search queries, chỉ được xét nếu Q0/Q1 còn miss gold evidence. Mọi variant hợp nhất theo rank, deduplicate theo chunk ID.</p></article>
-        <article class="card wide"><div class="kicker">Chunk strategies</div><h3>C0 là baseline hợp domain</h3><p><strong>C0</strong>: một PubMed abstract là một record. <strong>C1</strong>: 256 tokens, overlap 32. <strong>C2</strong>: ghép câu đến tối đa 256 tokens, không cắt ngang câu. Vì BioASQ gold thường ở mức PMID/snippet, mọi chunk bắt buộc giữ parent PMID và offset.</p></article>
+        <article class="card wide"><div class="kicker">Query strategies</div><h3>Q0 → Q1; Q2 exploratory</h3><p><strong>Q0</strong> giữ nguyên question. <strong>Q1</strong> thêm normalized medical entities/aliases. <strong>Q2</strong> tạo tối đa ba search queries. Gold miss chỉ dùng chọn failure subset để phân tích; runtime Q2 phải dùng confidence/disagreement rule tune trên dev rồi freeze.</p></article>
+        <article class="card wide"><div class="kicker">Chunk strategies</div><h3>C0 và C2 trên cả sparse/dense</h3><p><strong>C0</strong>: một PubMed abstract. <strong>C2</strong>: sentence-aware tối đa 256 tokens. Chạy cả hai với BM25 và MedCPT để tránh chọn chunk thiên vị BM25; mọi chunk giữ parent PMID và offset.</p></article>
         <article class="card wide"><div class="kicker">Graph routing</div><h3>Không ép graph cho mọi câu</h3><p>G2 mặc định thử graph nhưng chỉ đưa path đạt validity/relevance threshold vào context; thiếu path thì trả budget về text. Exploratory router chỉ kích hoạt graph khi có linked entities và relation intent phù hợp. Oracle graph-answerability chỉ phân tích trần, không dùng khi inference.</p></article>
         <article class="card wide"><div class="kicker">Answer contract</div><h3>Text output nhưng có provenance</h3><p>Người dùng nhận answer tự nhiên, PubMed citations, PrimeKG paths và trạng thái evidence. PrimeKG relation là association trừ khi source định nghĩa khác; hệ thống phải abstain khi evidence không đủ, không biến graph edge thành khẳng định nhân quả.</p></article>
       </div>
@@ -249,11 +255,11 @@ Frozen QA IDs + gold PMID/snippets/ideal answer → shared harness
       <div class="section-head"><div class="num">06 · TESTS</div><div><h2>Ma trận thực nghiệm</h2><p>Sáu pipeline trả lời câu hỏi retrieval/graph dưới cùng Gemini generator. So sánh generator là robustness study riêng trên evidence đã cache, không phải tích Descartes model × pipeline.</p></div></div>
       <div class="callout"><strong>Nguyên tắc chọn thí nghiệm:</strong> chỉ chạy một chiến lược khi kết quả trước tạo ra một câu hỏi chưa được trả lời. Mỗi thí nghiệm phải ghi trước giả thuyết, biến thay đổi, biến giữ cố định, metric quyết định và hành động tiếp theo.</div>
       <div class="table-wrap" style="margin-top:14px"><table><caption>Decision ladder — tối ưu từng tầng trên dev rồi mới thêm tầng tiếp theo; không chạy full factorial.</caption><thead><tr><th>Thứ tự</th><th>So sánh</th><th>Giữ cố định</th><th>Metric quyết định</th><th>Quy tắc chọn</th></tr></thead><tbody>
-        <tr><td class="id">E1 · Chunk</td><td>C0 abstract vs C1 fixed vs C2 sentence-aware</td><td>Q0 + BM25, cùng corpus/dev IDs</td><td>Document Recall@10 chính; snippet coverage phụ</td><td>Chọn cấu hình tốt nhất; hòa thì chọn C0 đơn giản/nhanh hơn</td></tr>
+        <tr><td class="id">E1 · Chunk</td><td>C0 abstract vs C2 sentence-aware</td><td>Q0; chạy cả BM25 và MedCPT trên cùng dev IDs</td><td>Document Recall@10 + nDCG@10</td><td>Chọn theo paired retrieval; hòa thì chọn C0 đơn giản hơn</td></tr>
         <tr><td class="id">E2 · Retriever</td><td>BM25 vs MedCPT vs RRF</td><td>Chunk thắng E1, Q0</td><td>Recall@10 + nDCG@10</td><td>RRF chỉ giữ nếu tăng retrieval có ý nghĩa và latency chấp nhận</td></tr>
         <tr><td class="id">E3 · Rerank</td><td>RRF vs RRF + cross-encoder</td><td>Cùng candidate pool 30</td><td>nDCG@10 chính; MRR phụ</td><td>Giữ reranker nếu xếp gold evidence cao hơn</td></tr>
-        <tr><td class="id">E4 · Query</td><td>Q0 vs Q1; Q2 chỉ khi còn miss</td><td>B3 retrieval thắng E1–E3</td><td>Paired Recall@10, query latency</td><td>Không giữ expansion nếu chỉ tăng noise/cost</td></tr>
-        <tr><td class="id">E5 · Graph</td><td>1-hop vs 1–2 hop + path ranker</td><td>Cùng entity linker/graph subset</td><td>Valid/useful path rate + coverage</td><td>Không đưa graph vào answer khi path quality gate fail</td></tr>
+        <tr><td class="id">E4 · Query</td><td>Q0 vs Q1; Q2 exploratory</td><td>B3 retrieval thắng E1–E3</td><td>Paired Recall@10, latency</td><td>Runtime trigger không dùng gold; bỏ expansion nếu tăng noise/cost</td></tr>
+        <tr><td class="id">E5 · Graph</td><td>PrimeKGQA: 1/2/≤3-hop + path ranker</td><td>Matching PrimeKG RDF/version</td><td>Answer-set F1 + execution accuracy theo 2/3/4-node</td><td>Compatibility gate fail thì không công bố execution score</td></tr>
         <tr><td class="id">E6 · Fusion</td><td>B3 vs G2 vs extra-text/random-path controls</td><td>Generator, prompt, IDs, total 1,800 tokens</td><td>Correctness 0–2 + citation + CI</td><td>Chỉ kết luận graph giúp khi vượt B3 và matched controls</td></tr>
       </tbody></table></div>
       <div class="grid" style="margin:14px 0">
@@ -287,35 +293,45 @@ Frozen QA IDs + gold PMID/snippets/ideal answer → shared harness
       <div class="section-head"><div class="num">07 · EVAL</div><div><h2>Đánh giá đa tầng</h2><p>Không dùng ROUGE làm kết luận chính. Đo retrieval, graph, answer, citation, efficiency và độ tin cậy thống kê riêng.</p></div></div>
       <div class="grid">
         <article class="card"><div class="kicker">Text retrieval</div><h3>Gold evidence</h3><p>Recall@5/10 · Precision@5 · MRR · nDCG@10 · snippet coverage.</p></article>
-        <article class="card"><div class="kicker">Graph</div><h3>Path quality</h3><p>Entity-link accuracy · graph coverage · valid/useful path rate · relation relevance.</p></article>
+        <article class="card"><div class="kicker">PrimeKGQA</div><h3>Graph component</h3><p>Answer-set EM/F1 · executable-query rate · execution accuracy · entity/relation accuracy · 2/3/4-node breakdown.</p></article>
         <article class="card"><div class="kicker">Answer</div><h3>Medical grounding</h3><p>Correctness · completeness · faithfulness · citation precision/recall · unsupported claims.</p></article>
-        <article class="card"><div class="kicker">Clinical reasoning</div><h3>MedQA</h3><p>Exact option accuracy và số ca RAG sửa đúng/làm hỏng đáp án closed-book.</p></article>
+        <article class="card"><div class="kicker">Graph usefulness</div><h3>BioASQ human audit</h3><p>Useful/partial/irrelevant/misleading path và graph sửa đúng/làm hỏng final answer.</p></article>
         <article class="card"><div class="kicker">Efficiency</div><h3>Cost of structure</h3><p>Median/p95 latency · tokens · API cost · traversal time · RAM/VRAM.</p></article>
-        <article class="card"><div class="kicker">Statistics</div><h3>B3 vs G2</h3><p>McNemar cho đúng/sai; paired bootstrap CI; báo theo subset, không chỉ overall.</p></article>
+        <article class="card"><div class="kicker">Statistics</div><h3>B3 vs G2</h3><p>Paired question-level bootstrap cho ordinal correctness; báo effect size + 95% CI theo overall và frozen subsets.</p></article>
       </div>
       <div class="contract"><h3>Operational rubric</h3>
         <div class="table-wrap"><table><caption>Đơn vị và thang chấm được khóa trước test.</caption><thead><tr><th>Outcome</th><th>Unit</th><th>Definition</th></tr></thead><tbody><tr><td>Correctness 0–2</td><td>Answer</td><td>2: đúng mọi ý chính; 1: đúng cốt lõi nhưng thiếu/lỗi nhỏ; 0: sai, không trả lời hoặc lỗi trọng yếu.</td></tr><tr><td>Completeness 0–2</td><td>Answer</td><td>2: đủ ý thiết yếu; 1: thiếu ≥1 ý; 0: thiếu phần lớn.</td></tr><tr><td>Citation precision</td><td>Citation</td><td>Citation thực sự hỗ trợ claim / tổng citation; relevance cùng chủ đề là chưa đủ.</td></tr><tr><td>Citation recall</td><td>Major claim</td><td>Major claims có ít nhất một nguồn hỗ trợ / tổng major claims.</td></tr><tr><td>Unsupported claim</td><td>Atomic claim</td><td>Medical factual claims không được evidence hỗ trợ / tổng factual claims.</td></tr><tr><td>Path validity</td><td>Graph path</td><td>Node/edge/direction tồn tại trong pinned PrimeKG và giữ provenance.</td></tr><tr><td>Path usefulness</td><td>Graph path</td><td>supports · partial · irrelevant · misleading; validity không đồng nghĩa usefulness.</td></tr></tbody></table></div>
       </div>
       <div class="grid" style="margin-top:14px">
-        <article class="card wide"><h3>Frozen annotation sample</h3><p>150 câu seed 20260712: 100 simple-random overall audit + 50 graph yes/partial oversample. Lưu <code>annotation_question_ids.json</code> với stratum, inclusion reason/probability và hash; raw overall mean chỉ dùng 100 câu random.</p></article>
-        <article class="card wide"><h3>Manual review</h3><p>Hai reviewer độc lập chấm toàn bộ 100 câu random fallback; 50 câu graph oversample cần ≥30 câu overlap. Randomize answer order, lưu label gốc và adjudicate mọi bất đồng mà không thấy pipeline.</p></article>
+        <article class="card wide"><h3>Frozen human sample</h3><p>100 BioASQ questions simple-random, seed 20260712. Đây là estimand human chính cho correctness và graph usefulness; lưu IDs + inclusion probability + SHA-256 trước khi xem output.</p></article>
+        <article class="card wide"><h3>Manual review</h3><p>Hai reviewer độc lập, blind pipeline, randomize B3/G2 order và adjudicate bất đồng. PrimeKGQA thay phần lớn việc tự tạo gold graph paths; human audit chỉ kiểm tra usefulness trên câu hỏi BioASQ thực tế.</p></article>
         <article class="card wide"><h3>Graph labels frozen</h3><p>answerability: yes/partial/no · reasoning: single fact/one-hop/multi-hop/literature/list/other · relation: drug–disease/adverse effect/contraindication/symptom/gene/treatment.</p></article>
-        <article class="card wide"><h3>Failure policy</h3><p>API failure sau 3 retry vẫn tính failure; MedQA parse failure tính sai; missing citation cho major claim cho recall 0; data exclusion chỉ theo rule độc lập pipeline.</p></article>
+        <article class="card wide"><h3>Failure policy</h3><p>API failure sau 3 retry vẫn giữ record và correctness=0; invalid PrimeKGQA answer/query là failure; missing citation cho major claim cho recall 0; exclusion chỉ theo rule độc lập pipeline.</p></article>
       </div>
       <div class="contract"><h3>Frozen LLM judge contract · primary BioASQ scorer</h3><pre>population         every frozen locked-test question ID; missing output creates
                    a retained failure record and correctness=0, never excluded
 judge             Groq model ID openai/gpt-oss-120b; verified W1
                   must differ from generator; unavailable → freeze replacement before test
-input             question + reference answer + candidate answer + cited evidence
+correctness pass  question + reference answer + candidate answer; NO evidence
+faithfulness pass candidate answer + cited evidence; NO reference answer
 hidden            pipeline name, retrieval scores, competing answer, experiment outcome
-output JSON       correctness 0|1|2 · completeness 0|1|2 · claim labels · rationale
+output JSON       score after evidence-based justification · claim labels · confidence
 decoding           temperature=0 · frozen prompt/config · invalid JSON retry≤2
 calibration       compare with adjudicated 100-question random human audit
-validity gate     report weighted kappa + confusion matrix; κ≥0.60 to use as primary
-fallback          if κ&lt;0.60, full judge score becomes exploratory and adjudicated
-                  100-question random sample is the predeclared primary estimate
+validity gate     weighted kappa + confusion matrix; κ≥0.60 permits full-set scale-up
+estimand          human random-sample paired mean is primary regardless of gate;
+                  full-set LLM judge is confirmatory only after calibration passes
 statistics        bootstrap at question level; claims are not independent samples</pre></div>
-      <p class="small">Correctness đo factual/medical validity: 2 không có lỗi quan trọng; 1 lỗi nhỏ nhưng kết luận chính đúng; 0 kết luận sai/lỗi trọng yếu/failure. Completeness đo riêng mức bao phủ essential points. Faithfulness = factual claims supported hoặc partially supported / tổng factual claims; contradictory và unsupported không được tính.</p>
+      <div class="contract"><h3>PrimeKGQA scoring contract</h3><pre>compatibility      pin dataset files/MD5 + matching PrimeKG RDF IRI/predicate schema
+smoke gate         execute 100 gold SPARQL; executable rate must be ≥99%
+answer normalize   canonical resource IDs; set semantics; preserve node/relation type
+primary            answer-set exact match + precision/recall/F1
+query              executable-query rate + execution accuracy
+secondary          entity accuracy · relation accuracy · graph-pattern overlap
+strata             2-node · 3-node · 4-node; seen/unseen entity-relation patterns
+forbidden          exact SPARQL string match as primary (equivalent queries may differ)
+locked             official final_test.json once; validation only for thresholds</pre></div>
+      <p class="small">Correctness đo factual/medical validity: 2 không có lỗi quan trọng; 1 lỗi nhỏ nhưng kết luận chính đúng; 0 kết luận sai/lỗi trọng yếu/failure. Completeness đo riêng mức bao phủ essential points. Faithfulness = factual claims supported hoặc partially supported / tổng factual claims; contradictory và unsupported không được tính. PrimeKGQA release v1 ghi 83.999 pairs trong Zenodo/conclusion trong khi một bảng thống kê của paper cộng thành 85.368; manifest phải lấy count thật từ ba JSON files và báo discrepancy, không chép số marketing.</p>
       <h3 style="margin-top:28px">Error taxonomy</h3>
       <div class="table-wrap"><table><caption>Mỗi case có một primary error là lỗi sớm nhất trong causal pipeline, cộng contributing errors tùy chọn.</caption><thead><tr><th>Family</th><th>Codes</th><th>Examples</th></tr></thead><tbody>
         <tr><td class="id">D</td><td>D1–D4</td><td>Ambiguous question · duplicate/leakage · incomplete reference · out of corpus</td></tr>
@@ -398,11 +414,11 @@ Evaluator          reads only frozen experiment IDs from registry</pre></div>
 
     <section id="roadmap">
       <div class="section-head"><div class="num">10 · ROADMAP</div><div><h2>Năm tuần, năm cổng kiểm soát</h2><p>Generation smoke test bắt đầu từ tuần 1; frontend/backend đi song song sau khi API/evidence contract freeze.</p></div></div>
-      <div class="week"><div class="week-no">W1 · 13–19/07</div><div><h3>Data contract + vertical smoke</h3><ul><li>Download/pin BioASQ, MedQA, PrimeKG; schema, counts, license, checksum, leakage EDA</li><li>Kiểm tra Gemini/Groq keys, model-list và quota; lưu exact IDs + ngày kiểm tra</li><li>Dựng C0 abstract records + BM25; khóa API/evidence/artifact schemas</li><li>B0/B1 smoke n=50 qua backend và UI tối thiểu</li></ul></div><div class="gate"><strong>Gate</strong>Manifest hợp lệ; 50/50 câu question→retrieval→answer→citation→artifact, paid cost $0.</div></div>
-      <div class="week"><div class="week-no">W2 · 20–26/07</div><div><h3>Strong Text-RAG có chọn lọc</h3><ul><li>E1 C0/C1/C2; chọn chunk bằng Recall@10</li><li>E2 BM25/MedCPT/RRF; E3 cross-encoder; dev≤300</li><li>E4 Q0/Q1; chỉ thử Q2 trên measured retrieval failures</li><li>FastAPI registry, SSE, cache/persistence; React answer/citation states</li></ul></div><div class="gate"><strong>Gate</strong>Freeze B3-final cùng chunk/query strategy và report lý do chọn; evaluator replayable.</div></div>
-      <div class="week"><div class="week-no">W3 · 27/07–02/08</div><div><h3>PrimeKG + evidence fusion</h3><ul><li>Entity aliases/type filter/confidence; annotate entity-link sample</li><li>E5 1-hop vs 1–2 hop, path validity/provenance/ranking; freeze graph subset 150</li><li>G1/G2, 1,800-token fusion/backfill; React graph path and comparison panels</li></ul></div><div class="gate"><strong>Gate</strong>Mọi edge traceable; entity/path metrics đạt gate; G2 dùng cùng contract/generator như B3.</div></div>
+      <div class="week"><div class="week-no">W1 · 13–19/07</div><div><h3>Data contract + compatibility</h3><ul><li>Pin BioASQ, PrimeKG, PrimeKGQA; schema/count/license/checksum EDA</li><li>Recreate/verify PrimeKGQA RDF/IRI schema; execute 100 gold SPARQL</li><li>Audit duplicate/entity/relation/motif overlap across splits</li><li>Dựng C0 + BM25 và end-to-end mock smoke n=50</li></ul></div><div class="gate"><strong>Gate</strong>Manifest frozen; PrimeKGQA executable ≥99%; question→artifact flow chạy đủ.</div></div>
+      <div class="week"><div class="week-no">W2 · 20–26/07</div><div><h3>Strong Text-RAG có chọn lọc</h3><ul><li>E1 C0/C2 × BM25/MedCPT; dev≤300</li><li>E2 BM25/MedCPT/RRF; E3 cross-encoder</li><li>E4 Q0/Q1; Q2 exploratory với runtime confidence trigger</li><li>FastAPI registry, SSE, cache/persistence; React answer/citation states</li></ul></div><div class="gate"><strong>Gate</strong>Freeze B3-final cùng chunk/query strategy và report lý do chọn.</div></div>
+      <div class="week"><div class="week-no">W3 · 27/07–02/08</div><div><h3>PrimeKGQA + PrimeKG retriever</h3><ul><li>Entity/relation linker; node và relation answer types</li><li>1/2/≤3-hop retrieval, path ranking; val metrics theo 2/3/4-node</li><li>BioASQ G1/G2, 1,800-token fusion/backfill; graph UI panel</li></ul></div><div class="gate"><strong>Gate</strong>PrimeKGQA component metrics reproducible; mọi edge traceable; G2 cùng contract như B3.</div></div>
       <div class="week"><div class="week-no">W4 · 03–09/08</div><div><h3>Confirmatory pair + controls</h3><ul><li>Freeze registry; B3/G2 primary dev run bằng cùng Gemini model ID</li><li>A1/A2 + extra-text + matched random-path controls</li><li>Cache evidence; chạy M1/M2 dev robustness, M3 chỉ khi có credit</li><li>Comparison UI, full-stack QA, statistics dry-run</li></ul></div><div class="gate"><strong>Gate</strong>Không silent failure; core cost $0; ký locked-test freeze.</div></div>
-      <div class="week"><div class="week-no">W5 · 10–16/08</div><div><h3>Locked test + review + handoff</h3><ul><li>Locked test B3/G2 một lần; blind manual review</li><li>BioASQ bootstrap; MedQA exact McNemar; exploratory corrections</li><li>Error taxonomy, cost/latency, demo acceptance và report</li></ul></div><div class="gate"><strong>Gate</strong>Mọi claim map tới run/config/hash; demo và report tái lập.</div></div>
+      <div class="week"><div class="week-no">W5 · 10–16/08</div><div><h3>Hai locked tests + review</h3><ul><li>BioASQ B3/G2 một lần; blind human random sample 100</li><li>PrimeKGQA official test một lần; EM/F1/execution theo complexity</li><li>Paired bootstrap, judge calibration, error taxonomy, cost/latency</li><li>Demo acceptance và report; MedQA chỉ ghi future work</li></ul></div><div class="gate"><strong>Gate</strong>Mọi claim map tới track/run/config/hash; không gộp hai benchmark thành một score.</div></div>
     </section>
 
     <section id="roles">
@@ -412,7 +428,7 @@ Evaluator          reads only frozen experiment IDs from registry</pre></div>
         <div class="role"><b>Data & EDA Engineer</b><span>Ingestion, split audit, quality, license, coverage.</span></div>
         <div class="role"><b>Text-RAG Engineer</b><span>BM25, MedCPT, RRF, reranker, B1–B3.</span></div>
         <div class="role"><b>Knowledge Graph Engineer</b><span>PrimeKG, entity linking, traversal, path ranking, G1/G2.</span></div>
-        <div class="role"><b>Evaluation & Statistics</b><span>Harness, metrics, CI, McNemar, plots.</span></div>
+        <div class="role"><b>Evaluation & Statistics</b><span>Answer-set/execution metrics, judge calibration, paired bootstrap, plots.</span></div>
         <div class="role"><b>Backend Engineer</b><span>FastAPI, pipeline adapter, SSE, SQLite/artifacts, observability.</span></div>
         <div class="role"><b>Frontend Engineer</b><span>React UI, streaming states, evidence panels, B3/G2 comparison.</span></div>
         <div class="role"><b>Review & Report Editor</b><span>Rubric, blind subset, terminology, results, limitations.</span></div>
@@ -434,8 +450,20 @@ Evaluator          reads only frozen experiment IDs from registry</pre></div>
       <div class="chips"><span class="chip">Overall win</span><span class="chip">Subset-only win</span><span class="chip">Conditional routing win</span><span class="chip">Negative result with explanation</span></div>
     </section>
 
+    <section id="results">
+      <div class="section-head"><div class="num">13 · ACTUAL RESULTS</div><div><h2>Kết quả real-data hiện tại</h2><p>Chi tiết và artifact mapping nằm trong <code>docs/RESULTS.md</code>.</p></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Thí nghiệm</th><th>Kết quả</th><th>Quyết định</th></tr></thead><tbody>
+        <tr><td>C0 vs C2</td><td>BM25 ΔRecall@10 −0,01391; MedCPT +0,00885</td><td>Freeze C0 vì C2 không cải thiện cả hai retriever</td></tr>
+        <tr><td>Q0 vs Q1</td><td>Q1 cứu 5,0% nhưng làm hại 11,67%</td><td>Freeze Q0; không promote Q2</td></tr>
+        <tr><td>B1 / B2 / B3</td><td>Recall@10: 0,65845 / 0,66120 / <strong>0,73465</strong></td><td>Freeze B3 làm strong text baseline</td></tr>
+        <tr><td>PrimeKGQA locked fallback</td><td>15.814 câu; F1 0,06999; 2-node 0,15933; 4-node 0,02499</td><td>Chỉ descriptive; SPARQL gate fail</td></tr>
+        <tr><td>Graph controls dev</td><td>full 0,05801; random path 0,07893</td><td>Không claim path scorer/graph tốt hơn</td></tr>
+      </tbody></table></div>
+      <div class="callout"><strong>Kết luận hiện tại:</strong> hybrid text retrieval có improvement rõ; graph chỉ có coverage hạn chế ở pattern đơn giản và chưa chứng minh tăng correctness so với B3. BioASQ locked B3/G2 chưa mở vì thiếu generator credential và human medical review.</div>
+    </section>
+
     <section id="sources">
-      <div class="section-head"><div class="num">13 · SOURCES</div><div><h2>Tài nguyên chính</h2><p>Ưu tiên paper, dataset card và repository gốc. Các link là đầu vào tái lập, không phải kiến trúc cần sao chép nguyên bản.</p></div></div>
+      <div class="section-head"><div class="num">14 · SOURCES</div><div><h2>Tài nguyên chính</h2><p>Ưu tiên paper, dataset card và repository gốc. Các link là đầu vào tái lập, không phải kiến trúc cần sao chép nguyên bản.</p></div></div>
       <ul class="sources">
         <li><a href="https://aclanthology.org/2024.findings-acl.372/">MIRAGE / Benchmarking RAG for Medicine</a></li>
         <li><a href="https://github.com/gzxiong/MedRAG">MedRAG toolkit</a></li>
@@ -448,6 +476,9 @@ Evaluator          reads only frozen experiment IDs from registry</pre></div>
         <li><a href="https://huggingface.co/ncbi/MedCPT-Cross-Encoder">MedCPT Cross Encoder</a></li>
         <li><a href="https://github.com/mims-harvard/PrimeKG">PrimeKG repository</a></li>
         <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9893183/">PrimeKG paper</a></li>
+        <li><a href="https://zenodo.org/records/13829395">PrimeKGQA repaired generated-question release used here</a></li>
+        <li><a href="https://journals.sagepub.com/doi/pdf/10.3233/FAIA240615">PrimeKGQA paper · ECAI 2024</a></li>
+        <li><a href="https://github.com/xixi019/primeKGQG">PrimeKGQA generation repository</a></li>
         <li><a href="https://aclanthology.org/2024.bionlp-1.13/">KG-Rank paper</a></li>
         <li><a href="https://github.com/ImprintLab/Medical-Graph-RAG">Medical Graph RAG repository</a></li>
         <li><a href="https://ai.google.dev/gemini-api/docs/pricing">Gemini API pricing và Free Tier</a></li>

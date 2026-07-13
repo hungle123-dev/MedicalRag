@@ -1,0 +1,61 @@
+{
+  "split": "val",
+  "sample_size": 300,
+  "seed": 20260712,
+  "compatibility_gate_passed": false,
+  "evaluation_mode": "normalized_pattern_fallback",
+  "variant": "one_hop",
+  "answer_set": {
+    "exact_match": 0.006667,
+    "precision": 0.062167,
+    "recall": 0.074057,
+    "f1": 0.045791,
+    "n": 300
+  },
+  "entity_link_f1": 0.678326,
+  "relation_f1": 0.075667,
+  "path_valid_rate": 0.903333,
+  "graph_answerability": {
+    "full": 2,
+    "partial": 36,
+    "none": 262
+  },
+  "strata": {
+    "answer_node": {
+      "exact_match": 0.0,
+      "precision": 0.133182,
+      "recall": 0.147428,
+      "f1": 0.08246,
+      "n": 110
+    },
+    "answer_relation": {
+      "exact_match": 0.010526,
+      "precision": 0.021053,
+      "recall": 0.031579,
+      "f1": 0.024561,
+      "n": 190
+    },
+    "nodes_2": {
+      "exact_match": 0.0,
+      "precision": 0.194286,
+      "recall": 0.000944,
+      "f1": 0.001879,
+      "n": 35
+    },
+    "nodes_3": {
+      "exact_match": 0.01,
+      "precision": 0.050833,
+      "recall": 0.104881,
+      "f1": 0.063631,
+      "n": 200
+    },
+    "nodes_4": {
+      "exact_match": 0.0,
+      "precision": 0.025897,
+      "recall": 0.018581,
+      "f1": 0.014543,
+      "n": 65
+    }
+  },
+  "run_id": "primekgqa_val_one_hop_patterns_20260712_300"
+}

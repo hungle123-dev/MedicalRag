@@ -34,13 +34,20 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .citations p { color: #53645f; line-height: 1.5; margin-bottom: 0; }
 .citations a { color: #05634f; font-weight: 700; }
 .badge { display: inline-block; padding: .15rem .45rem; margin-right: .5rem; border-radius: 99px; background: #dff4ec; color: #05634f; font-size: .7rem; font-weight: 800; text-transform: uppercase; }
+.badge.cited { background: #fff0c7; color: #795500; }
 details code { display: block; overflow-x: auto; padding: .75rem; margin: .5rem 0; background: #eff4f2; border-radius: .45rem; }
 summary { cursor: pointer; font-weight: 750; }
+.compare-toggle { display: flex; gap: .45rem; align-items: center; margin: 0; font-size: .9rem; }
+.compare-toggle input { width: auto; }
+.comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.comparison article { padding: 1rem; border: 1px solid #dce6e2; border-radius: .75rem; }
+.comparison h3, .subheading { margin-top: 1rem; }
 
 @media (max-width: 620px) {
   main { padding: 2rem 0; }
   .controls { grid-template-columns: 1fr 1fr; }
   .controls label, .controls select { grid-column: 1 / -1; }
+  .comparison { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

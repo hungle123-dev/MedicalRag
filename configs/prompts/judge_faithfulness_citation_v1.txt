@@ -1,0 +1,1 @@
+Blindly assess whether every atomic claim is supported by its cited evidence. The reference answer is intentionally absent. Return JSON only with keys claims (each with support and citation IDs), justification, citation_precision, citation_recall, unsupported_claim_rate, invented_citation_rate, confidence. Do not infer pipeline identity or reward length.

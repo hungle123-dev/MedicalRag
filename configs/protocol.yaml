@@ -1,29 +1,48 @@
-version: "1.0-draft"
+version: "1.2-dev"
 seed: 20260712
 
 tracks:
-  primary:
+  bioasq_end_to_end:
     dataset: mattmorgis/bioasq-12b-rag
-    revision: MUST_VERIFY_W1
-    question_config: MUST_VERIFY_W1
-    corpus_config: MUST_VERIFY_W1
+    revision: 6d6add1a6ec2090991386b5ae7608b71fd637bc4
+    question_config: question-answer-passages
+    corpus_config: text-corpus
+    dev_split: dev
+    locked_split: eval
     role: confirmatory
-  secondary:
-    dataset: mkieffer/MedQA-USMLE
-    revision: MUST_VERIFY_W1
-    role: supportive_answer_only
-    retriever_input: question_stem_only
+    primary_comparison: [B3, G2]
+  primekgqa_graph_component:
+    dataset: PrimeKGQA
+    doi: 10.5281/zenodo.13829395
+    revision: generated_question_release
+    files: [train_call_bioLLM.json, val_call_bioLLM.json, test_call_bioLLM.json]
+    expected_release_pairs: 85368
+    count_must_be_recomputed_from_files: true
+    role: component_confirmatory
+    locked_split: test
+    primary_metric: answer_set_f1
+    report_by_node_count: [2, 3, 4]
+  medqa:
+    enabled: false
+    role: optional_future_work
 
 knowledge_graph:
   dataset: PrimeKG
-  doi: MUST_VERIFY_W1
-  sha256: MUST_VERIFY_W1
+  doi: 10.7910/DVN/IXA7BM
+  revision: "Dataverse datafiles 6180616 and 6180617"
+  files:
+    edges_sha256: 57c405049d0adb5ee9070d8b3fbb38f55a053b5c8d45b8b5af1ce23ee5d3ad7c
+    nodes_sha256: 18ebcf24887e8529b95c7a7c96c81089cc7c5ba22d53a5c05d56480331961af8
   redistribute: false
+  primekgqa_rdf_compatibility_gate:
+    gold_query_smoke_count: 100
+    minimum_executable_rate: 0.99
+    mondo_group_resources_filtered: true
 
 generator:
   provider: google
   model: gemini-3.5-flash
-  snapshot: VERIFY_EXACT_API_ID_W1
+  snapshot: external_credential_blocker_not_verified
   temperature: 0
   top_p: 1
   max_output_tokens: 512
@@ -32,9 +51,44 @@ generator:
 judge:
   provider: groq
   model: openai/gpt-oss-120b
-  snapshot: VERIFY_EXACT_API_ID_W1
+  snapshot: external_credential_blocker_not_verified
   must_differ_from_generator: true
-  validity_kappa_minimum: 0.60
+  human_calibration_sample: 100
+  validity_weighted_kappa_minimum: 0.60
+  correctness_input: [question, reference_answer, candidate_answer]
+  faithfulness_input: [candidate_answer, cited_evidence]
+
+text_strategy:
+  chunk_candidates:
+    - {id: C0, kind: abstract_record}
+    - {id: C2, kind: sentence_aware, max_tokens: 256}
+  evaluate_chunking_with: [bm25, medcpt]
+  query_candidates:
+    - {id: Q0, kind: original}
+    - {id: Q1, kind: entity_alias_expansion}
+    - {id: Q2, kind: multi_query, max_queries: 3, exploratory: true}
+  q2_runtime_trigger: frozen_retrieval_confidence_rule
+  q2_must_not_use_gold_at_runtime: true
+  selected_query_strategy: Q0
+  q1_decision: rejected_on_dev_harmed_rate_exceeded_rescued_rate
+  q2_status: not_promoted_after_q1_failure
+  selected_chunk_strategy: C0
+  chunk_selection_rule: C2_must_improve_recall_at_10_for_both_bm25_and_medcpt
+  b3_status: frozen_dev_winner
+  b3_components: [C0, Q0, bm25_top_50, medcpt_top_50, rrf_60, cross_encoder_pool_30]
+
+graph_strategy:
+  bioasq_max_hops: 2
+  primekgqa_max_hops: 3
+  final_paths: 5
+  answer_types: [node, relation]
+  primary_metrics: [answer_set_exact_match, answer_set_f1, executable_query_rate, execution_accuracy]
+  secondary_metrics: [entity_link_accuracy, relation_accuracy, graph_pattern_overlap]
+  sparql_string_exact_match_is_primary: false
+  dev_status: frozen_rule_based_v1
+  entity_linking: exact_longest_primekg_name_with_type_tiebreak
+  relation_canonicalization: frozen_schema_alias_map_v1
+  compatibility_mode: normalized_pattern_fallback
 
 evidence_budget:
   total_tokens: 1800
@@ -44,20 +98,28 @@ evidence_budget:
 
 sampling:
   smoke: 50
-  dev_cap: 300
-  manual_random: 100
-  graph_oversample: 50
+  bioasq_dev_cap: 300
+  human_random: 100
+  human_random_split: eval
+  primekgqa_gold_query_smoke: 100
 
-locked_test:
-  pipelines: [B3, G2]
-  executions: 1
-  retune_after_access: false
+locked_tests:
+  bioasq:
+    pipelines: [B3, G2]
+    executions: 1
+    retune_after_access: false
+    statistic: paired_question_bootstrap_10000
+  primekgqa:
+    split: test
+    retune_after_access: false
+    statistic: paired_question_bootstrap_10000
 
 budget:
-  core_api_cost_cap_usd: 0
-  optional_paid_models_require_explicit_budget: true
-  max_core_configs: 6
-  max_graph_ablations: 4
+  policy: free_tier_first_cache_first
+  automatic_paid_fallback: false
+  preserve_confirmatory_population: true
+  max_core_pipelines: 6
+  max_graph_controls: 4
 
 generator_robustness:
   role: exploratory_dev_only

@@ -1,0 +1,31 @@
+seed: 20260712
+experiments:
+  E1_chunking:
+    hypothesis: Sentence-aware C2 improves document Recall@10 enough to justify extra records and latency.
+    change: C0 versus C2, separately for BM25 and MedCPT
+    fixed: [BioASQ dev IDs, query Q0, metric implementation, parent-PMID collapse]
+    primary_metric: paired_delta_document_recall_at_10
+    selection_rule: Select C2 only if it improves both retrievers without material latency regression; otherwise C0.
+  E2_query_expansion:
+    hypothesis: PrimeKG entity/type expansion rescues lexical misses without excessive harm.
+    change: Q0 versus Q1
+    fixed: [C0, BM25, BioASQ dev IDs]
+    primary_metric: paired_delta_document_recall_at_10
+    stop_rule: Reject Q1 if the bootstrap CI includes zero or harmed-query rate offsets rescues.
+  E3_text_retrieval:
+    hypothesis: RRF plus cross-encoder improves over either BM25 or MedCPT alone.
+    change: [B1, B2, B3]
+    fixed: [C0_or_E1_winner, Q0_or_E2_winner, BioASQ dev IDs]
+    primary_metric: document_recall_at_10
+  E4_graph_component:
+    hypothesis: Rule-based entity linking and bounded traversal recover PrimeKGQA answers/patterns.
+    change: [full, one_hop, no_path_reranker]
+    fixed: [PrimeKG revision, PrimeKGQA IDs, max candidates]
+    primary_metric: answer_set_f1
+    gate: Gold SPARQL non-empty executable rate must be at least 0.99; otherwise normalized-pattern fallback only.
+  E5_graph_value:
+    hypothesis: Relevant PrimeKG paths improve answer correctness beyond equal-budget text.
+    change: [B3, G2, extra_text, random_path]
+    fixed: [question IDs, generator, prompt, total evidence budget, output limit, retries]
+    primary_metric: paired_mean_correctness_0_2
+    decision_rule: Claim benefit only when CI excludes zero and extra-text/random-path controls do not explain it.

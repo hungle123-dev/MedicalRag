@@ -1,0 +1,11 @@
+{
+  "run_id": "bioasq_dev_b3_g2_mock_50_20260712",
+  "questions": 50,
+  "generator": "mock",
+  "mean_latency_ms": {
+    "B3": 1950.2,
+    "G2": 1462.48
+  },
+  "graph_evidence_rate_G2": 0.44,
+  "interpretation": "Flow/latency smoke only"
+}

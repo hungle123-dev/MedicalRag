@@ -1,0 +1,9 @@
+dataset,metric,value
+bioasq,corpus,49513
+bioasq,dev,5049
+bioasq,eval,340
+primekg,nodes,129375
+primekg,edges,8100498
+primekgqa,train,51220
+primekgqa,val,17074
+primekgqa,test,17074

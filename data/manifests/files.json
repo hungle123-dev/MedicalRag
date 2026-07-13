@@ -1,0 +1,85 @@
+{
+  "retrieved_at": "2026-07-13T01:05:13.148341+00:00",
+  "files": [
+    {
+      "name": "bioasq_corpus",
+      "path": "data\\raw\\bioasq\\corpus.jsonl",
+      "url": "https://huggingface.co/datasets/mattmorgis/bioasq-12b-rag/resolve/6d6add1a6ec2090991386b5ae7608b71fd637bc4/data/corpus.jsonl",
+      "bytes": 126455681,
+      "md5": "6f963635c10b0c64114c915e0bfaf271",
+      "sha256": "1e992bd761413d17b3fbb410a368532227d4bc28d0ef27817dde98ef3ecb2ca0",
+      "source_md5": null,
+      "note": null
+    },
+    {
+      "name": "bioasq_dev",
+      "path": "data\\raw\\bioasq\\dev.jsonl",
+      "url": "https://huggingface.co/datasets/mattmorgis/bioasq-12b-rag/resolve/6d6add1a6ec2090991386b5ae7608b71fd637bc4/data/dev.jsonl",
+      "bytes": 25960520,
+      "md5": "581e85342a30ecbcaba7b1273a610341",
+      "sha256": "19378f4c5eb4957753bdd7ce67fc570d6d709b6b738b9e0d5ca179e354e0510d",
+      "source_md5": null,
+      "note": null
+    },
+    {
+      "name": "bioasq_eval",
+      "path": "data\\raw\\bioasq\\eval.jsonl",
+      "url": "https://huggingface.co/datasets/mattmorgis/bioasq-12b-rag/resolve/6d6add1a6ec2090991386b5ae7608b71fd637bc4/data/eval.jsonl",
+      "bytes": 4436186,
+      "md5": "aabd4aa667c31d5a4a27169bc159103e",
+      "sha256": "61a1521015fc190dcc8c8c0f0d1b3a25ea6a694f915461256557a81c4d4bfbdf",
+      "source_md5": null,
+      "note": null
+    },
+    {
+      "name": "primekg_nodes",
+      "path": "data\\raw\\primekg\\nodes.tab",
+      "url": "https://dataverse.harvard.edu/api/access/datafile/6180617",
+      "bytes": 8893757,
+      "md5": "4924de04fb3deefa1e0a8dada424538e",
+      "sha256": "18ebcf24887e8529b95c7a7c96c81089cc7c5ba22d53a5c05d56480331961af8",
+      "source_md5": "7f9ab4109c54049e819ecd14e15a6038",
+      "note": "Dataverse returns a derived TSV; source MD5 belongs to original nodes.csv."
+    },
+    {
+      "name": "primekg_edges",
+      "path": "data\\raw\\primekg\\edges.csv",
+      "url": "https://dataverse.harvard.edu/api/access/datafile/6180616",
+      "bytes": 386582390,
+      "md5": "5d4d211a22e88544b78fde2735e797bc",
+      "sha256": "57c405049d0adb5ee9070d8b3fbb38f55a053b5c8d45b8b5af1ce23ee5d3ad7c",
+      "source_md5": "5d4d211a22e88544b78fde2735e797bc",
+      "note": null
+    },
+    {
+      "name": "primekgqa_train",
+      "path": "data\\raw\\primekgqa\\train_call_bioLLM.json",
+      "url": "https://zenodo.org/api/records/13829395/files/train_call_bioLLM.json/content",
+      "bytes": 942393461,
+      "md5": "1457be128b9ac4c70fe6139ee01d5b10",
+      "sha256": "4f0776ceb2d8890f8b06997744142a150f98255e289d230203307d68f273d627",
+      "source_md5": "1457be128b9ac4c70fe6139ee01d5b10",
+      "note": null
+    },
+    {
+      "name": "primekgqa_val",
+      "path": "data\\raw\\primekgqa\\val_call_bioLLM.json",
+      "url": "https://zenodo.org/api/records/13829395/files/val_call_bioLLM.json/content",
+      "bytes": 317780342,
+      "md5": "b0404cc5dbe44acce8769a3aeb4f1d76",
+      "sha256": "fbb44c55dd2d9feb78788f2276b65b14b922b5963e67bf9fb39ceaeede3aebed",
+      "source_md5": "b0404cc5dbe44acce8769a3aeb4f1d76",
+      "note": null
+    },
+    {
+      "name": "primekgqa_test",
+      "path": "data\\raw\\primekgqa\\test_call_bioLLM.json",
+      "url": "https://zenodo.org/api/records/13829395/files/test_call_bioLLM.json/content",
+      "bytes": 287302216,
+      "md5": "43c40df023e7e199774cfb37758a776b",
+      "sha256": "603bdc2b5efe5bfc5c0f58925810abca32dbc37cdcb7ffe34a7354d495b455bd",
+      "source_md5": "43c40df023e7e199774cfb37758a776b",
+      "note": null
+    }
+  ]
+}

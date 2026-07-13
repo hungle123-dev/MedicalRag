@@ -1,0 +1,36 @@
+{
+  "run_id": "bioasq_dev_medcpt_243e7ce0f400",
+  "question_ids_file": "data/manifests/bioasq_dev_question_ids.json",
+  "results": [
+    {
+      "strategy": "C0",
+      "retriever": "MedCPT",
+      "documents": 49513,
+      "questions": 300,
+      "metrics": {
+        "recall_at_5": 0.519068,
+        "recall_at_10": 0.661204,
+        "precision_at_5": 0.556,
+        "mrr": 0.849485,
+        "ndcg_at_10": 0.751689,
+        "snippet_document_coverage_at_10": 0.683229
+      },
+      "elapsed_seconds": 28.696
+    },
+    {
+      "strategy": "C2",
+      "retriever": "MedCPT",
+      "documents": 80061,
+      "questions": 300,
+      "metrics": {
+        "recall_at_5": 0.529055,
+        "recall_at_10": 0.670052,
+        "precision_at_5": 0.563333,
+        "mrr": 0.85086,
+        "ndcg_at_10": 0.760347,
+        "snippet_document_coverage_at_10": 0.693994
+      },
+      "elapsed_seconds": 13.447
+    }
+  ]
+}

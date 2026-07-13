@@ -5,8 +5,7 @@ The repository is a small monorepo. Directories are created only when their firs
 ```text
 MedicalRag/
 ├── backend/                 # FastAPI app and shared research pipeline
-│   ├── app/                 # routes, schemas, lifecycle, persistence
-│   ├── medical_rag/         # registry, text/graph retrieval, fusion, generation
+│   ├── app/                 # routes, persistence, text/graph retrieval, generation
 │   └── tests/               # small contract and end-to-end checks
 ├── frontend/                # React + Vite + TypeScript demo
 │   └── src/                 # UI, API client, SSE handling
@@ -25,11 +24,12 @@ MedicalRag/
 
 ## Ownership rules
 
-- `backend/medical_rag` is the sole implementation of B0–G2. API and evaluation reuse it.
+- `backend/app` is the sole implementation of B0–G2. API and evaluation reuse it.
 - `configs/` is reviewed input; generated runtime state belongs in `artifacts/`.
 - `data/manifests/` is committed. Downloaded corpora, KG files, indexes, model weights, SQLite files and secrets are not.
 - `frontend/` consumes the checked OpenAPI contract and never imports backend source.
 - A frozen experiment artifact is append-only. Corrections create a new run ID.
+- BioASQ end-to-end and PrimeKGQA component results use separate track directories and are never averaged into one score.
 
 ## Naming
 
@@ -38,8 +38,8 @@ MedicalRag/
 - Graph evidence IDs: `primekg:path:<sha256>` over canonical ordered path JSON.
 - Text evidence IDs: stable corpus identifiers such as `PMID:<id>`.
 - Experiment output: `artifacts/experiments/<run_id>/`.
+- Track output: `artifacts/experiments/<track>/<run_id>/`, where `track` is `bioasq` or `primekgqa`.
 
 ## Minimal commands expected
 
 The root README will expose one command each for backend, frontend, checks, a smoke experiment and evaluation. Do not add a task runner until repeated commands justify it.
-

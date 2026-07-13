@@ -1,0 +1,33 @@
+{
+  "python": "3.12.10",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "packages": {
+    "torch": "2.11.0+cu128",
+    "transformers": "4.57.6",
+    "faiss-cpu": "1.14.3",
+    "rank-bm25": "0.2.2"
+  },
+  "cuda": {
+    "available": true,
+    "torch_runtime": "12.8",
+    "device": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "capability": [
+      8,
+      6
+    ]
+  },
+  "medcpt_c0_build": {
+    "documents": 49513,
+    "dimension": 768,
+    "batch_size": 8,
+    "elapsed_seconds": 1459.1,
+    "mean_documents_per_second": 34.4
+  },
+  "medcpt_c2_build": {
+    "documents": 80061,
+    "dimension": 768,
+    "batch_size": 8,
+    "resumed_from_checkpoint": true,
+    "final_segment_documents_per_second": 58.9
+  }
+}

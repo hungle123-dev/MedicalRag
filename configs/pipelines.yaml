@@ -34,6 +34,20 @@ defaults:
   final_k: 8
   entity_confidence_threshold: 0.80
   max_seed_entities: 5
-  graph_hops: 2
+  bioasq_graph_hops: 2
+  primekgqa_graph_hops: 3
   max_candidates_per_seed: 200
   final_paths: 5
+  graph_path_quality_threshold: 0.80
+  evidence_total_tokens: 1800
+  evidence_max_items: 8
+  graph_max_tokens: 540
+  evidence_ordering: rank_interleave_text_first_v1
+  generator: ${MEDICAL_RAG_GENERATOR:-mock}
+
+component_evaluation:
+  primekgqa:
+    answer_set_metrics: [exact_match, precision, recall, f1]
+    query_metrics: [executable_rate, execution_accuracy]
+    report_by_node_count: [2, 3, 4]
+    exact_sparql_string_match: false

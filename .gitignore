@@ -19,7 +19,9 @@ frontend/vite.config.js
 frontend/vite.config.d.ts
 
 # Data, indexes, models and generated artifacts
-data/
+data/*
+!data/manifests/
+!data/manifests/**
 indexes/
 models/
 artifacts/

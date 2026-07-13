@@ -27,12 +27,12 @@
     </section>
 
     <section id="data">
-      <div class="head"><div class="num">02 · DỮ LIỆU</div><div><h2>Hai nguồn chính, hai nhiệm vụ khác nhau</h2><p>Không tự crawl và không tự xây knowledge graph.</p></div></div>
+      <div class="head"><div class="num">02 · DỮ LIỆU</div><div><h2>Ba tài nguyên chính, ba nhiệm vụ khác nhau</h2><p>Không tự crawl và không tự xây knowledge graph. PrimeKGQA là bộ đề kiểm tra graph, không phải một knowledge graph thứ hai.</p></div></div>
       <div class="table"><table><caption>BioASQ là bộ đề + thư viện; PrimeKG là sơ đồ quan hệ.</caption><thead><tr><th>Nguồn</th><th>Có gì?</th><th>Dùng vào đâu?</th><th>Team có phải tự tạo?</th></tr></thead><tbody>
         <tr><td class="id">BioASQ corpus</td><td>Các title/abstract PubMed</td><td>Kho văn bản để BM25 và MedCPT tìm kiếm</td><td>Không; tải dataset có sẵn</td></tr>
         <tr><td class="id">BioASQ QA</td><td>Question, ideal answer, gold PMID/snippets</td><td>Câu hỏi dev/test và nhãn để chấm retrieval/answer</td><td>Không; chỉ kiểm tra schema/split</td></tr>
-        <tr><td class="id">PrimeKG</td><td>Node và edge về drug, disease, gene, phenotype…</td><td>Tìm đường quan hệ 1–2 hop</td><td>Không xây graph; chỉ xây lớp tra cứu</td></tr>
-        <tr><td class="id">MedQA</td><td>Câu hỏi USMLE và đáp án A/B/C/D</td><td>Track phụ để đo exact answer accuracy</td><td>Không; supportive evaluation</td></tr>
+        <tr><td class="id">PrimeKG</td><td>Node và edge về drug, disease, gene, phenotype…</td><td>Knowledge source để tìm đường quan hệ</td><td>Không xây graph; chỉ xây lớp tra cứu</td></tr>
+        <tr><td class="id">PrimeKGQA</td><td>Khoảng 84k question–answer pairs, SPARQL và train/val/test sinh từ PrimeKG</td><td>Test entity/relation linking, graph retrieval và KG reasoning</td><td>Không; tải Zenodo và kiểm tra tương thích RDF/version</td></tr>
       </tbody></table></div>
       <div class="flow" style="margin-top:14px"><pre>BIOASQ
 ├── text-corpus                  → dữ liệu retrieval
@@ -40,6 +40,9 @@
 
 PRIMEKG
 └── nodes + edges                → dữ liệu graph retrieval
+
+PRIMEKGQA
+└── question + answer + SPARQL   → bộ test riêng cho graph component
 
 Không đưa ideal answer/gold snippets vào index hoặc prompt sinh đáp án.</pre></div>
     </section>
@@ -68,11 +71,11 @@ Ví dụ evidence hợp nhất:
 
     <section id="steps">
       <div class="head"><div class="num">04 · THỰC HIỆN</div><div><h2>Từng giai đoạn để hoàn thiện chatbot</h2><p>Mỗi giai đoạn tạo một artifact có thể kiểm tra, không đợi đến cuối mới test.</p></div></div>
-      <div class="step"><div class="step-no">BƯỚC 1</div><div><h3>Chốt dữ liệu và EDA</h3><p>Tải/pin BioASQ, PrimeKG và MedQA; kiểm tra schema, count, null, duplicate, license, checksum, độ dài văn bản, gold PMID coverage và leakage.</p></div><div class="done"><b>Hoàn thành khi</b>Có manifest và báo cáo EDA tái lập.</div></div>
-      <div class="step"><div class="step-no">BƯỚC 2</div><div><h3>Chuẩn bị corpus và thử chunking</h3><p>So C0: một abstract; C1: 256 tokens overlap 32; C2: sentence-aware tối đa 256 tokens. Mọi chunk giữ parent PMID và offsets.</p></div><div class="done"><b>Hoàn thành khi</b>Chọn chunk bằng Recall@10, không chọn theo cảm tính.</div></div>
+      <div class="step"><div class="step-no">BƯỚC 1</div><div><h3>Chốt dữ liệu và EDA</h3><p>Tải/pin BioASQ, PrimeKG và PrimeKGQA; kiểm tra schema, count, null, duplicate, license, checksum, gold PMID coverage, entity/relation overlap và leakage giữa split.</p></div><div class="done"><b>Hoàn thành khi</b>Có manifest và báo cáo EDA tái lập.</div></div>
+      <div class="step"><div class="step-no">BƯỚC 2</div><div><h3>Chuẩn bị corpus và thử chunking</h3><p>So C0: một abstract với C2: sentence-aware tối đa 256 tokens trên cả BM25 và MedCPT. Mọi chunk giữ parent PMID và offsets.</p></div><div class="done"><b>Hoàn thành khi</b>Chọn chunk bằng Recall@10/nDCG@10, không bias riêng BM25.</div></div>
       <div class="step"><div class="step-no">BƯỚC 3</div><div><h3>Xây Text-RAG đủ mạnh</h3><p>BM25 top-50 và MedCPT top-50 → RRF → MedCPT cross-encoder rerank top-30 → lấy tối đa 8 passages.</p></div><div class="done"><b>Hoàn thành khi</b>Có B1, B2, B3 và retrieval metrics.</div></div>
-      <div class="step"><div class="step-no">BƯỚC 4</div><div><h3>Thử query expansion có điều kiện</h3><p>Q0 dùng câu gốc; Q1 thêm entity/alias y khoa; Q2 dùng LLM rẻ tạo tối đa 3 search queries chỉ khi Q0/Q1 còn miss evidence.</p></div><div class="done"><b>Hoàn thành khi</b>Expansion tăng paired Recall@10, không chỉ làm query dài hơn.</div></div>
-      <div class="step"><div class="step-no">BƯỚC 5</div><div><h3>Kết nối PrimeKG có sẵn</h3><p>Nhận diện mention → map sang PrimeKG node → tìm path 1–2 hop → lọc hub/noise → rank tối đa 5 paths → giữ provenance.</p></div><div class="done"><b>Hoàn thành khi</b>Entity accuracy, coverage và useful-path rate được đo.</div></div>
+      <div class="step"><div class="step-no">BƯỚC 4</div><div><h3>Thử query expansion có điều kiện</h3><p>Q0 dùng câu gốc; Q1 thêm entity/alias; Q2 dùng LLM rẻ tạo tối đa 3 queries. Gold miss chỉ dùng phân tích dev; runtime phải kích hoạt Q2 bằng confidence rule đã freeze.</p></div><div class="done"><b>Hoàn thành khi</b>Expansion tăng paired Recall@10 mà không dùng gold lúc inference.</div></div>
+      <div class="step"><div class="step-no">BƯỚC 5</div><div><h3>Kết nối và kiểm tra PrimeKG</h3><p>Trước tiên chạy 100 gold SPARQL để xác nhận PrimeKGQA tương thích PrimeKG RDF/version. Sau đó entity linking → path 1–2 hop cho BioASQ; tối đa 3-hop cho PrimeKGQA 4-node challenge.</p></div><div class="done"><b>Hoàn thành khi</b>Gold query executable rate ≥99% và graph metrics chạy được.</div></div>
       <div class="step"><div class="step-no">BƯỚC 6</div><div><h3>Fusion text và graph</h3><p>Tổng evidence không quá 1.800 tokens. G2 dành tối đa 30% cho graph; thiếu graph tốt thì backfill bằng text. Deduplicate và gán citation IDs ổn định.</p></div><div class="done"><b>Hoàn thành khi</b>B3/G2 có cùng tổng budget và prompt.</div></div>
       <div class="step"><div class="step-no">BƯỚC 7</div><div><h3>LLM sinh và kiểm tra answer</h3><p>Giai đoạn phát triển dùng mock để test flow. Khi inference/test mới gọi Gemini/Groq/OpenAI API. Validator chặn citation ID bịa và ghi nhận unsupported claims/abstention.</p></div><div class="done"><b>Hoàn thành khi</b>Một question tạo answer + citations + raw artifact.</div></div>
       <div class="step"><div class="step-no">BƯỚC 8</div><div><h3>Backend và frontend</h3><p>FastAPI cung cấp pipeline registry/submit/stream/result; React hiển thị chat, PubMed citations, PrimeKG paths và màn so sánh B3/G2.</p></div><div class="done"><b>Hoàn thành khi</b>UI dùng đúng pipeline/evidence như evaluator.</div></div>
@@ -97,10 +100,10 @@ Ví dụ evidence hợp nhất:
       <div class="table"><table><caption>Metric nói lên điều gì?</caption><thead><tr><th>Phần cần test</th><th>Gold/evaluation data</th><th>Metric chính</th><th>Ý nghĩa</th></tr></thead><tbody>
         <tr><td>Chunk/query/text retrieval</td><td>BioASQ gold PMID/snippets</td><td>Recall@10, nDCG@10, MRR</td><td>Có tìm và xếp đúng evidence không?</td></tr>
         <tr><td>Entity linking</td><td>Subset mention → PrimeKG node được kiểm tra</td><td>Accuracy, coverage</td><td>Có map đúng node không?</td></tr>
-        <tr><td>Graph retrieval</td><td>Subset khoảng 150 câu được annotate</td><td>Valid/useful path rate</td><td>Path tồn tại và có hỗ trợ answer không?</td></tr>
+        <tr><td>Graph retrieval/KGQA</td><td>PrimeKGQA test: answer + SPARQL</td><td>Answer-set EM/F1, executable rate, execution accuracy</td><td>Graph component có truy vấn đúng PrimeKG không?</td></tr>
+        <tr><td>Graph usefulness thực tế</td><td>100 BioASQ questions human audit</td><td>Useful/misleading path rate</td><td>Graph có hỗ trợ final answer trên câu hỏi tự nhiên không?</td></tr>
         <tr><td>Final answer</td><td>BioASQ ideal answer + evidence</td><td>Correctness/completeness 0–2</td><td>Nội dung y khoa có đúng/đủ không?</td></tr>
         <tr><td>Citation</td><td>Atomic claims + cited evidence</td><td>Precision/recall</td><td>Citation có support claim và claim có citation không?</td></tr>
-        <tr><td>MedQA</td><td>Gold option</td><td>Exact accuracy</td><td>Chọn đúng A/B/C/D không?</td></tr>
         <tr><td>Hiệu năng</td><td>Run logs</td><td>p50/p95 latency, tokens, cost</td><td>Graph cải thiện có đáng chi phí không?</td></tr>
         <tr><td>B3 vs G2</td><td>Paired locked outputs</td><td>Mean difference + 95% CI</td><td>Graph cải thiện bao nhiêu và có ổn định không?</td></tr>
       </tbody></table></div>
@@ -129,11 +132,11 @@ BM25 index · FAISS · PrimeKG adjacency · SQLite · JSONL artifacts</pre></div
     <section id="result">
       <div class="head"><div class="num">08 · KẾT QUẢ</div><div><h2>Khi nào được xem là hoàn thành?</h2><p>Không bắt buộc Graph-RAG phải thắng; bắt buộc kết luận phải có bằng chứng.</p></div></div>
       <div class="grid">
-        <article class="card"><div class="tag">Chatbot</div><h3>Chạy end-to-end</h3><p>Question → text/graph evidence → answer → citations trên frontend.</p></article>
-        <article class="card"><div class="tag">Nghiên cứu</div><h3>So sánh công bằng</h3><p>B0–G2, ablations và controls có config/artifact tái lập.</p></article>
-        <article class="card"><div class="tag">Kết luận</div><h3>Graph giúp ở đâu?</h3><p>Báo overall, graph-answerable subsets, failure modes, latency và cost.</p></article>
+        <article class="card"><div class="tag">Chatbot</div><h3>Đã chạy real retrieval</h3><p>FastAPI + React dùng BM25, MedCPT/FAISS và PrimeKG thật; mock không giả medical answer.</p></article>
+        <article class="card"><div class="tag">Text result</div><h3>B3 thắng retrieval</h3><p>Recall@10 B1 0,6585; B2 0,6612; B3 0,7347 trên cùng dev-300.</p></article>
+        <article class="card"><div class="tag">Graph result</div><h3>Chưa chứng minh lợi ích</h3><p>PrimeKGQA test fallback F1 0,0700; random-path control còn hơn full scorer trên dev.</p></article>
       </div>
-      <div class="callout">Kết luận hợp lệ có thể là: graph giúp nhóm drug–disease/multi-hop; graph không giúp literature-specific questions; hoặc không có improvement đáng tin cậy. Negative result vẫn có giá trị nếu protocol và phân tích đúng.</div>
+      <div class="callout"><strong>Kết luận dựa trên số thật:</strong> hybrid text retrieval là improvement đáng tin cậy. Graph có tín hiệu tốt hơn ở 2-node so với 4-node nhưng path scorer chưa thắng controls, nên không được nói Graph-RAG tốt hơn B3. Locked BioASQ B3/G2 chờ API key và hai medical reviewers.</div>
     </section>
   </main>
   <footer><div class="wrap">Bản đọc nhanh bằng tiếng Việt. Execution protocol chi tiết nằm trong <code>KE_HOACH_NGHIEN_CUU_MedicalGraphRAG.html</code>.</div></footer>

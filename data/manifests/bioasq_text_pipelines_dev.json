@@ -1,0 +1,51 @@
+{
+  "run_id": "bioasq_dev_b1_b2_b3_20260712",
+  "questions": 300,
+  "metrics": {
+    "B1": {
+      "recall_at_5": 0.525884,
+      "recall_at_10": 0.658453,
+      "precision_at_5": 0.569333,
+      "mrr": 0.849406,
+      "ndcg_at_10": 0.769537,
+      "snippet_document_coverage_at_10": 0.688939,
+      "mean_latency_ms": 365.843
+    },
+    "B2": {
+      "recall_at_5": 0.519068,
+      "recall_at_10": 0.661204,
+      "precision_at_5": 0.556,
+      "mrr": 0.849485,
+      "ndcg_at_10": 0.751689,
+      "snippet_document_coverage_at_10": 0.683229,
+      "mean_latency_ms": 89.071
+    },
+    "B3": {
+      "recall_at_5": 0.584218,
+      "recall_at_10": 0.73465,
+      "precision_at_5": 0.605333,
+      "mrr": 0.876276,
+      "ndcg_at_10": 0.832758,
+      "snippet_document_coverage_at_10": 0.758093,
+      "mean_latency_ms": 843.578
+    }
+  },
+  "paired_recall_delta_B3_minus": {
+    "B1": {
+      "mean_delta_right_minus_left": 0.076197,
+      "ci95": [
+        0.050773,
+        0.103334
+      ],
+      "resamples": 10000
+    },
+    "B2": {
+      "mean_delta_right_minus_left": 0.073446,
+      "ci95": [
+        0.052974,
+        0.09549
+      ],
+      "resamples": 10000
+    }
+  }
+}

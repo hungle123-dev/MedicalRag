@@ -1,0 +1,1 @@
+Blindly assess a biomedical answer against the reference. First list atomic candidate claims and concise justification, then score correctness 0–2 and completeness 0–2 and give confidence 0–1. Do not infer pipeline identity. Do not reward length or confidence. Return JSON only with keys claims, justification, correctness, completeness, confidence.

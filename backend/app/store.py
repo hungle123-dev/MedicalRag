@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -24,6 +25,10 @@ class JobStore:
                 id TEXT PRIMARY KEY, pipeline_id TEXT NOT NULL, question TEXT NOT NULL,
                 status TEXT NOT NULL, result TEXT, error TEXT,
                 created_at TEXT NOT NULL, updated_at TEXT NOT NULL)"""
+            )
+            connection.execute(
+                "UPDATE jobs SET status='failed', error='SERVER_RESTARTED', updated_at=? "
+                "WHERE status IN ('queued','running')", (utc_now(),)
             )
 
     def _connect(self) -> sqlite3.Connection:
@@ -60,14 +65,15 @@ class JobStore:
 
     def set_status(self, job_id: str, status: str, *, result: dict | None = None, error: str | None = None) -> bool:
         now = utc_now()
+        if result:
+            target = self.artifacts / f"{job_id}.json"
+            temporary = target.with_suffix(".json.tmp")
+            temporary.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+            os.replace(temporary, target)
         with self.lock, self._connection() as connection:
             cursor = connection.execute(
                 "UPDATE jobs SET status = ?, result = ?, error = ?, updated_at = ? WHERE id = ?",
                 (status, json.dumps(result) if result else None, error, now, job_id),
-            )
-        if result:
-            (self.artifacts / f"{job_id}.json").write_text(
-                json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         return cursor.rowcount == 1
 

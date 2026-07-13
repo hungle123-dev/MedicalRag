@@ -1,0 +1,69 @@
+{
+  "selection_rule": "C2 only if paired Recall@10 improves for both BM25 and MedCPT",
+  "comparisons": {
+    "bm25": {
+      "left": "C0",
+      "right": "C2",
+      "metrics": {
+        "recall_at_10": {
+          "mean_delta_right_minus_left": -0.013906,
+          "ci95": [
+            -0.025207,
+            -0.00396
+          ],
+          "resamples": 10000
+        },
+        "mrr": {
+          "mean_delta_right_minus_left": -0.009782,
+          "ci95": [
+            -0.025782,
+            0.005917
+          ],
+          "resamples": 10000
+        },
+        "ndcg_at_10": {
+          "mean_delta_right_minus_left": -0.014298,
+          "ci95": [
+            -0.023385,
+            -0.005227
+          ],
+          "resamples": 10000
+        }
+      },
+      "selected": "C0"
+    },
+    "medcpt": {
+      "left": "C0",
+      "right": "C2",
+      "metrics": {
+        "recall_at_10": {
+          "mean_delta_right_minus_left": 0.008848,
+          "ci95": [
+            0.001801,
+            0.016711
+          ],
+          "resamples": 10000
+        },
+        "mrr": {
+          "mean_delta_right_minus_left": 0.001374,
+          "ci95": [
+            -0.015025,
+            0.017396
+          ],
+          "resamples": 10000
+        },
+        "ndcg_at_10": {
+          "mean_delta_right_minus_left": 0.008657,
+          "ci95": [
+            -0.000125,
+            0.017802
+          ],
+          "resamples": 10000
+        }
+      },
+      "selected": "C2"
+    }
+  },
+  "selected": "C0",
+  "reason": "C2 did not improve both retrievers"
+}

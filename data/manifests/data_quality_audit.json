@@ -1,0 +1,20 @@
+{
+  "medcpt_truncation": {
+    "tokenizer": "ncbi/MedCPT-Article-Encoder",
+    "max_length": 512,
+    "documents_over_512": 2232,
+    "rate": 0.045079,
+    "max_tokens": 1973
+  },
+  "primekg_connectivity": {
+    "connected_components": 1,
+    "largest_component_nodes": 129375,
+    "largest_component_fraction": 1.0,
+    "isolated_nodes": 0
+  },
+  "primekg_edge_provenance": {
+    "row_level_field_available": false,
+    "coverage": 0.0,
+    "fallback": "PrimeKG release-level provenance only; do not claim per-edge source."
+  }
+}

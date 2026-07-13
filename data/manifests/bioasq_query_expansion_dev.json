@@ -1,0 +1,23 @@
+{
+  "run_id": "bioasq_dev_q1_bm25_20260712",
+  "questions": 300,
+  "linked_query_rate": 0.5,
+  "recall_at_10": {
+    "Q0": 0.658453,
+    "Q1": 0.64501
+  },
+  "paired_delta": {
+    "mean_delta_right_minus_left": -0.013442,
+    "ci95": [
+      -0.02788,
+      0.000107
+    ],
+    "resamples": 10000
+  },
+  "rescued_query_rate": 0.05,
+  "harmed_query_rate": 0.116667,
+  "mean_latency_ms": {
+    "Q0": 334.999,
+    "Q1": 417.649
+  }
+}

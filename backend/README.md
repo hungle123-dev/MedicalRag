@@ -1,14 +1,15 @@
 # Backend
 
-Minimal FastAPI contract for the research pipelines. The current B0–G2 runners
-are deterministic placeholders so frontend and experiment integration can start
-before model artifacts are downloaded.
+FastAPI runtime shared by the UI and research evaluator. B1/B2/B3 and G1/G2 use
+the local real BM25, MedCPT/FAISS and PrimeKG indexes. The deterministic generator
+is retained only for offline flow tests; set `MEDICAL_RAG_GENERATOR=gemini` for
+credentialed inference.
 
 ```powershell
 cd backend
 python -m pip install -r requirements.txt
 uvicorn app.main:app --reload
-python -m unittest discover -s tests
+python -m pytest tests -q
 ```
 
 Runtime data is stored in `backend/data/` unless `MEDICAL_RAG_DATA_DIR` is set.

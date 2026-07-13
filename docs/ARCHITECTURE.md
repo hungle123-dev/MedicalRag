@@ -1,6 +1,6 @@
 # Medical Graph-RAG architecture
 
-Status: proposed for implementation. The frozen research protocol in `KE_HOACH_NGHIEN_CUU_MedicalGraphRAG.html` remains authoritative.
+Status: implemented and real-data tested. `configs/protocol.yaml`, the execution-plan HTML and `docs/RESULTS.md` record the frozen choices and observed limitations.
 
 ## Goals
 
@@ -21,9 +21,10 @@ flowchart LR
   REG --> GEN[Fixed generator]
   TEXT --> CORPUS[(Pinned BioASQ corpus/indexes)]
   GRAPH --> KG[(Pinned PrimeKG files)]
+  KGQA[(Pinned PrimeKGQA files)] --> EVAL[Evaluation CLI]
   API --> DB[(SQLite metadata)]
   API --> ART[(JSON run artifacts)]
-  EVAL[Evaluation CLI] --> REG
+  EVAL --> REG
   EVAL --> ART
 ```
 
@@ -56,7 +57,7 @@ sequenceDiagram
 | API | validation, request lifecycle, SSE, cancellation, readiness | experimental metric decisions |
 | Pipeline registry | immutable B0–G2 composition and config hashes | arbitrary client configuration |
 | Text retrieval | BM25/MedCPT retrieval, fusion, reranking | answer generation |
-| Graph retrieval | entity links, constrained 1–2 hop paths, provenance | invented edges or clinical citations |
+| Graph retrieval | entity/relation links, BioASQ 1–2 hop paths, PrimeKGQA up-to-3-hop component runs, provenance | invented edges or clinical citations |
 | Generator | answer and citation markers from supplied evidence | fetching data directly |
 | Artifact store | raw inputs/outputs/timing/provenance | mutable derived conclusions |
 | Evaluator | replay, metrics, statistics, reports | production request handling |
@@ -77,6 +78,15 @@ The browser sends only a pipeline ID. Server configuration defines the implement
 | G2 | B3 evidence + PrimeKG evidence + fixed-budget fusion + generator |
 
 Each result records pipeline/config/prompt/model/data/KG revisions and hashes. B3 and G2 must use the same generator, prompt family, test questions and evidence budget.
+
+## Evaluation tracks
+
+| Track | Data | Purpose | Primary metrics |
+|---|---|---|---|
+| End-to-end | BioASQ `question-answer-passages` + `text-corpus` | Compare frozen B3 with G2 | Human paired correctness 0–2; calibrated full-set judge; citation metrics |
+| Graph component | PrimeKGQA official test + matching PrimeKG RDF schema | Test linking, query/traversal and KG reasoning | Answer-set EM/F1, executable-query rate, execution accuracy by 2/3/4-node |
+
+PrimeKG is the graph being queried; PrimeKGQA is a QA benchmark generated from it. Gold SPARQL is evaluation-only. Exact SPARQL string match is not a primary metric because equivalent queries may differ syntactically. Before graph-component evaluation, 100 gold queries must reach at least 99% executable rate against the pinned RDF/IRI schema.
 
 ## Persistence and failure semantics
 
@@ -99,4 +109,3 @@ Each result records pipeline/config/prompt/model/data/KG revisions and hashes. B
 ## Deployment
 
 Development uses two processes: Vite and one Uvicorn worker. The simplest distributable build serves the compiled frontend as static files from FastAPI. Add containers only if another machine must reproduce environment setup.
-

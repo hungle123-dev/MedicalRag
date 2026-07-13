@@ -1,0 +1,18 @@
+{
+  "deviations": [
+    {
+      "id": "DEV-001",
+      "track": "PrimeKGQA",
+      "description": "Pre-registered one-hop, no-path-reranker and random-path controls completed after the single locked test execution rather than before it.",
+      "impact": "No test-driven retuning occurred and the locked output was not rerun, but the graph test is treated as descriptive rather than a positive confirmatory claim.",
+      "mitigation": "Report all control results. Do not claim benefit because random-path and no-reranker controls outperform the full scorer on dev. A future study must redesign and freeze scoring before a new untouched test release."
+    },
+    {
+      "id": "DEV-002",
+      "track": "PrimeKGQA",
+      "description": "The single locked fallback run used the frozen v1 retriever with at most two hops. Three-hop traversal was implemented and unit-tested only after the run.",
+      "impact": "The reported locked metrics do not establish 4-node/three-hop capability; low 4-node F1 must be interpreted as a v1 limitation.",
+      "mitigation": "Do not rerun or retune on the same locked split. Validate the three-hop implementation on dev and use a future untouched release for confirmation."
+    }
+  ]
+}

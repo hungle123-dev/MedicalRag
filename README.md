@@ -1,45 +1,56 @@
-# MedicalRag
+# Medical Text + Knowledge Graph RAG
 
-Evidence-grounded medical question answering with controlled comparisons between strong Text-RAG and hybrid Text + PrimeKG retrieval.
+Research prototype for English medical QA. Input is one text question; output is a grounded text answer, PubMed evidence, optional PrimeKG paths, provenance and an explicit insufficient-evidence response. It is not medical advice.
 
-## Scope
+## What is implemented
 
-- Input: an English medical question.
-- Output: a text answer with structured PubMed/PrimeKG evidence.
-- Research core: BioASQ long-form QA; MedQA is supportive answer-only evaluation.
-- Product demo: React frontend + FastAPI backend over the same frozen pipeline registry.
-- Out of scope: crawling, clinical deployment, EHR uploads, LLM fine-tuning, microservices, Neo4j and GNNs.
+- B0 closed-book diagnostic; B1 BM25; B2 MedCPT dense; B3 BM25 + MedCPT RRF + MedCPT Cross-Encoder.
+- G1 PrimeKG-only diagnostic; G2 B3 plus 1–2 hop PrimeKG evidence under the same 1,800-token/8-item budget.
+- BioASQ end-to-end track and PrimeKGQA graph-component track. PrimeKGQA is QA evaluation data; PrimeKG is the one queried graph.
+- FastAPI/SQLite/JSON-artifact backend and React/TypeScript UI with SSE, cancellation, evidence panels and B3/G2 comparison.
+- Deterministic offline generator for tests; cached Gemini and blinded two-pass Groq judge adapters for real inference when credentials exist.
 
-## Architecture
+## Verified real data
 
-```text
-frontend/ React + TypeScript
-       │ HTTP + SSE
-backend/ FastAPI
-       ├── B0–B3 text pipelines
-       ├── G1/G2 PrimeKG pipelines
-       ├── evidence/citation contracts
-       └── SQLite metadata + JSON artifacts
+| Data | Role | Actual count |
+|---|---|---:|
+| BioASQ text corpus | Retrieval knowledge base | 49,513 abstracts |
+| BioASQ dev / locked eval | End-to-end questions and gold labels | 5,049 / 340 |
+| PrimeKG | Queried knowledge graph | 129,375 nodes / 8,100,498 directed edges |
+| PrimeKGQA train / val / test | Graph-component benchmark | 51,220 / 17,074 / 17,074 |
 
-configs/ frozen protocol and pipeline definitions
-docs/    research plan, architecture, API and ADRs
-```
+Exact URLs, revisions, hashes and licenses are in `data/manifests/`. Raw datasets, indexes, model weights, keys and run artifacts are intentionally gitignored.
 
-Start with [the Vietnamese step-by-step overview](docs/TONG_QUAN_TUNG_BUOC_MedicalGraphRAG.html), then see [the detailed execution plan](docs/KE_HOACH_NGHIEN_CUU_MedicalGraphRAG.html) and [architecture](docs/ARCHITECTURE.md).
+## Reproduce locally
 
-## Development
-
-### Backend
+Python 3.12 and Node are used in the verified Windows environment.
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+python -m pip install -r requirements-research.txt
+python scripts/data_pipeline.py download all
+python scripts/data_pipeline.py eda
+python scripts/audit_data.py
+python scripts/build_indexes.py
+python scripts/build_graph_index.py
 ```
 
-### Frontend
+NVIDIA GPU setup used here (RTX 3050 Laptop, driver-compatible CUDA runtime):
+
+```powershell
+python -m pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
+python scripts/build_medcpt_index.py --strategy C0 --output indexes/medcpt --batch-size 8
+python scripts/build_medcpt_index.py --strategy C2 --output indexes/medcpt_c2 --batch-size 8
+```
+
+CPU MedCPT is supported but impractical for full indexing. PyTorch wheels are platform-specific and are not in `requirements-research.txt`.
+
+## Run the app
+
+```powershell
+cd backend
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
 
 ```powershell
 cd frontend
@@ -47,25 +58,29 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. The default scaffold uses deterministic mock pipelines so the full API/UI contract can be tested before downloading data or models.
+The default `MEDICAL_RAG_GENERATOR=mock` spends no quota. For real generation set `MEDICAL_RAG_GENERATOR=gemini` and provide `GEMINI_API_KEY` in the environment. Judge evaluation separately requires `GROQ_API_KEY`. Keys are never accepted by the frontend or committed.
 
-## Checks
+## Experiments and checks
 
 ```powershell
+python scripts/evaluate_bm25.py --questions 300
+python scripts/analyze_retrieval.py artifacts/experiments/bioasq/bioasq_dev_bm25_243e7ce0f400/retrieval.json
+python scripts/evaluate_medcpt.py
+python scripts/primekgqa_gate.py --count 100
+python scripts/evaluate_primekgqa.py --split val --sample 300
+
 cd backend
-python -m unittest discover -s tests
-cd ..\frontend
+python -m pytest tests -q
+cd ../frontend
 npm run build
 ```
 
-## Repository rules
+The pinned PrimeKGQA SPARQL compatibility gate currently fails (3% non-empty execution on the 100-query smoke) because published RDF node IRIs do not directly map to the pinned Dataverse CSV node indices. Therefore the project reports normalized-pattern fallback metrics and does **not** claim valid SPARQL execution accuracy.
 
-- Never commit datasets, indexes, model weights, `.env`, API keys or generated artifacts.
-- Locked experiments are identified by data/config/prompt/code hashes.
-- The retriever never receives MedQA answer options.
-- Demo artifacts and experiment artifacts use separate namespaces.
-- This is a research prototype, not medical advice.
+Start with the Vietnamese [step-by-step overview](docs/TONG_QUAN_TUNG_BUOC_MedicalGraphRAG.html), then the [actual results](docs/RESULTS.md), [detailed research plan](docs/KE_HOACH_NGHIEN_CUU_MedicalGraphRAG.html), [architecture](docs/ARCHITECTURE.md), [bias/leakage controls](docs/BIAS_AND_LEAKAGE_CONTROLS.md), [human review protocol](docs/HUMAN_EVALUATION.md), and [error taxonomy](docs/ERROR_TAXONOMY.md).
 
-## Status
+## Current external blockers
 
-Architecture scaffold. The core experiment fixes Gemini `gemini-3.5-flash` as generator and Groq `openai/gpt-oss-120b` as an independent judge; exact API availability/quota is verified in W1. GPT-4o is optional paid robustness, never a dependency of the $0 core protocol. Real BioASQ/MedCPT/PrimeKG adapters are implemented after data revisions marked `MUST_VERIFY_W1` are verified and frozen.
+- No Gemini/Groq credentials are present, so real generator/judge inference and the locked B3-vs-G2 answer comparison are not run.
+- Two qualified medical reviewers must complete the frozen 100-question blinded review; AI draft labels cannot replace them.
+- MedQA, crawling, EHR/PHI, clinical deployment, model fine-tuning, Neo4j, GNNs and billing fallback are out of core scope.

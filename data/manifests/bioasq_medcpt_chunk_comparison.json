@@ -1,0 +1,31 @@
+{
+  "left": "C0",
+  "right": "C2",
+  "metrics": {
+    "recall_at_10": {
+      "mean_delta_right_minus_left": 0.008848,
+      "ci95": [
+        0.001801,
+        0.016711
+      ],
+      "resamples": 10000
+    },
+    "mrr": {
+      "mean_delta_right_minus_left": 0.001374,
+      "ci95": [
+        -0.015025,
+        0.017396
+      ],
+      "resamples": 10000
+    },
+    "ndcg_at_10": {
+      "mean_delta_right_minus_left": 0.008657,
+      "ci95": [
+        -0.000125,
+        0.017802
+      ],
+      "resamples": 10000
+    }
+  },
+  "selected": "C2"
+}

@@ -1,0 +1,913 @@
+{
+  "split": "validation",
+  "seed": 20260712,
+  "sample_size": 100,
+  "executable_rate": 0.03,
+  "execution_exact_match": 0.0,
+  "gate_threshold": 0.99,
+  "gate_passed": false,
+  "diagnosis": "PrimeKGQA RDF node IRIs do not map directly to the pinned Dataverse CSV node_index when denotations are empty.",
+  "fallback": "Evaluate normalized graph patterns from the dataset value field until the matching RDF mapping is available.",
+  "records": [
+    {
+      "id": 2498,
+      "type": "4e_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 7
+    },
+    {
+      "id": 5070,
+      "type": "0_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 7154,
+      "type": "4f_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 3352,
+      "type": "4f_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 4972,
+      "type": "4_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 15328,
+      "type": "8_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 13958,
+      "type": "2_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 66
+    },
+    {
+      "id": 12594,
+      "type": "8_no_duplicate.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 13119,
+      "type": "4f_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 8870,
+      "type": "3_no_duplicate.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 8855,
+      "type": "2_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 9224,
+      "type": "3_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 15648,
+      "type": "8_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 1927,
+      "type": "7_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 6170,
+      "type": "4f_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 13084,
+      "type": "4_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 6
+    },
+    {
+      "id": 7443,
+      "type": "4e_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 22
+    },
+    {
+      "id": 16549,
+      "type": "3_no_duplicate.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 1271,
+      "type": "2_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 2393,
+      "type": "0_v2.",
+      "answer_kind": "node",
+      "executable": true,
+      "exact": false,
+      "predicted_count": 43,
+      "gold_count": 10000
+    },
+    {
+      "id": 3838,
+      "type": "1_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 14923,
+      "type": "1_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 9299,
+      "type": "8_no_duplicate.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 8440,
+      "type": "7_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 15989,
+      "type": "1_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 34
+    },
+    {
+      "id": 5822,
+      "type": "4_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 6453,
+      "type": "3_no_duplicate.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 8181,
+      "type": "1_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 2672,
+      "type": "4e_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1074
+    },
+    {
+      "id": 15310,
+      "type": "7_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 12406,
+      "type": "4f_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 11154,
+      "type": "8_no_duplicate.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 3121,
+      "type": "2_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 7314,
+      "type": "4f_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 7736,
+      "type": "8_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 6181,
+      "type": "1_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 3507,
+      "type": "7_no_duplicate.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 5003,
+      "type": "4f_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 5863,
+      "type": "4_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 7788,
+      "type": "3_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 4309,
+      "type": "0_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 9132,
+      "type": "4f_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 6636,
+      "type": "8_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 10315,
+      "type": "4_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 11312,
+      "type": "1_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 11703,
+      "type": "8_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 4591,
+      "type": "0_v2.",
+      "answer_kind": "node",
+      "executable": true,
+      "exact": false,
+      "predicted_count": 76,
+      "gold_count": 129
+    },
+    {
+      "id": 16470,
+      "type": "4f_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 4946,
+      "type": "3_no_duplicate.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 2466,
+      "type": "7_no_duplicate.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 1950,
+      "type": "7_no_duplicate.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 13999,
+      "type": "7_no_duplicate.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 4427,
+      "type": "4f_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 16305,
+      "type": "4e_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 5
+    },
+    {
+      "id": 8661,
+      "type": "0_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 13437,
+      "type": "4e_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 11514,
+      "type": "4f_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 12542,
+      "type": "2_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 3515,
+      "type": "1_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 11
+    },
+    {
+      "id": 6141,
+      "type": "2_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 9232,
+      "type": "4_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 5377,
+      "type": "0_v2.",
+      "answer_kind": "node",
+      "executable": true,
+      "exact": false,
+      "predicted_count": 8,
+      "gold_count": 112
+    },
+    {
+      "id": 13247,
+      "type": "4f_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 7547,
+      "type": "7_no_duplicate.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 8481,
+      "type": "4f_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 9818,
+      "type": "3_no_duplicate.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 13634,
+      "type": "2_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 3750,
+      "type": "4_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 6
+    },
+    {
+      "id": 97,
+      "type": "1_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 12066,
+      "type": "8_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 11732,
+      "type": "4e_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1074
+    },
+    {
+      "id": 2054,
+      "type": "4e_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 3
+    },
+    {
+      "id": 15036,
+      "type": "7_no_duplicate.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 6147,
+      "type": "7_no_duplicate.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 9481,
+      "type": "3_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 4030,
+      "type": "0_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 5
+    },
+    {
+      "id": 16835,
+      "type": "1_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 1545,
+      "type": "4_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 8586,
+      "type": "4f_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 4372,
+      "type": "4_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 9698,
+      "type": "4_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 17110,
+      "type": "3_no_duplicate.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 10461,
+      "type": "1_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 15673,
+      "type": "8_no_duplicate.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 13572,
+      "type": "3_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 9491,
+      "type": "1_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 13719,
+      "type": "4f_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 12441,
+      "type": "2_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 5925,
+      "type": "4f_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 10491,
+      "type": "7_no_duplicate.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 2463,
+      "type": "4f_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 8073,
+      "type": "2_v2.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 4260,
+      "type": "7_no_duplicate.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 788,
+      "type": "3_no_duplicate.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 10180,
+      "type": "7_no_duplicate.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 9897,
+      "type": "4f_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 13668,
+      "type": "4f_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 10229,
+      "type": "4f_v2.",
+      "answer_kind": "relation",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    },
+    {
+      "id": 272,
+      "type": "8_no_duplicate.",
+      "answer_kind": "node",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 2
+    },
+    {
+      "id": 1783,
+      "type": "2_v2.",
+      "answer_kind": "unknown",
+      "executable": false,
+      "exact": false,
+      "predicted_count": 0,
+      "gold_count": 1
+    }
+  ]
+}

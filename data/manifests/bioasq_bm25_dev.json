@@ -1,0 +1,35 @@
+{
+  "run_id": "bioasq_dev_bm25_243e7ce0f400",
+  "seed": 20260712,
+  "question_ids_file": "data\\manifests\\bioasq_dev_question_ids.json",
+  "results": [
+    {
+      "strategy": "C0",
+      "documents": 49513,
+      "questions": 300,
+      "metrics": {
+        "recall_at_5": 0.525884,
+        "recall_at_10": 0.658453,
+        "precision_at_5": 0.569333,
+        "mrr": 0.849406,
+        "ndcg_at_10": 0.769537,
+        "snippet_document_coverage_at_10": 0.688939
+      },
+      "elapsed_seconds": 92.334
+    },
+    {
+      "strategy": "C2",
+      "documents": 80061,
+      "questions": 300,
+      "metrics": {
+        "recall_at_5": 0.510321,
+        "recall_at_10": 0.644547,
+        "precision_at_5": 0.55,
+        "mrr": 0.839624,
+        "ndcg_at_10": 0.755239,
+        "snippet_document_coverage_at_10": 0.67409
+      },
+      "elapsed_seconds": 174.335
+    }
+  ]
+}
