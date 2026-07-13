@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E04-full_document_fields-selection4849-97cf48f1e5\\predictions.jsonl",
+  "right": "artifacts\\runs\\E04-fixed256_bm25-selection4849-83e1b44829\\predictions.jsonl",
+  "metric": "metrics.f1",
+  "require_equal_evidence": false,
+  "rows": 4849,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.00443136332967973,
+    "ci95_low": 0.003989594243408599,
+    "ci95_high": 0.004874359228545112
+  },
+  "paired_effect_size": 0.28344579947988086,
+  "paired_permutation_p": 9.999000099990002e-05,
+  "normal_approx_mde_80": 0.0006293698372762896,
+  "comparison_hash": "245f23a3ff4bcce4ac997c4f2eb256a992b816511521d902a8ad65a7406e79fd"
+}

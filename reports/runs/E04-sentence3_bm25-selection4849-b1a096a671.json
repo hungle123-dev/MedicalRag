@@ -1,0 +1,32 @@
+{
+  "created_at": "2026-07-13T18:11:30.145681+00:00",
+  "status": "observed_real_data",
+  "scope": "gold snippet offsets are used only after evidence selection",
+  "config": {
+    "family": "E04",
+    "arm": "sentence3_bm25",
+    "population": "selection4849",
+    "rows": 4849,
+    "offset": 0,
+    "retrieval_predictions_hash": "ef4841bf175e142b386b5952d7a6a1aae2e44200c537c4db555647766816fc6e",
+    "document_count": 10,
+    "snippet_count": 20,
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "1efd9486b25bdbd9c597666c5cdbd7175875ed71",
+    "purpose": "candidate_evaluation",
+    "config_hash": "b1a096a671b4d0f2709ed39128ab2cd01b9790dbc38f588c2d060ac1a75a1a24"
+  },
+  "metrics": {
+    "snippet_span_precision": 0.1346345523821361,
+    "snippet_span_recall": 0.4814537418105942,
+    "snippet_span_f1": 0.18315991301948192,
+    "gold_pmid_recall": 0.6345373988771349,
+    "questions": 4849,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "latency_ms_p50": 0.0
+  },
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E04-sentence3_bm25-selection4849-b1a096a671\\predictions.jsonl"
+  }
+}

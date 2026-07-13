@@ -1,0 +1,15 @@
+{
+  "gate_id": "E04_CROSS_ENCODER_SCREEN",
+  "family": "E04",
+  "comparison_hash": "fed3c6bc27ef76b1cdd45999ff26787776b6dccff838a56255171dfb6cb142a0",
+  "baseline": "reports\\runs\\E04-sentence3_bm25-query800-22f0a68f2f.json",
+  "candidate": "reports\\runs\\E04-sentence3_cross_encoder-query800-29b3a98537.json",
+  "checks": {
+    "minimum_effect": true,
+    "positive_paired_ci": true,
+    "failure_guard": true,
+    "same_population_size": true
+  },
+  "passed": true,
+  "gate_hash": "ad38abf9857f633eaff0e05e9bc7d3ce04b5183038292e1322db94efdc090d54"
+}

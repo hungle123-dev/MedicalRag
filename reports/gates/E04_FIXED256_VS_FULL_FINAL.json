@@ -1,0 +1,15 @@
+{
+  "gate_id": "E04_FIXED256_VS_FULL_FINAL",
+  "family": "E04",
+  "comparison_hash": "245f23a3ff4bcce4ac997c4f2eb256a992b816511521d902a8ad65a7406e79fd",
+  "baseline": "reports\\runs\\E04-full_document_fields-selection4849-97cf48f1e5.json",
+  "candidate": "reports\\runs\\E04-fixed256_bm25-selection4849-83e1b44829.json",
+  "checks": {
+    "minimum_effect": false,
+    "positive_paired_ci": true,
+    "failure_guard": true,
+    "same_population_size": true
+  },
+  "passed": false,
+  "gate_hash": "3fa656bffa0514142f9a3d5b5de2082cc8acdecb64b1a1caa9e684d262f09375"
+}

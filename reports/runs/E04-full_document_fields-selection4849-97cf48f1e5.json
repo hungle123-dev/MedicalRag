@@ -1,0 +1,32 @@
+{
+  "created_at": "2026-07-13T18:10:07.833003+00:00",
+  "status": "observed_real_data",
+  "scope": "gold snippet offsets are used only after evidence selection",
+  "config": {
+    "family": "E04",
+    "arm": "full_document_fields",
+    "population": "selection4849",
+    "rows": 4849,
+    "offset": 0,
+    "retrieval_predictions_hash": "ef4841bf175e142b386b5952d7a6a1aae2e44200c537c4db555647766816fc6e",
+    "document_count": 10,
+    "snippet_count": 20,
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "1efd9486b25bdbd9c597666c5cdbd7175875ed71",
+    "purpose": "candidate_evaluation",
+    "config_hash": "97cf48f1e521287caabe9b269843e890fd40a0de77e4d62e10bdb2d97d309978"
+  },
+  "metrics": {
+    "snippet_span_precision": 0.08338644089733163,
+    "snippet_span_recall": 0.7084867173675543,
+    "snippet_span_f1": 0.1376729979108474,
+    "gold_pmid_recall": 0.7340696950481769,
+    "questions": 4849,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "latency_ms_p50": 0.0
+  },
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E04-full_document_fields-selection4849-97cf48f1e5\\predictions.jsonl"
+  }
+}
