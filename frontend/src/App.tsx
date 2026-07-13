@@ -72,10 +72,9 @@ export default function App() {
     const timeout = window.setTimeout(() => { timedOut = true; controller.current?.abort(); }, 120_000);
     try {
       if (compare) {
-        const [b3, g2] = await Promise.all([
-          streamAnswer(cleanQuestion, "B3", controller.current.signal, () => undefined),
-          streamAnswer(cleanQuestion, "G2", controller.current.signal, () => undefined),
-        ]);
+        const b3 = await streamAnswer(cleanQuestion, "B3", controller.current.signal, () => undefined);
+        setComparison({ B3: b3 });
+        const g2 = await streamAnswer(cleanQuestion, "G2", controller.current.signal, () => undefined);
         setComparison({ B3: b3, G2: g2 });
         setStatus("done");
         return;

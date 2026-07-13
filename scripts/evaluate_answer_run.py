@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -46,8 +47,24 @@ def comparison(rows: list[dict], left: str, right: str) -> dict:
     ordered = [pair for pair in paired.values() if left in pair and right in pair]
     left_scores = [pair[left]["correctness"]["correctness"] for pair in ordered]
     right_scores = [pair[right]["correctness"]["correctness"] for pair in ordered]
-    return {"questions": len(ordered), "paired_bootstrap": paired_bootstrap(left_scores, right_scores),
-            "win_tie_loss": win_tie_loss(left_scores, right_scores)}
+    deltas = [right - left for left, right in zip(left_scores, right_scores)]
+    mean = sum(deltas) / max(1, len(deltas))
+    paired_sd = (math.sqrt(sum((delta - mean) ** 2 for delta in deltas) / (len(deltas) - 1))
+                 if len(deltas) > 1 else 0.0)
+    standard_error = paired_sd / math.sqrt(max(1, len(deltas)))
+    bootstrap = paired_bootstrap(left_scores, right_scores)
+    return {"questions": len(ordered), "paired_bootstrap": bootstrap,
+            "win_tie_loss": win_tie_loss(left_scores, right_scores),
+            "precision": {
+                "observed_paired_sd": round(paired_sd, 6),
+                "standard_error": round(standard_error, 6),
+                "bootstrap_ci_width": round(bootstrap["ci95"][1] - bootstrap["ci95"][0], 6),
+                "normal_approx_half_width_95": round(1.96 * standard_error, 6),
+                "projected_eval340_half_width_95": round(1.96 * paired_sd / math.sqrt(340), 6),
+                "projected_eval340_mde_80pct_power_two_sided": round(
+                    (1.96 + 0.84) * paired_sd / math.sqrt(340), 6),
+                "interpretation": "planning approximation from observed paired SD; not an equivalence margin",
+            }}
 
 
 def comparisons(rows: list[dict]) -> dict:
