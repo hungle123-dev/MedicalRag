@@ -1,0 +1,35 @@
+{
+  "gate_id": "E12_FINAL_INTERACTION",
+  "family": "E12",
+  "status": "complete",
+  "population": "validation200",
+  "factors": {
+    "retriever": ["rrf", "rrf_medcpt_cross_encoder"],
+    "query": ["original", "mesh_expansion"]
+  },
+  "map_at_10_cells": {
+    "rrf_original": 0.6621134645061728,
+    "rrf_mesh": 0.6472749007936508,
+    "rerank_original": 0.729650352733686,
+    "rerank_mesh": 0.7221439507747544
+  },
+  "simple_effects": {
+    "mesh_minus_original_under_rrf": {
+      "delta": -0.014838563712522046,
+      "ci95": [-0.025962395282186947, -0.0043949129188712525],
+      "p": 0.006099390060993901
+    },
+    "mesh_minus_original_under_rerank": {
+      "delta": -0.007506401958931723,
+      "ci95": [-0.013942509920634918, -0.0015365961199294506],
+      "p": 0.0168983101689831
+    }
+  },
+  "difference_in_differences": {
+    "estimate": 0.007332161753590324,
+    "ci95": [-0.0045630621693121725, 0.019799126039304612],
+    "material_interaction": false
+  },
+  "decision": "Keep original query with the reranked retriever. MeSH expansion is harmful under both retrievers; the reranker attenuates but does not reliably reverse that harm.",
+  "stretch_generator_interaction": "Not promoted because E08 left only one generator route passing the reliability gate; fabricating a 2x2 with failed routes would confound model interaction with gateway failure."
+}

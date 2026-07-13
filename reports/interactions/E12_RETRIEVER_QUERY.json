@@ -1,0 +1,16 @@
+{
+  "interaction_id": "E12_RETRIEVER_QUERY",
+  "arms": [
+    "artifacts\\runs\\E03-original-validation200-e2d03fb82c\\predictions.jsonl",
+    "artifacts\\runs\\E03-mesh-validation200-29353e88d9\\predictions.jsonl",
+    "artifacts\\runs\\E03-original-validation200-0ac7146dd6\\predictions.jsonl",
+    "artifacts\\runs\\E03-mesh-validation200-8323563aee\\predictions.jsonl"
+  ],
+  "metric": "metrics.ap",
+  "rows": 200,
+  "difference_in_differences": 0.007332161753590324,
+  "ci95_low": -0.0045630621693121725,
+  "ci95_high": 0.019799126039304612,
+  "material_interaction": false,
+  "analysis_hash": "7d89bb2016c9027fbaffe99c14c5dd6d15007abbcc1a1737378cf9fd8cd09943"
+}

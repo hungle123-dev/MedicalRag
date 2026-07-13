@@ -1,0 +1,42 @@
+{
+  "created_at": "2026-07-13T23:28:59.045571+00:00",
+  "status": "observed_real_data",
+  "scope": "closed-world positive-only gold-conditioned candidate pool",
+  "config": {
+    "family": "E03",
+    "arm": "mesh",
+    "population": "validation200",
+    "rows": 200,
+    "offset": 0,
+    "retriever_control": "rrf_rerank",
+    "workers": 4,
+    "rerank_batch_size": 64,
+    "bm25_recipe": "boosted_title_abstract_mesh",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "e52a8117455014e8dcd815067be8de302baf399c",
+    "purpose": "candidate_evaluation",
+    "cross_encoder_revision": "71caf65d4927987813984f54c284405a13fcca49",
+    "config_hash": "8323563aeed7ad9aec8e8b0a3bd52379a2fd9b720a68bd83c4d1746ebeeddc52"
+  },
+  "metrics": {
+    "ap": 0.7221439507747544,
+    "recall": 0.6980457618353937,
+    "mrr": 0.8815198412698413,
+    "ndcg": 0.7942448493758373,
+    "hit": 0.97,
+    "recall_at_100": 0.929821571428539,
+    "map_at_10": 0.7221439507747544,
+    "questions": 200,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "retrieval_latency_ms_p50": 1210.6597132739125,
+    "retrieval_latency_ms_p95": 1383.426470299355,
+    "query_transform_ms_p50": 0.022899999748915434,
+    "query_transform_cache_rate": 0.0,
+    "query_transform_input_tokens": 0,
+    "query_transform_output_tokens": 0
+  },
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E03-mesh-validation200-8323563aee\\predictions.jsonl"
+  }
+}

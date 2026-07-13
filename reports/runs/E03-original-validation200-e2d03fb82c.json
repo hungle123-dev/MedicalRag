@@ -1,0 +1,41 @@
+{
+  "created_at": "2026-07-13T23:22:54.889396+00:00",
+  "status": "observed_real_data",
+  "scope": "closed-world positive-only gold-conditioned candidate pool",
+  "config": {
+    "family": "E03",
+    "arm": "original",
+    "population": "validation200",
+    "rows": 200,
+    "offset": 0,
+    "retriever_control": "rrf",
+    "workers": 4,
+    "rerank_batch_size": "not_applicable",
+    "bm25_recipe": "boosted_title_abstract_mesh",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "e52a8117455014e8dcd815067be8de302baf399c",
+    "purpose": "candidate_evaluation",
+    "config_hash": "e2d03fb82c2f11f20d2ac0862fd5891b4d4e8d37f4e07f862fee85e3591b7629"
+  },
+  "metrics": {
+    "ap": 0.6621134645061728,
+    "recall": 0.65594907804981,
+    "mrr": 0.8357083333333334,
+    "ndcg": 0.7415591167665307,
+    "hit": 0.94,
+    "recall_at_100": 0.9383285539770077,
+    "map_at_10": 0.6621134645061728,
+    "questions": 200,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "retrieval_latency_ms_p50": 196.83132968179962,
+    "retrieval_latency_ms_p95": 338.2449609464402,
+    "query_transform_ms_p50": 0.0,
+    "query_transform_cache_rate": 0.0,
+    "query_transform_input_tokens": 0,
+    "query_transform_output_tokens": 0
+  },
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E03-original-validation200-e2d03fb82c\\predictions.jsonl"
+  }
+}

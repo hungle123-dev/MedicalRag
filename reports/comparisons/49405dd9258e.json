@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E03-original-validation200-0ac7146dd6\\predictions.jsonl",
+  "right": "artifacts\\runs\\E03-mesh-validation200-8323563aee\\predictions.jsonl",
+  "metric": "metrics.ap",
+  "require_equal_evidence": false,
+  "rows": 200,
+  "bootstrap": {
+    "mean_delta_right_minus_left": -0.007506401958931723,
+    "ci95_low": -0.013942509920634918,
+    "ci95_high": -0.0015365961199294506
+  },
+  "paired_effect_size": -0.1686683154937238,
+  "paired_permutation_p": 0.0168983101689831,
+  "normal_approx_mde_80": 0.008816316009351934,
+  "comparison_hash": "49405dd9258eff2e51f0702c9367522912520bf6dcbe6db2e4dc74763c86e9d2"
+}
