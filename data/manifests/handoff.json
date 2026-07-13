@@ -1,0 +1,15 @@
+{
+  "core_commit_used_by_clean_smoke": "f4b1da8f15ac3e43fca966c21b0bce69aa114540",
+  "real_data": {
+    "bioasq": {"corpus": 49513, "dev": 5049, "locked_eval": 340},
+    "primekg": {"nodes": 129375, "directed_edges": 8100498},
+    "primekgqa": {"train": 51220, "val": 17074, "test": 17074, "test_evaluable": 15814}
+  },
+  "selected_text_pipeline": "B3 = C0 + Q0 + BM25/MedCPT RRF + MedCPT Cross-Encoder",
+  "bioasq_dev_recall_at_10": {"B1": 0.658453, "B2": 0.661204, "B3": 0.73465},
+  "primekgqa_locked_fallback": {"answer_set_f1": 0.069993, "exact_match": 0.018022, "entity_link_f1": 0.694486, "relation_f1": 0.110063},
+  "clean_smoke": {"run_id": "bioasq_dev_b3_g2_mock_warmed_counterbalanced_v5_50_20260712", "paired_questions": 50, "result_files": 100, "working_tree_dirty_during_run": false, "graph_evidence_rate_g2": 0.44},
+  "verification": {"backend_tests": "16 passed before clean smoke; 17 including harness check before final handoff", "frontend_build": "passed", "html_yaml_validation": "passed", "git_diff_check": "passed"},
+  "external_blockers": ["GEMINI_API_KEY and exact generator model availability", "GROQ_API_KEY and judge calibration", "two qualified medical reviewers"],
+  "claim_boundary": "Text hybrid improvement is supported. Graph improvement over B3 final-answer correctness is not established."
+}
