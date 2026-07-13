@@ -2,8 +2,8 @@ from copy import deepcopy
 
 import pytest
 
-from medrag_lab.experiments.registry import load_registry, validate_registry
 from medrag_lab.cli import parser
+from medrag_lab.experiments.registry import load_registry, validate_registry
 
 
 def test_registry_has_registered_counts():
