@@ -3,6 +3,7 @@ from copy import deepcopy
 import pytest
 
 from medrag_lab.experiments.registry import load_registry, validate_registry
+from medrag_lab.cli import parser
 
 
 def test_registry_has_registered_counts():
@@ -23,3 +24,8 @@ def test_registry_rejects_unknown_and_cyclic_dependencies():
     cyclic["families"][0]["depends_on"] = ["E11"]
     with pytest.raises(ValueError, match="Dependency cycle"):
         validate_registry(cyclic)
+
+
+def test_query_reranker_batch_size_defaults_to_measured_control():
+    args = parser().parse_args(["experiment", "query", "--strategy", "original"])
+    assert args.rerank_batch_size == 64

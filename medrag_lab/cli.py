@@ -125,6 +125,7 @@ def parser() -> argparse.ArgumentParser:
     query.add_argument("--retriever", choices=("rrf", "rrf_rerank"), default="rrf")
     query.add_argument("--workers", type=int, default=4)
     query.add_argument("--query-model", default="gemini-2.5-flash-lite")
+    query.add_argument("--rerank-batch-size", type=int, default=64)
     evidence = experiment_commands.add_parser("evidence")
     evidence.add_argument(
         "--arm",
@@ -344,6 +345,7 @@ def main() -> None:
                     args.retriever,
                     args.workers,
                     args.query_model,
+                    args.rerank_batch_size,
                 ),
                 indent=2,
             )

@@ -749,6 +749,7 @@ def run_query_retrieval(
     retriever: str = "rrf",
     workers: int = 4,
     query_model: str = "gemini-2.5-flash-lite",
+    rerank_batch_size: int = 64,
 ) -> dict[str, Any]:
     if strategy not in {"original", "mesh", "hyde"}:
         raise ValueError("strategy must be original, mesh, or hyde")
@@ -756,6 +757,8 @@ def run_query_retrieval(
         raise ValueError("retriever must be rrf or rrf_rerank")
     if workers < 1 or workers > 16:
         raise ValueError("workers must be between 1 and 16")
+    if rerank_batch_size < 1:
+        raise ValueError("rerank_batch_size must be positive")
     from medrag_lab.generation.gateway import GatewayClient
     from medrag_lab.query.hyde import HyDEExpander
     from medrag_lab.query.mesh import MeshExpander
@@ -789,6 +792,7 @@ def run_query_retrieval(
         "rows": len(questions),
         "retriever_control": retriever,
         "workers": workers,
+        "rerank_batch_size": rerank_batch_size if retriever == "rrf_rerank" else "not_applicable",
         "bm25_recipe": bm25_recipe,
         "split_freeze_hash": splits["freeze_hash"],
         "git_sha": git_sha(),
@@ -864,7 +868,9 @@ def run_query_retrieval(
                 ranked_rows = reciprocal_rank_fusion(sparse_rows, dense_rows)[:100]
                 rerank_ms = 0.0
                 if reranker:
-                    ranked_rows, rerank_ms = reranker.rerank(query, ranked_rows, 100)
+                    ranked_rows, rerank_ms = reranker.rerank(
+                        query, ranked_rows, 100, batch_size=rerank_batch_size
+                    )
                 ranked = [item.pmid for item in ranked_rows]
                 latency = sparse_ms + dense_ms + rerank_ms + transform_latencies[index]
                 gold = set(map(str, row["relevant_passage_ids"]))
