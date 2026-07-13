@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E03-original-query800-55fe14ce64\\predictions.jsonl",
+  "right": "artifacts\\runs\\E03-mesh_rrf_rerank-query800-f558caa03a\\predictions.jsonl",
+  "metric": "metrics.ap",
+  "require_equal_evidence": false,
+  "rows": 800,
+  "bootstrap": {
+    "mean_delta_right_minus_left": -0.006635977851788862,
+    "ci95_low": -0.010378566113945577,
+    "ci95_high": -0.002961333341206851
+  },
+  "paired_effect_size": -0.12537174569946885,
+  "paired_permutation_p": 0.0004999500049995,
+  "normal_approx_mde_80": 0.005242809751709145,
+  "comparison_hash": "57d4520574e369de73daf18f665ca5ec1b9cb26e02019cccea7a9c408a4152e5"
+}

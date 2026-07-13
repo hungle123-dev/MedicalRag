@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E03-original-smoke40-81814dd5f2\\predictions.jsonl",
+  "right": "artifacts\\runs\\E03-hyde-smoke40-6c36bb81ce\\predictions.jsonl",
+  "metric": "metrics.ap",
+  "require_equal_evidence": false,
+  "rows": 40,
+  "bootstrap": {
+    "mean_delta_right_minus_left": -0.21094716474552783,
+    "ci95_low": -0.32053199404761906,
+    "ci95_high": -0.1113226529037541
+  },
+  "paired_effect_size": -0.6156956940746978,
+  "paired_permutation_p": 0.00029997000299970003,
+  "normal_approx_mde_80": 0.15176842174896918,
+  "comparison_hash": "b5c9a4f778e5bb3fb9a80041efe48cc17b66b64590235553ca784702560d7467"
+}

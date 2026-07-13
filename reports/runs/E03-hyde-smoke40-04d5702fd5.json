@@ -1,0 +1,44 @@
+{
+  "created_at": "2026-07-13T17:50:42.407367+00:00",
+  "status": "observed_real_data",
+  "scope": "closed-world positive-only gold-conditioned candidate pool",
+  "config": {
+    "family": "E03",
+    "arm": "hyde",
+    "population": "smoke40",
+    "rows": 40,
+    "offset": 0,
+    "retriever_control": "rrf_rerank",
+    "workers": 1,
+    "rerank_batch_size": 64,
+    "bm25_recipe": "boosted_title_abstract_mesh",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "8d2f4f1edfbb4fdfbdc8abe94d5f0ed805199ca9",
+    "purpose": "feasibility_only",
+    "query_generator_model": "gemini-2.5-flash",
+    "hyde_prompt_hash": "7326eec82afae0b3da30790bb276ddc3ab06d0eadd4699c596ebbad9072498fb",
+    "cross_encoder_revision": "71caf65d4927987813984f54c284405a13fcca49",
+    "config_hash": "04d5702fd553e2136bd2047fc58b7cc9bd982b843ea5538cb18daaa204d695f9"
+  },
+  "metrics": {
+    "ap": 0.025,
+    "recall": 0.016666666666666666,
+    "mrr": 0.025,
+    "ndcg": 0.025,
+    "hit": 0.025,
+    "recall_at_100": 0.025,
+    "map_at_10": 0.025,
+    "questions": 40,
+    "failures": 39,
+    "failure_rate": 0.975,
+    "retrieval_latency_ms_p50": 3362.117295007556,
+    "retrieval_latency_ms_p95": 3362.117295007556,
+    "query_transform_ms_p50": 0.0,
+    "query_transform_cache_rate": 0.025,
+    "query_transform_input_tokens": 95,
+    "query_transform_output_tokens": 217
+  },
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E03-hyde-smoke40-04d5702fd5\\predictions.jsonl"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "created_at": "2026-07-13T18:08:24.101872+00:00",
+  "status": "observed_real_data",
+  "scope": "closed-world positive-only gold-conditioned candidate pool",
+  "config": {
+    "family": "E03",
+    "arm": "hyde",
+    "population": "smoke40",
+    "rows": 40,
+    "offset": 0,
+    "retriever_control": "rrf_rerank",
+    "workers": 1,
+    "rerank_batch_size": 64,
+    "bm25_recipe": "boosted_title_abstract_mesh",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "8d2f4f1edfbb4fdfbdc8abe94d5f0ed805199ca9",
+    "purpose": "feasibility_only",
+    "query_generator_model": "deepseek-v3.2",
+    "hyde_prompt_hash": "7326eec82afae0b3da30790bb276ddc3ab06d0eadd4699c596ebbad9072498fb",
+    "cross_encoder_revision": "71caf65d4927987813984f54c284405a13fcca49",
+    "config_hash": "6c36bb81ce6959a449303662e6d44370c3ed8e855ac0a922db06220bb3b8a42a"
+  },
+  "metrics": {
+    "ap": 0.5631118551587302,
+    "recall": 0.5469536029752544,
+    "mrr": 0.81875,
+    "ndcg": 0.6540638120047197,
+    "hit": 0.925,
+    "recall_at_100": 0.9349318217235469,
+    "map_at_10": 0.5631118551587302,
+    "questions": 40,
+    "failures": 1,
+    "failure_rate": 0.025,
+    "retrieval_latency_ms_p50": 13933.5206824966,
+    "retrieval_latency_ms_p95": 37985.6350824979,
+    "query_transform_ms_p50": 9746.704350000073,
+    "query_transform_cache_rate": 0.0,
+    "query_transform_input_tokens": 3589,
+    "query_transform_output_tokens": 9107
+  },
+  "artifacts": {
+    "predictions": "artifacts\\runs\\E03-hyde-smoke40-6c36bb81ce\\predictions.jsonl"
+  }
+}

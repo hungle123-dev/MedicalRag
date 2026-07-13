@@ -1,0 +1,17 @@
+{
+  "gate_id": "E03_MESH_RERANK",
+  "rows": 800,
+  "comparison_hash": "57d4520574e369de73daf18f665ca5ec1b9cb26e02019cccea7a9c408a4152e5",
+  "rescue_rate": 0.00125,
+  "severe_harm_rate": 0.0175,
+  "p95_latency_ratio": 0.9290115984471456,
+  "checks": {
+    "minimum_effect": false,
+    "positive_paired_ci": false,
+    "severe_harm_below_5_percent": true,
+    "failure_guard": true,
+    "latency_guard": true
+  },
+  "passed": false,
+  "gate_hash": "f3a2f2ad62dbfbb9622a94866c063fe1678567b915f05ddd0349cf591c878b70"
+}

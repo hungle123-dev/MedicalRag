@@ -1,0 +1,17 @@
+{
+  "gate_id": "E03_HYDE_DEEPSEEK_SMOKE",
+  "rows": 40,
+  "comparison_hash": "b5c9a4f778e5bb3fb9a80041efe48cc17b66b64590235553ca784702560d7467",
+  "rescue_rate": 0.0,
+  "severe_harm_rate": 0.375,
+  "p95_latency_ratio": 28.33399036681621,
+  "checks": {
+    "minimum_effect": false,
+    "positive_paired_ci": false,
+    "severe_harm_below_5_percent": false,
+    "failure_guard": false,
+    "latency_guard": false
+  },
+  "passed": false,
+  "gate_hash": "962d1882367b8399317cfeaf0942e0e11f1932eaeb43ff9a5e6deb8082be9456"
+}
