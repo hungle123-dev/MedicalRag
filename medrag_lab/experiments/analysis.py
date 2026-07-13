@@ -116,6 +116,45 @@ def evaluate_query_strategy_gate(
     return result
 
 
+def evaluate_evidence_gate(
+    baseline_summary: Path,
+    candidate_summary: Path,
+    comparison_path: Path,
+    gate_id: str,
+) -> dict[str, Any]:
+    """Apply the preregistered E04 quality gate without inventing a latency constraint."""
+    baseline = json.loads(baseline_summary.read_text(encoding="utf-8"))
+    candidate = json.loads(candidate_summary.read_text(encoding="utf-8"))
+    comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
+    bootstrap = comparison["bootstrap"]
+    checks = {
+        "minimum_effect": bootstrap["mean_delta_right_minus_left"] >= 0.01,
+        "positive_paired_ci": bootstrap["ci95_low"] > 0,
+        "failure_guard": (
+            candidate["metrics"]["failure_rate"] - baseline["metrics"]["failure_rate"] <= 0.005
+        ),
+        "same_population_size": (
+            comparison["rows"]
+            == baseline["metrics"]["questions"]
+            == candidate["metrics"]["questions"]
+        ),
+    }
+    result = {
+        "gate_id": gate_id,
+        "family": "E04",
+        "comparison_hash": comparison["comparison_hash"],
+        "baseline": str(baseline_summary),
+        "candidate": str(candidate_summary),
+        "checks": checks,
+        "passed": all(checks.values()),
+    }
+    result["gate_hash"] = stable_hash(result)
+    destination = ROOT / "reports" / "gates" / f"{gate_id}.json"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    return result
+
+
 def verify_context_invariant(
     left_path: Path,
     right_path: Path,

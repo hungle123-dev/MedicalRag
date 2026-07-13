@@ -13,7 +13,7 @@ from medrag_lab.evaluation.statistics import (
     paired_mde_80,
     paired_permutation_p,
 )
-from medrag_lab.experiments import runner
+from medrag_lab.experiments import analysis, runner
 from medrag_lab.experiments.gates import noninferiority_gate, superiority_gate
 
 
@@ -94,3 +94,24 @@ def test_superiority_gate_rejects_batched_latency(tmp_path, monkeypatch):
         summaries.append(path)
     with pytest.raises(ValueError, match="dedicated serial"):
         runner.evaluate_superiority_gate(comparison, *summaries, "test")
+
+
+def test_evidence_gate_checks_effect_failures_and_population(tmp_path, monkeypatch):
+    monkeypatch.setattr(analysis, "ROOT", tmp_path)
+    comparison = tmp_path / "comparison.json"
+    comparison.write_text(
+        json.dumps(
+            {
+                "comparison_hash": "c",
+                "rows": 10,
+                "bootstrap": {"mean_delta_right_minus_left": 0.02, "ci95_low": 0.01},
+            }
+        )
+    )
+    summaries = []
+    for name in ("baseline", "candidate"):
+        path = tmp_path / f"{name}.json"
+        path.write_text(json.dumps({"metrics": {"questions": 10, "failure_rate": 0.0}}))
+        summaries.append(path)
+    result = analysis.evaluate_evidence_gate(*summaries, comparison, "E04_TEST")
+    assert result["passed"] is True
