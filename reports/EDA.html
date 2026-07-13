@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>MedRAG-Lab EDA</title>
+  <style>
+    body { font: 16px/1.55 system-ui; max-width: 1100px; margin: auto; padding: 32px;
+      background: #f5f7f3; color: #172018; }
+    h1 { font-size: clamp(2rem, 6vw, 4rem); }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px; }
+    article, pre, .warn { background: white; border: 1px solid #ccd4ca;
+      border-radius: 12px; padding: 18px; }
+    article span { display: block; font-size: 2rem; }
+    .warn { border-left: 5px solid #ad4e48; }
+    pre { overflow: auto; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>BioASQ data audit</h1>
+  <p>Generated from pinned local files at 2026-07-13T11:32:52.231950+00:00.</p>
+  <div class="cards"><article><strong>Corpus</strong><span>49,513</span></article><article><strong>Development</strong><span>5,049</span></article><article><strong>Held-out</strong><span>340</span></article><article><strong>Corpus outside gold union</strong><span>0</span></article></div>
+  <p class="warn"><strong>Scope:</strong> this is a positive-only gold-conditioned pool,
+    not search over all PubMed.</p>
+  <h2>Exact-answer gate</h2><p>The local bundle contains ideal prose but no official exact_answer. Authorized official labels must be joined by question_id and are never inferred.</p>
+  <h2>Machine-readable evidence</h2><pre>{
+  &quot;created_at&quot;: &quot;2026-07-13T11:32:52.231950+00:00&quot;,
+  &quot;status&quot;: &quot;observed_from_pinned_local_data&quot;,
+  &quot;dataset&quot;: {
+    &quot;name&quot;: &quot;mattmorgis/bioasq-12b-rag&quot;,
+    &quot;revision&quot;: &quot;6d6add1a6ec2090991386b5ae7608b71fd637bc4&quot;,
+    &quot;url&quot;: &quot;https://huggingface.co/datasets/mattmorgis/bioasq-12b-rag&quot;,
+    &quot;license&quot;: &quot;CC BY-NC-SA 4.0&quot;,
+    &quot;scope&quot;: &quot;closed-world positive-only gold-conditioned candidate pool&quot;
+  },
+  &quot;files&quot;: {
+    &quot;corpus.jsonl&quot;: {
+      &quot;rows&quot;: 49513,
+      &quot;bytes&quot;: 126455681,
+      &quot;sha256&quot;: &quot;1e992bd761413d17b3fbb410a368532227d4bc28d0ef27817dde98ef3ecb2ca0&quot;,
+      &quot;matches_pin&quot;: true
+    },
+    &quot;dev.jsonl&quot;: {
+      &quot;rows&quot;: 5049,
+      &quot;bytes&quot;: 25960520,
+      &quot;sha256&quot;: &quot;19378f4c5eb4957753bdd7ce67fc570d6d709b6b738b9e0d5ca179e354e0510d&quot;,
+      &quot;matches_pin&quot;: true
+    },
+    &quot;eval.jsonl&quot;: {
+      &quot;rows&quot;: 340,
+      &quot;bytes&quot;: 4436186,
+      &quot;sha256&quot;: &quot;61a1521015fc190dcc8c8c0f0d1b3a25ea6a694f915461256557a81c4d4bfbdf&quot;,
+      &quot;matches_pin&quot;: true
+    }
+  },
+  &quot;corpus&quot;: {
+    &quot;rows&quot;: 49513,
+    &quot;unique_pmids&quot;: 49513,
+    &quot;duplicate_pmids&quot;: 0,
+    &quot;document_words&quot;: {
+      &quot;count&quot;: 49513,
+      &quot;min&quot;: 5,
+      &quot;median&quot;: 219,
+      &quot;mean&quot;: 223.317,
+      &quot;p95&quot;: 357,
+      &quot;max&quot;: 1512
+    },
+    &quot;missing&quot;: {
+      &quot;id&quot;: 0,
+      &quot;title&quot;: 0,
+      &quot;text&quot;: 0,
+      &quot;url&quot;: 0,
+      &quot;publication_date&quot;: 0,
+      &quot;mesh_terms&quot;: 4307
+    },
+    &quot;publication_year&quot;: {
+      &quot;count&quot;: 49513,
+      &quot;min&quot;: 1916,
+      &quot;median&quot;: 2012,
+      &quot;mean&quot;: 2010.933,
+      &quot;p95&quot;: 2022,
+      &quot;max&quot;: 2024
+    },
+    &quot;normalized_duplicate_groups&quot;: 11,
+    &quot;normalized_duplicate_rows&quot;: 23
+  },
+  &quot;qa&quot;: {
+    &quot;dev&quot;: {
+      &quot;rows&quot;: 5049,
+      &quot;fields&quot;: [
+        &quot;answer&quot;,
+        &quot;question&quot;,
+        &quot;question_id&quot;,
+        &quot;relevant_passage_ids&quot;,
+        &quot;snippets&quot;,
+        &quot;type&quot;
+      ],
+      &quot;question_types&quot;: {
+        &quot;factoid&quot;: 1515,
+        &quot;list&quot;: 967,
+        &quot;summary&quot;: 1210,
+        &quot;yesno&quot;: 1357
+      },
+      &quot;question_words&quot;: {
+        &quot;count&quot;: 5049,
+        &quot;min&quot;: 2,
+        &quot;median&quot;: 8,
+        &quot;mean&quot;: 8.651,
+        &quot;p95&quot;: 15,
+        &quot;max&quot;: 30
+      },
+      &quot;ideal_answer_words&quot;: {
+        &quot;count&quot;: 5049,
+        &quot;min&quot;: 1,
+        &quot;median&quot;: 24,
+        &quot;mean&quot;: 35.674,
+        &quot;p95&quot;: 106,
+        &quot;max&quot;: 419
+      },
+      &quot;gold_documents_per_question&quot;: {
+        &quot;count&quot;: 5049,
+        &quot;min&quot;: 1,
+        &quot;median&quot;: 6,
+        &quot;mean&quot;: 9.059,
+        &quot;p95&quot;: 27,
+        &quot;max&quot;: 157
+      },
+      &quot;snippets_per_question&quot;: {
+        &quot;count&quot;: 5049,
+        &quot;min&quot;: 1,
+        &quot;median&quot;: 8,
+        &quot;mean&quot;: 11.914,
+        &quot;p95&quot;: 34,
+        &quot;max&quot;: 121
+      },
+      &quot;normalized_duplicate_groups&quot;: 16,
+      &quot;normalized_duplicate_rows&quot;: 32,
+      &quot;exact_answer_rows&quot;: 0,
+      &quot;gold_document_refs&quot;: 45737,
+      &quot;gold_document_refs_reachable&quot;: 45701,
+      &quot;gold_document_coverage&quot;: 0.99921289,
+      &quot;questions_with_no_reachable_gold&quot;: 1,
+      &quot;snippet_refs&quot;: 60156,
+      &quot;snippet_documents_reachable&quot;: 60101,
+      &quot;snippet_text_contained&quot;: 48889,
+      &quot;snippet_offset_exact&quot;: 39398,
+      &quot;snippet_missing_or_unknown_section&quot;: 4072
+    },
+    &quot;eval&quot;: {
+      &quot;rows&quot;: 340,
+      &quot;fields&quot;: [
+        &quot;answer&quot;,
+        &quot;question&quot;,
+        &quot;question_id&quot;,
+        &quot;relevant_passage_ids&quot;,
+        &quot;snippets&quot;,
+        &quot;type&quot;
+      ],
+      &quot;question_types&quot;: {
+        &quot;factoid&quot;: 85,
+        &quot;list&quot;: 80,
+        &quot;summary&quot;: 73,
+        &quot;yesno&quot;: 102
+      },
+      &quot;question_words&quot;: {
+        &quot;count&quot;: 340,
+        &quot;min&quot;: 3,
+        &quot;median&quot;: 9.0,
+        &quot;mean&quot;: 9.647,
+        &quot;p95&quot;: 17,
+        &quot;max&quot;: 25
+      },
+      &quot;ideal_answer_words&quot;: {
+        &quot;count&quot;: 340,
+        &quot;min&quot;: 1,
+        &quot;median&quot;: 22.0,
+        &quot;mean&quot;: 35.432,
+        &quot;p95&quot;: 107,
+        &quot;max&quot;: 341
+      },
+      &quot;gold_documents_per_question&quot;: {
+        &quot;count&quot;: 340,
+        &quot;min&quot;: 1,
+        &quot;median&quot;: 16.0,
+        &quot;mean&quot;: 19.544,
+        &quot;p95&quot;: 52,
+        &quot;max&quot;: 86
+      },
+      &quot;snippets_per_question&quot;: {
+        &quot;count&quot;: 340,
+        &quot;min&quot;: 1,
+        &quot;median&quot;: 20.0,
+        &quot;mean&quot;: 25.603,
+        &quot;p95&quot;: 65,
+        &quot;max&quot;: 106
+      },
+      &quot;normalized_duplicate_groups&quot;: 0,
+      &quot;normalized_duplicate_rows&quot;: 0,
+      &quot;exact_answer_rows&quot;: 0,
+      &quot;gold_document_refs&quot;: 6645,
+      &quot;gold_document_refs_reachable&quot;: 6644,
+      &quot;gold_document_coverage&quot;: 0.99984951,
+      &quot;questions_with_no_reachable_gold&quot;: 0,
+      &quot;snippet_refs&quot;: 8705,
+      &quot;snippet_documents_reachable&quot;: 8649,
+      &quot;snippet_text_contained&quot;: 6940,
+      &quot;snippet_offset_exact&quot;: 6219,
+      &quot;snippet_missing_or_unknown_section&quot;: 0
+    }
+  },
+  &quot;integrity&quot;: {
+    &quot;normalized_question_overlap_dev_eval&quot;: 0,
+    &quot;corpus_pmids_in_dev_eval_gold_union&quot;: 49513,
+    &quot;corpus_pmids_outside_dev_eval_gold_union&quot;: 0
+  },
+  &quot;label_gate&quot;: {
+    &quot;status&quot;: &quot;blocked_missing_official_exact_labels&quot;,
+    &quot;exact_metrics_enabled&quot;: false,
+    &quot;official_training_count&quot;: 5046,
+    &quot;local_dev_count&quot;: 5049,
+    &quot;reason&quot;: &quot;The local bundle contains ideal prose but no official exact_answer. Authorized official labels must be joined by question_id and are never inferred.&quot;
+  }
+}</pre>
+</body>
+</html>

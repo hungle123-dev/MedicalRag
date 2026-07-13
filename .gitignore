@@ -11,12 +11,10 @@ venv/
 .env
 
 # Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/coverage/
-frontend/*.tsbuildinfo
-frontend/vite.config.js
-frontend/vite.config.d.ts
+apps/web/node_modules/
+apps/web/dist/
+apps/web/coverage/
+apps/web/*.tsbuildinfo
 
 # Data, indexes, models and generated artifacts
 data/*
@@ -26,6 +24,7 @@ indexes/
 models/
 artifacts/
 results/
+mlruns/
 *.faiss
 *.pkl
 *.sqlite3

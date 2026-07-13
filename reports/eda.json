@@ -1,0 +1,198 @@
+{
+  "created_at": "2026-07-13T11:32:52.231950+00:00",
+  "status": "observed_from_pinned_local_data",
+  "dataset": {
+    "name": "mattmorgis/bioasq-12b-rag",
+    "revision": "6d6add1a6ec2090991386b5ae7608b71fd637bc4",
+    "url": "https://huggingface.co/datasets/mattmorgis/bioasq-12b-rag",
+    "license": "CC BY-NC-SA 4.0",
+    "scope": "closed-world positive-only gold-conditioned candidate pool"
+  },
+  "files": {
+    "corpus.jsonl": {
+      "rows": 49513,
+      "bytes": 126455681,
+      "sha256": "1e992bd761413d17b3fbb410a368532227d4bc28d0ef27817dde98ef3ecb2ca0",
+      "matches_pin": true
+    },
+    "dev.jsonl": {
+      "rows": 5049,
+      "bytes": 25960520,
+      "sha256": "19378f4c5eb4957753bdd7ce67fc570d6d709b6b738b9e0d5ca179e354e0510d",
+      "matches_pin": true
+    },
+    "eval.jsonl": {
+      "rows": 340,
+      "bytes": 4436186,
+      "sha256": "61a1521015fc190dcc8c8c0f0d1b3a25ea6a694f915461256557a81c4d4bfbdf",
+      "matches_pin": true
+    }
+  },
+  "corpus": {
+    "rows": 49513,
+    "unique_pmids": 49513,
+    "duplicate_pmids": 0,
+    "document_words": {
+      "count": 49513,
+      "min": 5,
+      "median": 219,
+      "mean": 223.317,
+      "p95": 357,
+      "max": 1512
+    },
+    "missing": {
+      "id": 0,
+      "title": 0,
+      "text": 0,
+      "url": 0,
+      "publication_date": 0,
+      "mesh_terms": 4307
+    },
+    "publication_year": {
+      "count": 49513,
+      "min": 1916,
+      "median": 2012,
+      "mean": 2010.933,
+      "p95": 2022,
+      "max": 2024
+    },
+    "normalized_duplicate_groups": 11,
+    "normalized_duplicate_rows": 23
+  },
+  "qa": {
+    "dev": {
+      "rows": 5049,
+      "fields": [
+        "answer",
+        "question",
+        "question_id",
+        "relevant_passage_ids",
+        "snippets",
+        "type"
+      ],
+      "question_types": {
+        "factoid": 1515,
+        "list": 967,
+        "summary": 1210,
+        "yesno": 1357
+      },
+      "question_words": {
+        "count": 5049,
+        "min": 2,
+        "median": 8,
+        "mean": 8.651,
+        "p95": 15,
+        "max": 30
+      },
+      "ideal_answer_words": {
+        "count": 5049,
+        "min": 1,
+        "median": 24,
+        "mean": 35.674,
+        "p95": 106,
+        "max": 419
+      },
+      "gold_documents_per_question": {
+        "count": 5049,
+        "min": 1,
+        "median": 6,
+        "mean": 9.059,
+        "p95": 27,
+        "max": 157
+      },
+      "snippets_per_question": {
+        "count": 5049,
+        "min": 1,
+        "median": 8,
+        "mean": 11.914,
+        "p95": 34,
+        "max": 121
+      },
+      "normalized_duplicate_groups": 16,
+      "normalized_duplicate_rows": 32,
+      "exact_answer_rows": 0,
+      "gold_document_refs": 45737,
+      "gold_document_refs_reachable": 45701,
+      "gold_document_coverage": 0.99921289,
+      "questions_with_no_reachable_gold": 1,
+      "snippet_refs": 60156,
+      "snippet_documents_reachable": 60101,
+      "snippet_text_contained": 48889,
+      "snippet_offset_exact": 39398,
+      "snippet_missing_or_unknown_section": 4072
+    },
+    "eval": {
+      "rows": 340,
+      "fields": [
+        "answer",
+        "question",
+        "question_id",
+        "relevant_passage_ids",
+        "snippets",
+        "type"
+      ],
+      "question_types": {
+        "factoid": 85,
+        "list": 80,
+        "summary": 73,
+        "yesno": 102
+      },
+      "question_words": {
+        "count": 340,
+        "min": 3,
+        "median": 9.0,
+        "mean": 9.647,
+        "p95": 17,
+        "max": 25
+      },
+      "ideal_answer_words": {
+        "count": 340,
+        "min": 1,
+        "median": 22.0,
+        "mean": 35.432,
+        "p95": 107,
+        "max": 341
+      },
+      "gold_documents_per_question": {
+        "count": 340,
+        "min": 1,
+        "median": 16.0,
+        "mean": 19.544,
+        "p95": 52,
+        "max": 86
+      },
+      "snippets_per_question": {
+        "count": 340,
+        "min": 1,
+        "median": 20.0,
+        "mean": 25.603,
+        "p95": 65,
+        "max": 106
+      },
+      "normalized_duplicate_groups": 0,
+      "normalized_duplicate_rows": 0,
+      "exact_answer_rows": 0,
+      "gold_document_refs": 6645,
+      "gold_document_refs_reachable": 6644,
+      "gold_document_coverage": 0.99984951,
+      "questions_with_no_reachable_gold": 0,
+      "snippet_refs": 8705,
+      "snippet_documents_reachable": 8649,
+      "snippet_text_contained": 6940,
+      "snippet_offset_exact": 6219,
+      "snippet_missing_or_unknown_section": 0
+    }
+  },
+  "integrity": {
+    "normalized_question_overlap_dev_eval": 0,
+    "corpus_pmids_in_dev_eval_gold_union": 49513,
+    "corpus_pmids_outside_dev_eval_gold_union": 0
+  },
+  "label_gate": {
+    "status": "blocked_missing_official_exact_labels",
+    "exact_metrics_enabled": false,
+    "official_training_count": 5046,
+    "local_dev_count": 5049,
+    "reason": "The local bundle contains ideal prose but no official exact_answer. Authorized official labels must be joined by question_id and are never inferred."
+  }
+}

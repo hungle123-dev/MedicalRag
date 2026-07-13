@@ -1,0 +1,25 @@
+version: 1
+seed: 20260713
+scope: closed-world positive-only gold-conditioned BioASQ candidate pool
+primary_ideal_metric: rouge_su4_f1
+failure_policy: intention_to_treat_score_zero
+heldout_policy: infer_without_gold_then_score_in_separate_process
+populations:
+  retrieval: selection4849
+  query: query800
+  generation: generation160
+  validation: validation200
+  final: heldout340
+gates:
+  superiority:
+    minimum_effect: 0.01
+    paired_ci_lower_gt: 0.0
+    max_failure_rate_increase: 0.005
+    max_p95_latency_multiplier: 2.0
+  efficiency:
+    frozen_noninferiority_margin: 0.01
+    max_cost_ratio: 0.70
+final_contrasts:
+  - best_vs_vanilla_bm25
+  - best_vs_closed_book
+  - best_vs_preselected_drop_one

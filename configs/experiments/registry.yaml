@@ -1,0 +1,164 @@
+version: 1
+families:
+  - id: E01
+    hypothesis: Field-aware BM25 improves lexical evidence ranking over single-field indexes.
+    changed_factor: indexed fields
+    fixed_controls: [corpus, original_query, bm25_parameters, retrieve100_dedupe_submit10]
+    population: selection4849
+    primary_metric: map_at_10
+    gate: superiority
+    depends_on: []
+    arms:
+      - {id: E01.C01, variant: title, tier: core}
+      - {id: E01.C02, variant: abstract, tier: core}
+      - {id: E01.C03, variant: title_abstract, tier: core}
+      - {id: E01.C04, variant: boosted_title_abstract_mesh, tier: core}
+  - id: E02
+    hypothesis: Biomedical dense and hybrid retrieval rescue semantic misses while preserving lexical precision.
+    changed_factor: retriever
+    fixed_controls: [corpus, original_query, candidate_depth_100, submit_depth_10]
+    population: selection4849
+    primary_metric: map_at_10
+    gate: superiority_or_efficiency
+    depends_on: [E01]
+    arms:
+      - {id: E02.C01, variant: bm25_champion, tier: core}
+      - {id: E02.C02, variant: medcpt, tier: core}
+      - {id: E02.C03, variant: rrf, tier: core}
+      - {id: E02.C04, variant: rrf_medcpt_cross_encoder, tier: core}
+      - {id: E02.S01, variant: specter_control, tier: stretch}
+  - id: E03
+    hypothesis: Biomedical query transformation rescues misses without unacceptable query drift.
+    changed_factor: query_strategy
+    fixed_controls: [retriever_champion, no_gold_access, corpus]
+    population: query800
+    primary_metric: map_at_10
+    gate: superiority_and_severe_harm_below_5_percent
+    depends_on: [E02]
+    arms:
+      - {id: E03.C01, variant: original, tier: core}
+      - {id: E03.C02, variant: mesh_expansion, tier: core}
+      - {id: E03.C03, variant: hyde_one_pseudo_abstract, tier: core}
+      - {id: E03.S01, variant: iterative_two_rounds, tier: stretch}
+  - id: E04
+    hypothesis: Compact biomedical snippets improve span relevance over full abstracts.
+    changed_factor: snippet_construction_and_ranking
+    fixed_controls: [same_ranked_pmids, same_document_count, same_final_snippet_count]
+    population: selection4849
+    primary_metric: snippet_span_f1
+    gate: superiority
+    depends_on: [E03, E12.C]
+    arms:
+      - {id: E04.C01, variant: full_abstract, tier: core}
+      - {id: E04.C02, variant: chunk_256_overlap_64_bm25, tier: core}
+      - {id: E04.C03, variant: three_sentence_bm25, tier: core}
+      - {id: E04.C04, variant: three_sentence_medcpt_cross_encoder, tier: core}
+  - id: E05
+    hypothesis: A medium context budget preserves answer quality while reducing cost and distraction.
+    changed_factor: reference_context_budget
+    fixed_controls: [evidence_ranking, serializer, generator, prompt]
+    population: generation160_then_validation200
+    primary_metric: rouge_su4_f1
+    gate: superiority_or_efficiency_with_faithfulness_guard
+    depends_on: [E04]
+    arms:
+      - {id: E05.C01, variant: reference_tokens_600, tier: core}
+      - {id: E05.C02, variant: reference_tokens_1200, tier: core}
+      - {id: E05.C03, variant: reference_tokens_2400, tier: core}
+  - id: E06
+    hypothesis: Placing strongest evidence in the middle degrades generation through lost-in-the-middle.
+    changed_factor: evidence_order
+    fixed_controls: [identical_snippets, identical_budget, no_duplication, generator, prompt]
+    population: generation160
+    primary_metric: rouge_su4_f1
+    gate: diagnostic_with_faithfulness_guard
+    depends_on: [E05]
+    arms:
+      - {id: E06.C01, variant: relevance_descending, tier: core}
+      - {id: E06.C02, variant: strongest_in_middle, tier: core}
+  - id: E07
+    hypothesis: Diversity reduces redundant evidence without reducing answer faithfulness.
+    changed_factor: context_selection
+    fixed_controls: [same_budget, same_generator, same_prompt]
+    population: generation160
+    primary_metric: packed_context_gold_pmid_recall
+    gate: recall_gain_with_answer_noninferiority
+    depends_on: [E06]
+    arms:
+      - {id: E07.S00, variant: top_score_reference, tier: stretch}
+      - {id: E07.S01, variant: mmr_source_diverse, tier: stretch}
+  - id: E08
+    hypothesis: Generator quality-cost trade-offs remain after evidence and prompts are fixed exactly.
+    changed_factor: generator_model
+    fixed_controls: [exact_context_string, exact_prompt, parser, output_contract]
+    population: smoke40_then_generation160_then_validation200
+    primary_metric: rouge_su4_f1
+    gate: quality_cost_pareto_with_faithfulness_guard
+    depends_on: [E06]
+    arms:
+      - {id: E08.C01, variant: gpt_4_1_nano, tier: core}
+      - {id: E08.C02, variant: gemini_2_5_flash_lite, tier: core}
+      - {id: E08.C03, variant: deepseek_v3_2, tier: core}
+      - {id: E08.C04, variant: qwen_3_5_122b_a10b, tier: core}
+  - id: E09
+    hypothesis: Structured type-aware citation prompts improve parseability and evidence grounding.
+    changed_factor: one_prompt_feature_per_contrast
+    fixed_controls: [generator_champion, exact_evidence, parser]
+    population: generation160_then_validation200
+    primary_metric: rouge_su4_f1
+    gate: adjacent_controlled_contrasts
+    depends_on: [E08]
+    arms:
+      - {id: E09.C01, variant: generic_structured, tier: core}
+      - {id: E09.C02, variant: citation_constraint, tier: core}
+      - {id: E09.C03, variant: predicted_type_schema, tier: core}
+      - {id: E09.C04, variant: gold_type_oracle, tier: core}
+      - {id: E09.S01, variant: evidence_sufficiency_abstention, tier: stretch}
+  - id: E10
+    hypothesis: Replacing predicted evidence with gold evidence localizes the dominant bottleneck.
+    changed_factor: evidence_source
+    fixed_controls: [generator, prompt, document_cap, snippet_cap, context_budget]
+    population: validation200
+    primary_metric: rouge_su4_f1_gap
+    gate: diagnostic_only
+    depends_on: [E09]
+    arms:
+      - {id: E10.C01, variant: L0_closed_book, tier: core}
+      - {id: E10.C02, variant: L1_predicted, tier: core}
+      - {id: E10.C03, variant: L2_gold_documents_predicted_snippets, tier: core}
+      - {id: E10.C04, variant: L3_gold_snippets, tier: core}
+  - id: E11
+    hypothesis: The frozen best RAG pipeline improves over vanilla and closed-book baselines.
+    changed_factor: frozen_complete_pipeline
+    fixed_controls: [heldout_ids, provider_snapshots, output_contract]
+    population: heldout340
+    primary_metric: rouge_su4_f1
+    gate: three_preregistered_contrasts_with_holm
+    depends_on: [E10, E12]
+    arms:
+      - {id: E11.C01, variant: closed_book, tier: core}
+      - {id: E11.C02, variant: vanilla_bm25_rag, tier: core}
+      - {id: E11.C03, variant: best_rag, tier: core}
+      - {id: E11.C04, variant: preselected_drop_one, tier: core}
+      - {id: E11.C05, variant: gold_evidence_oracle, tier: core}
+  - id: E12
+    hypothesis: Limited two-by-two checks reveal material interactions missed by staged selection.
+    changed_factor: registered_two_factor_interaction
+    fixed_controls: [remaining_modules, validation_ids]
+    population: validation200
+    primary_metric: difference_in_differences
+    gate: interaction_ci_or_rank_change
+    depends_on: [E03, E06, E08]
+    arms:
+      - {id: E12.C01, variant: retriever1_query1, tier: core}
+      - {id: E12.C02, variant: retriever1_query2, tier: core}
+      - {id: E12.C03, variant: retriever2_query1, tier: core}
+      - {id: E12.C04, variant: retriever2_query2, tier: core}
+      - {id: E12.S01, variant: retriever1_context1, tier: stretch}
+      - {id: E12.S02, variant: retriever1_context2, tier: stretch}
+      - {id: E12.S03, variant: retriever2_context1, tier: stretch}
+      - {id: E12.S04, variant: retriever2_context2, tier: stretch}
+      - {id: E12.S05, variant: context1_generator1, tier: stretch}
+      - {id: E12.S06, variant: context1_generator2, tier: stretch}
+      - {id: E12.S07, variant: context2_generator1, tier: stretch}
+      - {id: E12.S08, variant: context2_generator2, tier: stretch}
