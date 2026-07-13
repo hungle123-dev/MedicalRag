@@ -28,5 +28,5 @@ experiments:
     change: [B3, G2, X1_extra_text_sham, X2_seed_matched_random_path]
     fixed: [question IDs, generator, prompt, actual whitespace-word budget, output limit, retries]
     primary_metric: paired_mean_correctness_0_2
-    sampling: frozen BioASQ dev IDs excluding the first 20 generator-calibration IDs
+    sampling: 80 frozen BioASQ dev IDs after excluding the first 20 generator-calibration IDs
     decision_rule: Claim benefit only when all three G2-minus-control CIs exclude zero and human review finds no harm increase.

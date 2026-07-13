@@ -102,6 +102,8 @@ evidence_budget:
 sampling:
   smoke: 50
   bioasq_dev_cap: 300
+  e5_dev_questions: 80
+  e5_generator_calibration_excluded: 20
   human_random: 100
   human_random_split: eval
   primekgqa_gold_query_smoke: 100
