@@ -1,5 +1,5 @@
-pipeline_id: bm25_rag
-description: Frozen vanilla closed-corpus RAG product baseline
+pipeline_id: closed_book
+description: Frozen no-retrieval baseline; final runner supplies an empty context and closed-book prompt
 bm25_recipe: title_abstract
 retriever: bm25
 query_strategy: original
@@ -8,6 +8,6 @@ context_order: relevance_descending
 diversity: none
 retrieval_k: 20
 snippet_limit: 20
-context_token_budget: 1200
+context_token_budget: 600
 generator_model: cerebras/gpt-oss-120b
 max_output_tokens: 800

@@ -1,0 +1,14 @@
+pipeline_id: gold_evidence_oracle
+description: Non-deployable final diagnostic using benchmark gold snippets
+bm25_recipe: boosted_title_abstract_mesh
+retriever: rrf_rerank
+query_strategy: original
+evidence_strategy: sentence3_cross_encoder
+context_order: relevance_descending
+diversity: none
+retrieval_k: 100
+rerank_batch_size: 64
+snippet_limit: 20
+context_token_budget: 600
+generator_model: cerebras/gpt-oss-120b
+max_output_tokens: 800
