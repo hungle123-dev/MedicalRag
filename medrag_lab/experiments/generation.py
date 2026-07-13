@@ -252,6 +252,10 @@ def prepare_contexts(
                     }
                 )
         _write_jsonl(contexts_path, rows)
+        if population == "heldout340":
+            from medrag_lab.experiments.final import record_heldout_access
+
+            record_heldout_access(f"{family}.{arm}.contexts", contexts_path)
         scored_rows: list[dict[str, Any]] = []
         if population != "heldout340":
             gold = {
@@ -443,6 +447,10 @@ def prepare_oracle_contexts(
     contexts_path = output_dir / "contexts.jsonl"
     summary_path = output_dir / "summary.json"
     _write_jsonl(contexts_path, rows)
+    if population == "heldout340":
+        from medrag_lab.experiments.final import record_heldout_access
+
+        record_heldout_access(f"E10.{arm}.contexts", contexts_path)
     summary = {
         "created_at": datetime.now(UTC).isoformat(),
         "status": "observed_real_data_explicit_oracle",
