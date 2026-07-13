@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from medrag_lab.evaluation.bioasq import exact_answer_score, rouge_su4, snippet_span_f1
@@ -11,6 +13,7 @@ from medrag_lab.evaluation.statistics import (
     paired_mde_80,
     paired_permutation_p,
 )
+from medrag_lab.experiments import runner
 from medrag_lab.experiments.gates import noninferiority_gate, superiority_gate
 
 
@@ -63,3 +66,31 @@ def test_effect_size_and_gates():
     assert nearest_rank_percentile([10, 20], 0.95) == 20
     assert paired_mde_80([0, 0, 0], [0.1, 0.2, 0.3], ["a", "b", "c"]) > 0
     assert krippendorff_alpha_ordinal([[0, 0, 0], [3, 3, 3]]) == 1.0
+
+
+def test_superiority_gate_rejects_batched_latency(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    (tmp_path / "reports" / "gates").mkdir(parents=True)
+    comparison = tmp_path / "comparison.json"
+    comparison.write_text(
+        json.dumps(
+            {
+                "comparison_hash": "x",
+                "bootstrap": {"mean_delta_right_minus_left": 0.02, "ci95_low": 0.01},
+            }
+        )
+    )
+    summaries = []
+    for name in ("left", "right"):
+        path = tmp_path / f"{name}.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "config": {"latency_mode": "batched_throughput_amortized"},
+                    "metrics": {"failure_rate": 0.0, "latency_ms_p95": 1.0},
+                }
+            )
+        )
+        summaries.append(path)
+    with pytest.raises(ValueError, match="dedicated serial"):
+        runner.evaluate_superiority_gate(comparison, *summaries, "test")

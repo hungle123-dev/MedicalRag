@@ -85,6 +85,7 @@ def parser() -> argparse.ArgumentParser:
     retrieval.add_argument("--limit", type=int)
     retrieval.add_argument("--offset", type=int, default=0)
     retrieval.add_argument("--rerank-batch-size", type=int, default=64)
+    retrieval.add_argument("--serial-latency", action="store_true")
     retrieval.add_argument(
         "--bm25-recipe",
         choices=("title", "abstract", "title_abstract", "boosted_title_abstract_mesh"),
@@ -273,6 +274,7 @@ def main() -> None:
                     args.bm25_recipe,
                     args.offset,
                     args.rerank_batch_size,
+                    args.serial_latency,
                 ),
                 indent=2,
             )

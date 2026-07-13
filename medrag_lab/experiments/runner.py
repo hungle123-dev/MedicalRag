@@ -292,6 +292,7 @@ def run_dense_retrieval(
     bm25_recipe: Recipe = "title_abstract",
     offset: int = 0,
     rerank_batch_size: int = 64,
+    serial_latency: bool = False,
 ) -> dict[str, Any]:
     if method not in {"medcpt", "rrf", "rrf_rerank"}:
         raise ValueError("method must be medcpt, rrf, or rrf_rerank")
@@ -331,7 +332,8 @@ def run_dense_retrieval(
         "rows": len(questions),
         "offset": offset,
         "candidate_depth": 100,
-        "latency_mode": "batched_throughput_amortized",
+        "latency_mode": "dedicated_serial" if serial_latency else "batched_throughput_amortized",
+        "warmup_queries": 1 if serial_latency and questions else 0,
         "bm25_recipe": bm25_recipe if method != "medcpt" else "not_applicable",
         "split_freeze_hash": splits["freeze_hash"],
         "corpus_sha256": metadata["corpus_sha256"],
@@ -339,7 +341,9 @@ def run_dense_retrieval(
         "query_revision": metadata["query_revision"],
         "git_sha": git_sha(),
         "purpose": (
-            "feasibility_only"
+            "latency_benchmark"
+            if serial_latency
+            else "feasibility_only"
             if population == "smoke40"
             else "candidate_shard"
             if limit is not None or offset
@@ -355,7 +359,18 @@ def run_dense_retrieval(
     predictions_path, summary_path = output_dir / "predictions.jsonl", output_dir / "summary.json"
     predictions: list[dict[str, Any]] = []
     latencies: list[float] = []
-    dense_results = dense.retrieve_many([str(row["question"]) for row in questions], 100)
+    if serial_latency and questions:
+        warmup_query = str(questions[0]["question"])
+        warmup_dense, _ = dense.retrieve(warmup_query, 100)
+        if reranker and sparse:
+            warmup_sparse, _ = sparse.search(warmup_query, 100)
+            warmup_hybrid = reciprocal_rank_fusion(warmup_sparse, warmup_dense)[:100]
+            reranker.rerank(warmup_query, warmup_hybrid, 100, batch_size=rerank_batch_size)
+    dense_results = (
+        [dense.retrieve(str(row["question"]), 100) for row in questions]
+        if serial_latency
+        else dense.retrieve_many([str(row["question"]) for row in questions], 100)
+    )
     with tracked_run(run_name, run_config):
         for row, (dense_rows, dense_latency) in zip(questions, dense_results, strict=True):
             try:
@@ -699,8 +714,14 @@ def evaluate_superiority_gate(
     from medrag_lab.experiments.gates import superiority_gate
 
     comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
-    left = json.loads(left_efficiency_summary.read_text(encoding="utf-8"))["metrics"]
-    right = json.loads(right_efficiency_summary.read_text(encoding="utf-8"))["metrics"]
+    left_summary = json.loads(left_efficiency_summary.read_text(encoding="utf-8"))
+    right_summary = json.loads(right_efficiency_summary.read_text(encoding="utf-8"))
+    latency_modes = {
+        value.get("config", {}).get("latency_mode") for value in (left_summary, right_summary)
+    }
+    if None not in latency_modes and latency_modes != {"dedicated_serial"}:
+        raise ValueError("Latency gate requires dedicated serial efficiency runs")
+    left, right = left_summary["metrics"], right_summary["metrics"]
     bootstrap = comparison["bootstrap"]
     result = {
         "gate_id": gate_id,
