@@ -750,6 +750,7 @@ def run_query_retrieval(
     workers: int = 4,
     query_model: str = "gemini-2.5-flash-lite",
     rerank_batch_size: int = 64,
+    offset: int = 0,
 ) -> dict[str, Any]:
     if strategy not in {"original", "mesh", "hyde"}:
         raise ValueError("strategy must be original, mesh, or hyde")
@@ -759,6 +760,8 @@ def run_query_retrieval(
         raise ValueError("workers must be between 1 and 16")
     if rerank_batch_size < 1:
         raise ValueError("rerank_batch_size must be positive")
+    if offset < 0:
+        raise ValueError("offset must be non-negative")
     from medrag_lab.generation.gateway import GatewayClient
     from medrag_lab.query.hyde import HyDEExpander
     from medrag_lab.query.mesh import MeshExpander
@@ -774,8 +777,7 @@ def run_query_retrieval(
         if str(row["question_id"]) in allowed
     ]
     questions.sort(key=lambda row: str(row["question_id"]))
-    if limit is not None:
-        questions = questions[:limit]
+    questions = questions[offset : offset + limit if limit is not None else None]
     sparse = BM25Index.load(build_bm25(bm25_recipe))
     dense = MedCPTRetriever()
     mesh = MeshExpander(config.medrag_data_dir / "corpus.jsonl") if strategy == "mesh" else None
@@ -790,13 +792,20 @@ def run_query_retrieval(
         "arm": strategy,
         "population": population,
         "rows": len(questions),
+        "offset": offset,
         "retriever_control": retriever,
         "workers": workers,
         "rerank_batch_size": rerank_batch_size if retriever == "rrf_rerank" else "not_applicable",
         "bm25_recipe": bm25_recipe,
         "split_freeze_hash": splits["freeze_hash"],
         "git_sha": git_sha(),
-        "purpose": "feasibility_only" if limit is not None else "candidate_evaluation",
+        "purpose": (
+            "feasibility_only"
+            if population == "smoke40"
+            else "candidate_shard"
+            if limit is not None or offset
+            else "candidate_evaluation"
+        ),
     }
     if hyde:
         from medrag_lab.query.hyde import HYDE_SYSTEM

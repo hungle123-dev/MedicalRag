@@ -29,3 +29,4 @@ def test_registry_rejects_unknown_and_cyclic_dependencies():
 def test_query_reranker_batch_size_defaults_to_measured_control():
     args = parser().parse_args(["experiment", "query", "--strategy", "original"])
     assert args.rerank_batch_size == 64
+    assert args.offset == 0

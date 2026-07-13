@@ -126,6 +126,7 @@ def parser() -> argparse.ArgumentParser:
     query.add_argument("--workers", type=int, default=4)
     query.add_argument("--query-model", default="gemini-2.5-flash-lite")
     query.add_argument("--rerank-batch-size", type=int, default=64)
+    query.add_argument("--offset", type=int, default=0)
     evidence = experiment_commands.add_parser("evidence")
     evidence.add_argument(
         "--arm",
@@ -346,6 +347,7 @@ def main() -> None:
                     args.workers,
                     args.query_model,
                     args.rerank_batch_size,
+                    args.offset,
                 ),
                 indent=2,
             )
