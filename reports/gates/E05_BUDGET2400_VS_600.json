@@ -1,0 +1,16 @@
+{
+  "gate_id": "E05_BUDGET2400_VS_600",
+  "quality_comparison_hash": "e16c3edfedf418b3210fa387ad1274eff5b459afdddc7d5c1ac9a908d1ddc6cf",
+  "efficiency_runs": [
+    "reports\\runs\\E05-budget600_gptoss_v2-generation160-54512ed658.json",
+    "reports\\runs\\E05-budget2400_gptoss_v2-generation160-2d7cad9575.json"
+  ],
+  "passed": false,
+  "checks": {
+    "minimum_effect": false,
+    "positive_paired_ci": false,
+    "failure_guard": false,
+    "latency_guard": true
+  },
+  "gate_hash": "ef8021dd3152fa120dd64c599ee39fb6eb1f32937aba7cffc85a5bde31c43c19"
+}

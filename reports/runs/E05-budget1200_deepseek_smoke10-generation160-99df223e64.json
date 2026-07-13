@@ -1,0 +1,45 @@
+{
+  "created_at": "2026-07-13T19:03:06.550635+00:00",
+  "status": "observed_real_data_real_gateway",
+  "config": {
+    "family": "E05",
+    "arm": "budget1200_deepseek_smoke10",
+    "stage": "sealed_context_generation",
+    "population": "generation160",
+    "rows": 10,
+    "model": "deepseek-v3.2",
+    "provider": "api.futureppo.top",
+    "contexts_sha256": "721314a7934da68c837440ebb1c8d29906abb8ee9b7db2bb1bb458ab1ee81971",
+    "prompt_style": "predicted_type_schema",
+    "system_prompt_hash": "8eab1d5b05bca8c6d2f2101598377f2cff34e7d32ba44e19647302d01a5a03e5",
+    "pre_inference_gold_access": "none",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "2b77e588ea72e47bf4bc62827d73a7b8b70a26a0",
+    "purpose": "feasibility_only",
+    "config_hash": "99df223e64f94857ad9678dfc601163d0eb817b518005f2fefaa6e5ddd1b8747"
+  },
+  "metrics": {
+    "rouge_su4_f1": 0.10287259034861518,
+    "rouge2_f1": 0.09550749464177649,
+    "question_type_accuracy": 1.0,
+    "citation_validity": 1.0,
+    "citation_coverage": 1.0,
+    "abstention_rate": 0.0,
+    "retry_rate": 0.1,
+    "questions": 10,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "input_tokens": 13693,
+    "output_tokens": 1648,
+    "latency_ms_p50": 7596.60260000237,
+    "latency_ms_p95": 14465.129599993816
+  },
+  "resolved_models": [
+    "deepseek-v3-2-251201"
+  ],
+  "pricing_status": "USD cost unavailable from gateway; token and latency totals reported",
+  "artifacts": {
+    "inference": "artifacts\\runs\\E05-budget1200_deepseek_smoke10-generation160-99df223e64\\inference.jsonl",
+    "scored": "artifacts\\runs\\E05-budget1200_deepseek_smoke10-generation160-99df223e64\\scored.jsonl"
+  }
+}

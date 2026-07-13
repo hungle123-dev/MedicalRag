@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E05-budget600_gptoss_v2-generation160-54512ed658\\scored.jsonl",
+  "right": "artifacts\\runs\\E05-budget1200_gptoss_v2-generation160-1de826a81f\\scored.jsonl",
+  "metric": "rouge_su4.f1",
+  "require_equal_evidence": false,
+  "rows": 160,
+  "bootstrap": {
+    "mean_delta_right_minus_left": -0.0020673997298174636,
+    "ci95_low": -0.017073075467359502,
+    "ci95_high": 0.01202353561772353
+  },
+  "paired_effect_size": -0.021840156763973967,
+  "paired_permutation_p": 0.7889211078892111,
+  "normal_approx_mde_80": 0.020965853645598012,
+  "comparison_hash": "b193fc5671a3ba18966698e1c44556f976ae7460c0109e08f556b0a4e1bbd53a"
+}

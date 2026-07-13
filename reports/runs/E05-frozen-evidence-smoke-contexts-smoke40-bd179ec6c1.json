@@ -1,0 +1,35 @@
+{
+  "created_at": "2026-07-13T16:37:58.994900+00:00",
+  "status": "observed_real_data_gold_free",
+  "config": {
+    "family": "E05",
+    "arm": "frozen-evidence-smoke",
+    "stage": "gold_free_context_preparation",
+    "pipeline": "rrf_rag",
+    "population": "smoke40",
+    "rows": 2,
+    "overrides": {
+      "context_token_budget": 600,
+      "context_order": "relevance_descending",
+      "diversity": "none",
+      "evidence_strategy": "sentence3"
+    },
+    "retrieval_source_sha256": "5020e044003be8322ef653221bc59bd78cf2d30306b0708645cc2547df0e7cc9",
+    "evidence_source_sha256": "47245a32c802671f7cf9b5420a869e9b13eaf07c748f29cb779fa725992ed1d4",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "966cdae5f4feed4977ef16d2dba04da7ceb1e376",
+    "purpose": "feasibility_only",
+    "config_hash": "bd179ec6c1b9707b6daabd706b6fa0cc402e500069ff00fb38b884c0a391e312"
+  },
+  "metrics": {
+    "questions": 2,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "packed_snippets_mean": 6.0,
+    "packed_context_gold_pmid_recall": 0.31666666666666665
+  },
+  "artifacts": {
+    "contexts": "artifacts\\runs\\E05-frozen-evidence-smoke-contexts-smoke40-bd179ec6c1\\contexts.jsonl",
+    "scored_contexts": "artifacts\\runs\\E05-frozen-evidence-smoke-contexts-smoke40-bd179ec6c1\\scored_contexts.jsonl"
+  }
+}

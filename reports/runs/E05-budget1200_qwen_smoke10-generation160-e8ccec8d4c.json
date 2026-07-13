@@ -1,0 +1,45 @@
+{
+  "created_at": "2026-07-13T19:31:02.851954+00:00",
+  "status": "observed_real_data_real_gateway",
+  "config": {
+    "family": "E05",
+    "arm": "budget1200_qwen_smoke10",
+    "stage": "sealed_context_generation",
+    "population": "generation160",
+    "rows": 10,
+    "model": "qwen3.5-122b-a10b",
+    "provider": "api.futureppo.top",
+    "contexts_sha256": "721314a7934da68c837440ebb1c8d29906abb8ee9b7db2bb1bb458ab1ee81971",
+    "prompt_style": "predicted_type_schema",
+    "system_prompt_hash": "8eab1d5b05bca8c6d2f2101598377f2cff34e7d32ba44e19647302d01a5a03e5",
+    "pre_inference_gold_access": "none",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "2b77e588ea72e47bf4bc62827d73a7b8b70a26a0",
+    "purpose": "feasibility_only",
+    "config_hash": "e8ccec8d4c4ad043a76d0725d84e16852fd2926d945c49dd4516f30ffb62a988"
+  },
+  "metrics": {
+    "rouge_su4_f1": 0.05412120926105505,
+    "rouge2_f1": 0.045804066400965876,
+    "question_type_accuracy": 0.5,
+    "citation_validity": 1.0,
+    "citation_coverage": 1.0,
+    "abstention_rate": 0.0,
+    "retry_rate": 0.5,
+    "questions": 10,
+    "failures": 4,
+    "failure_rate": 0.4,
+    "input_tokens": 9344,
+    "output_tokens": 1364,
+    "latency_ms_p50": 120761.8730000031,
+    "latency_ms_p95": 175830.82479999575
+  },
+  "resolved_models": [
+    "qwen/qwen3.5-122b-a10b"
+  ],
+  "pricing_status": "USD cost unavailable from gateway; token and latency totals reported",
+  "artifacts": {
+    "inference": "artifacts\\runs\\E05-budget1200_qwen_smoke10-generation160-e8ccec8d4c\\inference.jsonl",
+    "scored": "artifacts\\runs\\E05-budget1200_qwen_smoke10-generation160-e8ccec8d4c\\scored.jsonl"
+  }
+}
