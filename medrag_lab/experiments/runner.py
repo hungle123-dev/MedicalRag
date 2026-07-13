@@ -767,6 +767,7 @@ def run_query_retrieval(
         "population": population,
         "rows": len(questions),
         "retriever_control": retriever,
+        "workers": workers,
         "bm25_recipe": bm25_recipe,
         "split_freeze_hash": splits["freeze_hash"],
         "git_sha": git_sha(),
