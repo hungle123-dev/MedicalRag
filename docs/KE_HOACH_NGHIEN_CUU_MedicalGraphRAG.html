@@ -438,7 +438,7 @@ Evaluator          reads only frozen experiment IDs from registry</pre></div>
         <tr><td>E3b evidence extraction</td><td><span class="status locked">COMPLETED</span></td><td>Any-gold visibility 0,800 → 0,920</td><td>Dùng full abstract dưới global word budget</td></tr>
         <tr><td>E4 PrimeKGQA</td><td><span class="status">DESCRIPTIVE</span></td><td>Compatibility gate 3%; scorer thua controls</td><td>Không claim executable KGQA hay intelligent path-ranker gain</td></tr>
         <tr><td>E5 four-arm dev v8</td><td><span class="status invalid">PILOT-ONLY</span></td><td>80 câu, 320/320 outputs, 0 failure; strict audit: 10/43 graph-positive X2 malformed</td><td>Không judge/claim; incident DEV-004</td></tr>
-        <tr><td>E5 four-arm dev v9</td><td><span class="status">PENDING FREEZE</span></td><td>Atomic full graph paths + separate X1/X2 post-budget validators + population preflight</td><td>Phải pass trước locked eval</td></tr>
+        <tr><td>E5 four-arm dev v9</td><td><span class="status locked">COMPLETED</span></td><td>80 câu/320 outputs, 0 failure, X2 196/196 slots; G2−B3 −0,05 [−0,15; 0,0375]</td><td>Graph-benefit gate fail; không retune</td></tr>
         <tr><td>Locked BioASQ eval-340</td><td><span class="status">PENDING FREEZE</span></td><td>Population IDs đã khóa; chưa dùng labels/output scores để tune</td><td>Chưa có confirmatory answer claim</td></tr>
         <tr><td>Human medical review</td><td><span class="status">EXTERNAL BLOCKER</span></td><td>Sample/schema/export/analyzer sẵn; chưa có hai reviewer thật</td><td>AI không được giả lập sign-off</td></tr>
         <tr><td>Frontend/backend/CI</td><td><span class="status locked">IMPLEMENTED</span></td><td>Tests/build/readiness/cancellation/secret scan</td><td>Local research demo, không phải clinical/public deployment</td></tr>
@@ -492,7 +492,7 @@ Evaluator          reads only frozen experiment IDs from registry</pre></div>
         <tr><td>PrimeKGQA locked fallback</td><td>15.814 câu; F1 0,06999; 2-node 0,15933; 4-node 0,02499</td><td>Chỉ descriptive; SPARQL gate fail</td></tr>
         <tr><td>Graph controls dev</td><td>full 0,05801; random path 0,07893</td><td>Không claim path scorer/graph tốt hơn</td></tr>
       </tbody></table></div>
-      <div class="callout"><strong>Kết luận hiện tại:</strong> hybrid text retrieval có improvement rõ; graph chỉ có heuristic retrieval coverage hạn chế và chưa chứng minh tăng correctness so với B3. E5-v8 đã phát hiện lỗi control và được giữ làm pilot; v9 atomic-path, locked eval và human medical review vẫn là các gate bắt buộc.</div>
+      <div class="callout"><strong>Kết luận hiện tại:</strong> hybrid text retrieval có improvement rõ. Atomic-path v9 là ablation hợp lệ nhưng frozen heuristic G2 không thắng B3, X1 hoặc X2 và có citation/unsupported-claim metrics kém B3. Đây là negative result được giữ nguyên; locked eval tiếp tục theo protocol, còn human medical review là external gate bắt buộc.</div>
     </section>
 
     <section id="sources">

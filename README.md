@@ -100,6 +100,7 @@ Start with the Vietnamese [step-by-step overview](docs/TONG_QUAN_TUNG_BUOC_Medic
 
 - Gateway calibration is complete: generator `deepseek-v3.2`, independent exploratory judge `cerebras/gpt-oss-120b`. E5-v2 uses B3/G2/X1/X2 and a corrected full-abstract text baseline.
 - The completed v8 dev-80 run is retained as a design pilot: 0 generation failures and equal total budgets, but a strict post-budget audit found malformed X2 paths in 10/43 graph-positive questions. Atomic-path v9 is required and no v8 answer-quality claim is permitted.
+- Atomic-path v9 completed 80 questions / 320 outputs with 0 generation failures, 43 graph-positive questions and 196/196 valid X2 slots. Exploratory blinded judging did not support graph benefit: G2−B3 correctness was −0.05 (95% paired bootstrap CI −0.15 to 0.0375), and G2 did not beat X1 or X2. No tuning follows this result.
 - The locked BioASQ eval-340 execution is run only after E5-v2 dev validation and a final clean freeze commit.
 - Two qualified medical reviewers must complete the frozen 100-question blinded review; AI-generated labels cannot replace them.
 - MedQA, crawling, EHR/PHI, clinical deployment, model fine-tuning, Neo4j, GNNs and billing fallback are out of core scope.
