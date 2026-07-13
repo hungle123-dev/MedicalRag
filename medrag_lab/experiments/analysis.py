@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -138,6 +139,42 @@ def verify_context_invariant(
     }
     result["invariant_hash"] = stable_hash(result)
     destination = ROOT / "reports" / "invariants" / f"{invariant_id}.json"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    return result
+
+
+def audit_failure_sequence(predictions_path: Path, incident_id: str) -> dict[str, Any]:
+    rows = list(iter_jsonl(predictions_path))
+    failed_indexes = [index for index, row in enumerate(rows) if row.get("failed")]
+    error_types = Counter(
+        str(row.get("error_type", "Unknown")) for row in rows if row.get("failed")
+    )
+    first_failure = min(failed_indexes) if failed_indexes else None
+    successes_after_first = (
+        sum(not row.get("failed") for row in rows[first_failure:])
+        if first_failure is not None
+        else 0
+    )
+    result = {
+        "incident_id": incident_id,
+        "predictions": str(predictions_path),
+        "rows": len(rows),
+        "failures": len(failed_indexes),
+        "failure_rate": len(failed_indexes) / len(rows) if rows else 0.0,
+        "error_types": dict(error_types),
+        "first_failure_index_zero_based": first_failure,
+        "successes_after_first_failure": successes_after_first,
+        "contiguous_terminal_failure": bool(failed_indexes) and successes_after_first == 0,
+        "interpretation": (
+            "A contiguous AcceleratorError tail is consistent with process-level device/context "
+            "loss, not independent per-question model errors; recover via bounded process shards."
+            if set(error_types) == {"AcceleratorError"} and successes_after_first == 0
+            else "Failure pattern requires case-level inspection."
+        ),
+    }
+    result["incident_hash"] = stable_hash(result)
+    destination = ROOT / "reports" / "incidents" / f"{incident_id}.json"
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return result

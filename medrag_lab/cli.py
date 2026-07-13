@@ -8,21 +8,31 @@ from pathlib import Path
 from medrag_lab.data.audit import audit_bundle, write_audit
 from medrag_lab.data.splits import freeze_splits, verify_splits
 from medrag_lab.evaluation.error_audit import build_error_audit
-from medrag_lab.evaluation.panel_runner import run_panel_direct, run_panel_pairwise
+from medrag_lab.evaluation.panel_runner import (
+    run_panel_direct,
+    run_panel_pairwise,
+    run_panel_sanity_suite,
+)
 from medrag_lab.evaluation.report import build_report
 from medrag_lab.experiments.analysis import (
     analyze_two_by_two_interaction,
+    audit_failure_sequence,
     evaluate_query_strategy_gate,
     verify_context_invariant,
 )
 from medrag_lab.experiments.evidence import run_evidence_retrieval
 from medrag_lab.experiments.final import apply_final_holm, freeze_finalists, verify_final_freeze
-from medrag_lab.experiments.generation import prepare_contexts, run_context_generation
+from medrag_lab.experiments.generation import (
+    prepare_contexts,
+    run_context_generation,
+    score_bertscore_artifact,
+)
 from medrag_lab.experiments.registry import load_registry, validate_registry
 from medrag_lab.experiments.runner import (
     build_bm25,
     compare_prediction_files,
     evaluate_superiority_gate,
+    merge_retrieval_shards,
     run_bm25,
     run_dense_retrieval,
     run_generation,
@@ -73,6 +83,8 @@ def parser() -> argparse.ArgumentParser:
     retrieval.add_argument("--method", choices=("medcpt", "rrf", "rrf_rerank"), required=True)
     retrieval.add_argument("--population", default="smoke40")
     retrieval.add_argument("--limit", type=int)
+    retrieval.add_argument("--offset", type=int, default=0)
+    retrieval.add_argument("--rerank-batch-size", type=int, default=64)
     retrieval.add_argument(
         "--bm25-recipe",
         choices=("title", "abstract", "title_abstract", "boosted_title_abstract_mesh"),
@@ -156,6 +168,7 @@ def parser() -> argparse.ArgumentParser:
             "citation_constraint",
             "predicted_type_schema",
             "gold_type_oracle",
+            "closed_book",
         ),
         default="predicted_type_schema",
     )
@@ -206,6 +219,21 @@ def parser() -> argparse.ArgumentParser:
     subset.add_argument("--population", required=True)
     subset.add_argument("--family", required=True)
     subset.add_argument("--arm", required=True)
+    sanity_suite = experiment_commands.add_parser("judge-sanity-suite")
+    sanity_suite.add_argument("--workers", type=int, default=2)
+    sanity_suite.add_argument("--limit", type=int, default=40)
+    merge = experiment_commands.add_parser("merge-retrieval")
+    merge.add_argument("--source", type=Path, action="append", required=True)
+    merge.add_argument("--population", required=True)
+    merge.add_argument("--family", required=True)
+    merge.add_argument("--arm", required=True)
+    failure_audit = experiment_commands.add_parser("audit-failures")
+    failure_audit.add_argument("--predictions", type=Path, required=True)
+    failure_audit.add_argument("--id", required=True)
+    semantic = experiment_commands.add_parser("bertscore")
+    semantic.add_argument("--scored", type=Path, required=True)
+    semantic.add_argument("--population", required=True)
+    semantic.add_argument("--device")
     commands.add_parser("report")
     return root
 
@@ -237,7 +265,14 @@ def main() -> None:
     elif args.command == "experiment" and args.action == "retrieval":
         print(
             json.dumps(
-                run_dense_retrieval(args.method, args.population, args.limit, args.bm25_recipe),
+                run_dense_retrieval(
+                    args.method,
+                    args.population,
+                    args.limit,
+                    args.bm25_recipe,
+                    args.offset,
+                    args.rerank_batch_size,
+                ),
                 indent=2,
             )
         )
@@ -398,6 +433,24 @@ def main() -> None:
         print(
             json.dumps(
                 subset_retrieval_predictions(args.source, args.population, args.family, args.arm),
+                indent=2,
+            )
+        )
+    elif args.command == "experiment" and args.action == "judge-sanity-suite":
+        print(json.dumps(run_panel_sanity_suite(workers=args.workers, limit=args.limit), indent=2))
+    elif args.command == "experiment" and args.action == "merge-retrieval":
+        print(
+            json.dumps(
+                merge_retrieval_shards(args.source, args.population, args.family, args.arm),
+                indent=2,
+            )
+        )
+    elif args.command == "experiment" and args.action == "audit-failures":
+        print(json.dumps(audit_failure_sequence(args.predictions, args.id), indent=2))
+    elif args.command == "experiment" and args.action == "bertscore":
+        print(
+            json.dumps(
+                score_bertscore_artifact(args.scored, args.population, device=args.device),
                 indent=2,
             )
         )

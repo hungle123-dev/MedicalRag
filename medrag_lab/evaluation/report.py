@@ -50,6 +50,11 @@ def build_report(destination: Path | None = None) -> Path:
     for path in sorted((ROOT / "reports" / "comparisons").glob("*.json")):
         value = json.loads(path.read_text(encoding="utf-8"))
         bootstrap = value["bootstrap"]
+        mde_row = (
+            f"<tr><td>MDE 80%</td><td>{value['normal_approx_mde_80']:.6f}</td></tr>"
+            if "normal_approx_mde_80" in value
+            else ""
+        )
         decision_cards.append(
             "<article><div class='eyebrow'>PAIRED COMPARISON</div>"
             f"<h3>{html.escape(path.stem)}</h3>"
@@ -61,6 +66,7 @@ def build_report(destination: Path | None = None) -> Path:
             f"{bootstrap['ci95_high']:.6f}]</td></tr>"
             f"<tr><td>Permutation p</td><td>{value['paired_permutation_p']:.6g}</td></tr>"
             f"<tr><td>Paired effect</td><td>{value['paired_effect_size']:.6f}</td></tr>"
+            f"{mde_row}"
             "</tbody></table></article>"
         )
     for path in sorted((ROOT / "reports" / "gates").glob("*.json")):
@@ -84,6 +90,25 @@ def build_report(destination: Path | None = None) -> Path:
             f"<p><b>{'PASSED' if judge['passed'] else 'FAILED'}</b></p>"
             f"<p>Models: {html.escape(', '.join(judge['models']))}</p>"
             "<p>Chỉ là proxy tự động; không phải human/physician validation.</p></article>"
+        )
+    sanity_path = ROOT / "reports" / "panel" / "sanity40.json"
+    if sanity_path.is_file():
+        sanity = json.loads(sanity_path.read_text(encoding="utf-8"))
+        decision_cards.append(
+            f"<article class='gate {'pass' if sanity['passed'] else 'fail'}'>"
+            "<div class='eyebrow'>JUDGE SANITY40</div><h3>40 deterministic controls</h3>"
+            f"<p><b>{'PASS' if sanity['passed'] else 'FAIL'}</b> · "
+            f"pass rate {sanity['pass_rate']:.1%} · failure {sanity['failure_rate']:.1%}</p>"
+            f"<p>{html.escape(', '.join(sanity['models']))}</p></article>"
+        )
+    for path in sorted((ROOT / "reports" / "incidents").glob("*.json")):
+        incident = json.loads(path.read_text(encoding="utf-8"))
+        decision_cards.append(
+            "<article class='fail'><div class='eyebrow'>RECORDED INCIDENT</div>"
+            f"<h3>{html.escape(incident['incident_id'])}</h3>"
+            f"<p>{incident['failures']}/{incident['rows']} failures; "
+            f"first index {incident['first_failure_index_zero_based']}.</p>"
+            f"<p>{html.escape(incident['interpretation'])}</p></article>"
         )
     output = destination or ROOT / "reports" / "FINAL_REPORT.html"
     output.parent.mkdir(parents=True, exist_ok=True)

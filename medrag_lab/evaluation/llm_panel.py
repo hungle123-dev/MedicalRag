@@ -19,9 +19,9 @@ class DirectJudgment(BaseModel):
     unsupported_claims: list[str] = Field(default_factory=list)
     reference_discrepancies: list[str] = Field(default_factory=list)
     justification: str
-    correctness: float = Field(ge=0, le=4)
-    completeness: float = Field(ge=0, le=4)
-    evidence_faithfulness: float = Field(ge=0, le=4)
+    correctness: float = Field(ge=0, le=3)
+    completeness: float = Field(ge=0, le=3)
+    evidence_faithfulness: float = Field(ge=0, le=3)
 
 
 class PairwiseJudgment(BaseModel):
@@ -87,7 +87,7 @@ class LLMPanel:
         system = """You are an impartial biomedical QA evaluator. Pipeline identity is hidden.
 First enumerate evidence-supported and unsupported answer claims and discrepancies with the
 reference. Then justify and score correctness, completeness, and evidence faithfulness from
-0 (unacceptable) to 4 (fully supported/correct). The reference is an evaluation aid, while
+0 (unacceptable) to 3 (fully supported/correct). The reference is an evaluation aid, while
 the supplied evidence is the only source for faithfulness. Return JSON only with keys:
 supported_claims, unsupported_claims, reference_discrepancies, justification, correctness,
 completeness, evidence_faithfulness. Use at most two short items per list (20 words each) and a
@@ -109,19 +109,20 @@ justification of at most 50 words so the JSON stays compact."""
                     else 0.0,
                 }
             )
-        scores = [
-            0.4 * row["correctness"]
-            + 0.25 * row["completeness"]
-            + 0.35 * row["evidence_faithfulness"]
-            for row in judgments
-        ]
-        scores.sort()
         unsupported_rates = sorted(row["unsupported_atomic_claim_rate"] for row in judgments)
+        medians = {
+            f"median_{name}_0_3": sorted(float(row[name]) for row in judgments)[len(judgments) // 2]
+            for name in ("correctness", "completeness", "evidence_faithfulness")
+        }
+        maximum_range = max(
+            max(float(row[name]) for row in judgments) - min(float(row[name]) for row in judgments)
+            for name in ("correctness", "completeness", "evidence_faithfulness")
+        )
         return {
             "judges": judgments,
-            "median_weighted_score_0_4": scores[len(scores) // 2],
-            "score_range": max(scores) - min(scores),
-            "disagreement_flag": max(scores) - min(scores) >= 1.0,
+            **medians,
+            "maximum_dimension_range": maximum_range,
+            "disagreement_flag": maximum_range >= 1.0,
             "median_unsupported_atomic_claim_rate": unsupported_rates[len(unsupported_rates) // 2],
         }
 

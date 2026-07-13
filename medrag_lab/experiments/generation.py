@@ -14,11 +14,13 @@ import mlflow
 from medrag_lab.data.loaders import iter_jsonl, load_inference_questions
 from medrag_lab.data.manifests import sha256, stable_hash
 from medrag_lab.evaluation.bioasq import rouge_su4
+from medrag_lab.evaluation.semantic import bertscore, rouge2
 from medrag_lab.evaluation.statistics import nearest_rank_percentile
 from medrag_lab.experiments.runner import _write_jsonl, git_sha
 from medrag_lab.generation.gateway import GatewayClient
 from medrag_lab.generation.prompts import (
     CITATION_SYSTEM_PROMPT,
+    CLOSED_BOOK_SYSTEM_PROMPT,
     GENERIC_STRUCTURED_SYSTEM_PROMPT,
     SYSTEM_PROMPT,
     answer_prompt,
@@ -34,6 +36,7 @@ PromptStyle = Literal[
     "citation_constraint",
     "predicted_type_schema",
     "gold_type_oracle",
+    "closed_book",
 ]
 PMID_LABEL = re.compile(r"\[PMID:(\d+)\]")
 
@@ -51,6 +54,8 @@ def _guard_heldout(population: str) -> None:
 
 
 def _prompt(style: PromptStyle, gold_type: str | None = None) -> str:
+    if style == "closed_book":
+        return CLOSED_BOOK_SYSTEM_PROMPT
     if style == "gold_type_oracle":
         if gold_type is None:
             return SYSTEM_PROMPT + "\nThe benchmark-provided question type is {GOLD_TYPE}."
@@ -337,7 +342,9 @@ def run_context_generation(
                 "error_type": "UpstreamContextFailure",
             }
         system_prompt = _prompt(prompt_style, gold_types.get(str(row["question_id"])))
-        user_prompt = answer_prompt(str(row["question"]), str(row["context"]))
+        context_text = "" if prompt_style == "closed_book" else str(row["context"])
+        effective_context_hash = stable_hash(context_text)
+        user_prompt = answer_prompt(str(row["question"]), context_text)
         try:
             result = client.generate(
                 system_prompt=system_prompt,
@@ -345,13 +352,13 @@ def run_context_generation(
                 model=model,
                 max_output_tokens=800,
             )
-            allowed_pmids = set(PMID_LABEL.findall(str(row["context"])))
+            allowed_pmids = set(PMID_LABEL.findall(context_text))
             citations = result.answer.citation_pmids
             return {
                 "question_id": str(row["question_id"]),
                 "answer": result.answer.model_dump(),
-                "context_hash": row["context_hash"],
-                "evidence_hash": row["context_hash"],
+                "context_hash": effective_context_hash,
+                "evidence_hash": effective_context_hash,
                 "evidence_set_hash": row["evidence_set_hash"],
                 "prompt_hash": prompt_hash(system_prompt, user_prompt),
                 "citation_count": len(citations),
@@ -369,8 +376,8 @@ def run_context_generation(
             return {
                 "question_id": str(row["question_id"]),
                 "answer": None,
-                "context_hash": row["context_hash"],
-                "evidence_hash": row["context_hash"],
+                "context_hash": effective_context_hash,
+                "evidence_hash": effective_context_hash,
                 "evidence_set_hash": row["evidence_set_hash"],
                 "failed": True,
                 "error_type": type(exc).__name__,
@@ -404,7 +411,17 @@ def run_context_generation(
                     "type_correct": bool(answer and answer["predicted_type"] == gold["type"]),
                 }
             )
+        rouge2_values = rouge2(
+            [str(item["answer"]["ideal_answer"]) if item["answer"] else "" for item in scored],
+            [str(by_id[item["question_id"]]["answer"]) for item in scored],
+        )
+        for item, value in zip(scored, rouge2_values, strict=True):
+            item["rouge2_f1"] = value
         _write_jsonl(scored_path, scored)
+        if population == "heldout340":
+            from medrag_lab.experiments.final import record_heldout_access
+
+            record_heldout_access(f"{family}.{arm}.scoring", scored_path)
         failures = sum(row["failed"] for row in scored)
         successful = [row for row in scored if not row["failed"]]
         latencies = [float(row["latency_ms"]) for row in successful]
@@ -412,10 +429,24 @@ def run_context_generation(
         valid_citations = sum(int(row["valid_citation_count"]) for row in successful)
         metrics = {
             "rouge_su4_f1": statistics.fmean(row["rouge_su4"]["f1"] for row in scored),
+            "rouge2_f1": statistics.fmean(float(row["rouge2_f1"]) for row in scored),
             "question_type_accuracy": statistics.fmean(
                 float(row["type_correct"]) for row in scored
             ),
             "citation_validity": valid_citations / total_citations if total_citations else 1.0,
+            "citation_coverage": statistics.fmean(
+                float(int(row["citation_count"]) > 0) for row in successful
+            )
+            if successful
+            else 0.0,
+            "abstention_rate": statistics.fmean(
+                float(row["answer"]["abstained"]) for row in successful
+            )
+            if successful
+            else 0.0,
+            "retry_rate": statistics.fmean(float(int(row["attempts"]) > 1) for row in successful)
+            if successful
+            else 0.0,
             "questions": len(scored),
             "failures": failures,
             "failure_rate": failures / len(scored) if scored else 0.0,
@@ -429,6 +460,10 @@ def run_context_generation(
             "status": "observed_real_data_real_gateway",
             "config": run_config,
             "metrics": metrics,
+            "resolved_models": sorted({str(row["resolved_model"]) for row in successful}),
+            "pricing_status": (
+                "USD cost unavailable from gateway; token and latency totals reported"
+            ),
             "artifacts": {
                 "inference": str(inference_path.relative_to(ROOT)),
                 "scored": str(scored_path.relative_to(ROOT)),
@@ -444,3 +479,52 @@ def run_context_generation(
         log_artifact(scored_path)
         log_artifact(summary_path)
     return summary
+
+
+def score_bertscore_artifact(
+    scored_path: Path,
+    population: str,
+    *,
+    device: str | None = None,
+) -> dict[str, Any]:
+    """Run expensive BERTScore only on frozen finalist artifacts."""
+    _guard_heldout(population)
+    rows = list(iter_jsonl(scored_path))
+    identifiers = {str(row["question_id"]) for row in rows}
+    gold = {
+        str(row["question_id"]): str(row["answer"])
+        for row in iter_jsonl(_question_source(population))
+        if str(row["question_id"]) in identifiers
+    }
+    if set(gold) != identifiers:
+        raise ValueError("BERTScore could not resolve all references")
+    predictions = [str(row["answer"]["ideal_answer"]) if row.get("answer") else "" for row in rows]
+    references = [gold[str(row["question_id"])] for row in rows]
+    values = bertscore(predictions, references, device=device)
+    scored = [
+        {"question_id": str(row["question_id"]), "bertscore_f1": value}
+        for row, value in zip(rows, values, strict=True)
+    ]
+    result: dict[str, Any] = {
+        "created_at": datetime.now(UTC).isoformat(),
+        "status": "observed_semantic_metric",
+        "population": population,
+        "questions": len(rows),
+        "source_sha256": sha256(scored_path),
+        "model": "microsoft/deberta-xlarge-mnli",
+        "bertscore_f1": statistics.fmean(values) if values else 0.0,
+        "device": device or "auto",
+    }
+    result["analysis_hash"] = stable_hash(result)
+    output_dir = ROOT / "artifacts" / "semantic" / result["analysis_hash"][:12]
+    predictions_path = output_dir / "bertscore.jsonl"
+    _write_jsonl(predictions_path, scored)
+    if population == "heldout340":
+        from medrag_lab.experiments.final import record_heldout_access
+
+        record_heldout_access("bertscore", predictions_path)
+    result["predictions"] = str(predictions_path.relative_to(ROOT))
+    destination = ROOT / "reports" / "semantic" / f"{result['analysis_hash'][:12]}.json"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    return result

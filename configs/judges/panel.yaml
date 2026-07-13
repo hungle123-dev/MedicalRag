@@ -6,13 +6,19 @@ models:
     family: google
   - id: cerebras/gpt-oss-120b
     family: openai-oss-cerebras
-  - id: qwen3.5-122b-a10b
-    family: qwen
-direct_criteria:
-  correctness: 0.40
-  completeness: 0.25
-  evidence_faithfulness: 0.35
+  - id: deepseek-v3.2
+    family: deepseek
+direct_scale:
+  minimum: 0
+  maximum: 3
+  report_separately: [correctness, completeness, evidence_faithfulness]
 pairwise:
   position_swap: required
   inconsistent_policy: tie
 masked_pipeline_identity: true
+sanity_suite:
+  population: smoke40
+  cases: 40
+  required_pass_rate: 0.90
+  good_minimum_per_dimension: 2
+  bad_maximum_per_dimension: 1

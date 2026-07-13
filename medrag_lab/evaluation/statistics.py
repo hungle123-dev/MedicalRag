@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import random
 import statistics
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Sequence
 
 
@@ -32,6 +32,44 @@ def paired_mde_80(
         return 0.0
     critical = norm.ppf(1 - alpha / 2) + norm.ppf(0.8)
     return float(critical * statistics.stdev(group_differences) / math.sqrt(len(group_differences)))
+
+
+def krippendorff_alpha_ordinal(units: Sequence[Sequence[float]]) -> float:
+    """Krippendorff alpha with the standard pooled-frequency ordinal distance."""
+    valid = [list(map(float, unit)) for unit in units if len(unit) >= 2]
+    if not valid:
+        raise ValueError("At least one unit with two ratings is required")
+    ratings = [rating for unit in valid for rating in unit]
+    counts = Counter(ratings)
+    categories = sorted(counts)
+
+    def distance(left: float, right: float) -> float:
+        if left == right:
+            return 0.0
+        low, high = sorted((left, right))
+        mass = sum(counts[value] for value in categories if low <= value <= high)
+        return (mass - (counts[left] + counts[right]) / 2) ** 2
+
+    observed_pairs = [
+        distance(unit[left], unit[right])
+        for unit in valid
+        for left in range(len(unit))
+        for right in range(left + 1, len(unit))
+    ]
+    expected_pairs = [
+        distance(ratings[left], ratings[right])
+        for left in range(len(ratings))
+        for right in range(left + 1, len(ratings))
+    ]
+    observed = statistics.fmean(observed_pairs)
+    expected = statistics.fmean(expected_pairs) if expected_pairs else 0.0
+    return (
+        1.0
+        if expected == 0 and observed == 0
+        else 0.0
+        if expected == 0
+        else 1 - observed / expected
+    )
 
 
 def paired_group_bootstrap(

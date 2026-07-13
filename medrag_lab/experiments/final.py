@@ -88,3 +88,27 @@ def apply_final_holm(comparison_paths: list[Path]) -> dict:
     destination = ROOT / "reports" / "final_statistics.json"
     atomic_json(destination, result)
     return result
+
+
+def record_heldout_access(stage: str, artifact: Path) -> dict:
+    """Append-only audit ledger written only after a sealed held-out artifact exists."""
+    freeze = verify_final_freeze()
+    destination = ROOT / "reports" / "heldout_access.json"
+    ledger = json.loads(destination.read_text(encoding="utf-8")) if destination.is_file() else {}
+    events = list(ledger.get("events", []))
+    event = {
+        "recorded_at": datetime.now(UTC).isoformat(),
+        "stage": stage,
+        "artifact": str(artifact.relative_to(ROOT)),
+        "artifact_sha256": sha256(artifact),
+        "freeze_hash": freeze["freeze_hash"],
+    }
+    if not any(
+        row.get("stage") == stage and row.get("artifact_sha256") == event["artifact_sha256"]
+        for row in events
+    ):
+        events.append(event)
+    payload = {"events": events}
+    payload["ledger_hash"] = stable_hash(payload)
+    atomic_json(destination, payload)
+    return payload

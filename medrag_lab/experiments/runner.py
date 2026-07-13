@@ -290,6 +290,8 @@ def run_dense_retrieval(
     population: str = "smoke40",
     limit: int | None = None,
     bm25_recipe: Recipe = "title_abstract",
+    offset: int = 0,
+    rerank_batch_size: int = 64,
 ) -> dict[str, Any]:
     if method not in {"medcpt", "rrf", "rrf_rerank"}:
         raise ValueError("method must be medcpt, rrf, or rrf_rerank")
@@ -308,8 +310,11 @@ def run_dense_retrieval(
         if str(row["question_id"]) in allowed
     ]
     questions.sort(key=lambda row: str(row["question_id"]))
-    if limit is not None:
-        questions = questions[:limit]
+    if offset < 0:
+        raise ValueError("offset must be non-negative")
+    if rerank_batch_size < 1:
+        raise ValueError("rerank_batch_size must be positive")
+    questions = questions[offset : offset + limit if limit is not None else None]
 
     dense = MedCPTRetriever()
     sparse = BM25Index.load(build_bm25(bm25_recipe)) if method != "medcpt" else None
@@ -324,6 +329,7 @@ def run_dense_retrieval(
         "arm": method,
         "population": population,
         "rows": len(questions),
+        "offset": offset,
         "candidate_depth": 100,
         "latency_mode": "batched_throughput_amortized",
         "bm25_recipe": bm25_recipe if method != "medcpt" else "not_applicable",
@@ -332,12 +338,17 @@ def run_dense_retrieval(
         "article_revision": metadata["article_revision"],
         "query_revision": metadata["query_revision"],
         "git_sha": git_sha(),
-        "purpose": "feasibility_only"
-        if population == "smoke40" or limit is not None
-        else "candidate_evaluation",
+        "purpose": (
+            "feasibility_only"
+            if population == "smoke40"
+            else "candidate_shard"
+            if limit is not None or offset
+            else "candidate_evaluation"
+        ),
     }
     if reranker:
         run_config["cross_encoder_revision"] = reranker.revision
+        run_config["rerank_batch_size"] = rerank_batch_size
     run_config["config_hash"] = stable_hash(run_config)
     run_name = f"E02-{method}-{population}-{run_config['config_hash'][:10]}"
     output_dir = config.medrag_artifact_dir / run_name
@@ -355,7 +366,12 @@ def run_dense_retrieval(
                     latency += sparse_ms
                     ranked_rows = reciprocal_rank_fusion(sparse_rows, dense_rows)[:100]
                 if reranker:
-                    ranked_rows, rerank_ms = reranker.rerank(str(row["question"]), ranked_rows, 100)
+                    ranked_rows, rerank_ms = reranker.rerank(
+                        str(row["question"]),
+                        ranked_rows,
+                        100,
+                        batch_size=rerank_batch_size,
+                    )
                     latency += rerank_ms
                 ranked = [item.pmid for item in ranked_rows]
                 gold = set(map(str, row["relevant_passage_ids"]))
@@ -433,13 +449,16 @@ def run_oracle(
     from medrag_lab.schemas import AnswerRequest, RetrievedDocument
 
     config = settings()
+    if population == "heldout340":
+        from medrag_lab.experiments.final import verify_final_freeze
+
+        verify_final_freeze()
     splits = json.loads((ROOT / "data" / "manifests" / "splits.json").read_text(encoding="utf-8"))
     allowed = set(map(str, splits[population]))
-    gold_rows = [
-        row
-        for row in iter_jsonl(config.medrag_data_dir / "dev.jsonl")
-        if str(row["question_id"]) in allowed
-    ]
+    question_source = config.medrag_data_dir / (
+        "eval.jsonl" if population == "heldout340" else "dev.jsonl"
+    )
+    gold_rows = [row for row in iter_jsonl(question_source) if str(row["question_id"]) in allowed]
     gold_rows.sort(key=lambda row: str(row["question_id"]))
     if limit is not None:
         gold_rows = gold_rows[:limit]
@@ -536,6 +555,10 @@ def run_oracle(
                     )
         predictions_path = output_dir / "oracle_predictions.jsonl"
         _write_jsonl(predictions_path, rows)
+        if population == "heldout340":
+            from medrag_lab.experiments.final import record_heldout_access
+
+            record_heldout_access("E10.gold_evidence_oracle", predictions_path)
         metrics = {
             arm: {
                 "rouge_su4_f1": statistics.fmean(
@@ -644,7 +667,10 @@ def run_judge_sanity() -> dict[str, Any]:
     bad_result = panel.direct(question, bad, reference, evidence)
     pairwise = panel.pairwise("sanity-brca", question, good, bad, evidence)
     passed = (
-        good_result["median_weighted_score_0_4"] > bad_result["median_weighted_score_0_4"]
+        good_result["median_correctness_0_3"] > bad_result["median_correctness_0_3"]
+        and good_result["median_completeness_0_3"] >= bad_result["median_completeness_0_3"]
+        and good_result["median_evidence_faithfulness_0_3"]
+        > bad_result["median_evidence_faithfulness_0_3"]
         and good_result["median_unsupported_atomic_claim_rate"]
         <= bad_result["median_unsupported_atomic_claim_rate"]
         and pairwise["panel_winner"] == "left"
@@ -920,6 +946,86 @@ def subset_retrieval_predictions(
     summary = {
         "created_at": datetime.now(UTC).isoformat(),
         "status": "observed_real_data_reused_predictions",
+        "scope": "closed-world positive-only gold-conditioned candidate pool",
+        "config": run_config,
+        "metrics": metrics,
+        "artifacts": {"predictions": str(predictions_path.relative_to(ROOT))},
+    }
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    report_path = ROOT / "reports" / "runs" / f"{run_name}.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    return summary
+
+
+def merge_retrieval_shards(
+    source_paths: list[Path], population: str, family: str, arm: str
+) -> dict[str, Any]:
+    """Merge resumable shards, preferring a successful retry over a failed first attempt."""
+    if not source_paths:
+        raise ValueError("At least one source shard is required")
+    config = settings()
+    splits = json.loads((ROOT / "data" / "manifests" / "splits.json").read_text("utf-8"))
+    allowed = set(map(str, splits[population]))
+    selected: dict[str, dict[str, Any]] = {}
+    recovered = 0
+    for path in source_paths:
+        for row in iter_jsonl(path):
+            question_id = str(row["question_id"])
+            if question_id not in allowed:
+                continue
+            previous = selected.get(question_id)
+            if previous is None:
+                selected[question_id] = row
+            elif previous.get("failed") and not row.get("failed"):
+                selected[question_id] = row
+                recovered += 1
+            elif (
+                not previous.get("failed")
+                and not row.get("failed")
+                and previous.get("ranked_pmids") != row.get("ranked_pmids")
+            ):
+                raise ValueError(f"Conflicting successful predictions for {question_id}")
+    if set(selected) != allowed:
+        raise ValueError(f"Merged shards are missing {len(allowed - set(selected))} question IDs")
+    rows = [selected[item] for item in sorted(selected)]
+    remaining_failures = sum(bool(row.get("failed")) for row in rows)
+    if remaining_failures:
+        raise ValueError(f"Merged shards still contain {remaining_failures} failed questions")
+    run_config = {
+        "family": family,
+        "arm": arm,
+        "population": population,
+        "rows": len(rows),
+        "merge_policy": "successful_retry_replaces_failed_attempt",
+        "recovered_failures": recovered,
+        "source_sha256": [sha256(path) for path in source_paths],
+        "split_freeze_hash": splits["freeze_hash"],
+        "git_sha": git_sha(),
+        "purpose": "candidate_evaluation",
+    }
+    run_config["config_hash"] = stable_hash(run_config)
+    run_name = f"{family}-{arm}-{population}-{run_config['config_hash'][:10]}"
+    output_dir = config.medrag_artifact_dir / run_name
+    predictions_path, summary_path = output_dir / "predictions.jsonl", output_dir / "summary.json"
+    _write_jsonl(predictions_path, rows)
+    names = ("ap", "recall", "mrr", "ndcg", "hit", "recall_at_100")
+    metrics = {
+        name: statistics.fmean(float(row["metrics"][name]) for row in rows) for name in names
+    }
+    metrics["map_at_10"] = metrics["ap"]
+    latencies = [float(row.get("latency_ms", 0.0)) for row in rows]
+    metrics |= {
+        "questions": len(rows),
+        "failures": 0,
+        "failure_rate": 0.0,
+        "latency_ms_p50": statistics.median(latencies),
+        "latency_ms_p95": nearest_rank_percentile(latencies, 0.95),
+    }
+    summary = {
+        "created_at": datetime.now(UTC).isoformat(),
+        "status": "observed_real_data_recovered_shards",
         "scope": "closed-world positive-only gold-conditioned candidate pool",
         "config": run_config,
         "metrics": metrics,

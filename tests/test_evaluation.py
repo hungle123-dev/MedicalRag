@@ -4,6 +4,7 @@ from medrag_lab.evaluation.bioasq import exact_answer_score, rouge_su4, snippet_
 from medrag_lab.evaluation.retrieval import retrieval_metrics
 from medrag_lab.evaluation.statistics import (
     holm_adjust,
+    krippendorff_alpha_ordinal,
     nearest_rank_percentile,
     paired_effect_size,
     paired_group_bootstrap,
@@ -61,3 +62,4 @@ def test_effect_size_and_gates():
     assert paired_permutation_p([0] * 8, [1] * 8, resamples=1_000) < 0.02
     assert nearest_rank_percentile([10, 20], 0.95) == 20
     assert paired_mde_80([0, 0, 0], [0.1, 0.2, 0.3], ["a", "b", "c"]) > 0
+    assert krippendorff_alpha_ordinal([[0, 0, 0], [3, 3, 3]]) == 1.0
