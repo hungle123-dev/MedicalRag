@@ -1,0 +1,16 @@
+{
+  "gate_id": "E06_STRONGEST_MIDDLE_DIAGNOSTIC",
+  "quality_comparison_hash": "93ca5c05909c87d2e716d40bc12ed3985cba444aa565d5e30b4e7dd57e247810",
+  "efficiency_runs": [
+    "reports\\runs\\E06-relevance_descending_gptoss_v2-generation160-ddfd346b7c.json",
+    "reports\\runs\\E06-strongest_middle_gptoss_v2-generation160-84bd0f6a55.json"
+  ],
+  "passed": false,
+  "checks": {
+    "minimum_effect": false,
+    "positive_paired_ci": false,
+    "failure_guard": false,
+    "latency_guard": false
+  },
+  "gate_hash": "4959086354c9deb79013ed54f42abdf0a495a5d5383f3573e187e0c6e486c42d"
+}

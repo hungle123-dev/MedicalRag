@@ -1,0 +1,9 @@
+{
+  "invariant_id": "E06_SAME_EVIDENCE_SET",
+  "key": "evidence_set_hash",
+  "rows": 160,
+  "mismatches": 0,
+  "mismatch_examples": [],
+  "passed": true,
+  "invariant_hash": "6dc4b4413b9bfa4210e3d4efea746bd6fca79d0363174607f272aed6d592f359"
+}
