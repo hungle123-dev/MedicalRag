@@ -7,6 +7,7 @@ evidence_strategy: sentence3
 context_order: relevance_descending
 diversity: none
 retrieval_k: 100
+rerank_batch_size: 64
 snippet_limit: 20
 context_token_budget: 1200
 generator_model: ""

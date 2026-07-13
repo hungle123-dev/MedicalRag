@@ -105,7 +105,12 @@ class MedicalRAGPipeline:
             documents = reciprocal_rank_fusion(sparse, dense)[:retrieval_k]
             retrieval_ms = sparse_ms + dense_ms
             if self.reranker:
-                documents, rerank_ms = self.reranker.rerank(query, documents, retrieval_k)
+                documents, rerank_ms = self.reranker.rerank(
+                    query,
+                    documents,
+                    retrieval_k,
+                    batch_size=int(self.config.get("rerank_batch_size", 64)),
+                )
                 retrieval_ms += rerank_ms
         else:
             raise ValueError(f"Unsupported retriever: {retriever}")

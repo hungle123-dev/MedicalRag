@@ -4,7 +4,7 @@ import pytest
 
 from medrag_lab.generation.schemas import GatewayResult, GeneratedAnswer
 from medrag_lab.indexing.bm25 import BM25Index
-from medrag_lab.pipeline import MedicalRAGPipeline
+from medrag_lab.pipeline import MedicalRAGPipeline, load_pipeline_config
 from medrag_lab.schemas import AnswerRequest
 from medrag_lab.tracking.traces import TraceStore
 
@@ -30,6 +30,10 @@ class FakeGateway:
 class FailingGateway:
     def generate(self, **_: object) -> GatewayResult:
         raise TimeoutError("synthetic unit-test timeout")
+
+
+def test_reranker_batch_size_is_frozen_to_measured_value() -> None:
+    assert load_pipeline_config("rrf_rerank_rag")["rerank_batch_size"] == 64
 
 
 def test_shared_pipeline_filters_hallucinated_citations(tmp_path: Path) -> None:
