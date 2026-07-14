@@ -44,7 +44,7 @@ class MedicalRAGPipeline:
 
     def __init__(
         self,
-        pipeline_id: str = "bm25_rag",
+        pipeline_id: str = "best_rag",
         *,
         gateway: GatewayClient | None = None,
         trace_store: TraceStore | None = None,

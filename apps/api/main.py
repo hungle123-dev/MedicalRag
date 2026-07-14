@@ -36,10 +36,11 @@ def ready() -> dict[str, object]:
     gateway_ok = bool(config.openai_api_key and config.openai_base_url)
     dense_ok = (config.medrag_index_dir / "medcpt" / "index.faiss").is_file()
     return {
-        "ready": data_ok and gateway_ok,
+        "ready": data_ok and gateway_ok and dense_ok,
+        "default_pipeline": "best_rag",
         "checks": {
             "pinned_data_present": data_ok,
             "gateway_configured": gateway_ok,
-            "optional_medcpt_index_present": dense_ok,
+            "best_rag_medcpt_index_present": dense_ok,
         },
     }

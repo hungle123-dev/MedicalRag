@@ -51,6 +51,8 @@ npm run dev
 
 Open `http://localhost:5173`. API documentation is at `http://localhost:8000/docs`.
 For containers, run `docker compose up --build` after placing the raw bundle and `.env` locally.
+The UI and request schema default to `best_rag`, the locked held-out winner. The vanilla
+`bm25_rag` baseline and `preselected_drop_one` ablation remain available for comparison.
 
 Required API routes are `GET /health`, `GET /ready`, `POST /v1/answer`, `POST /v1/compare`,
 `GET /v1/traces/{id}` and `GET /v1/experiments`.

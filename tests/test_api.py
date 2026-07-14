@@ -10,3 +10,4 @@ def test_health_and_ready_do_not_expose_secrets() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert "key" not in str(payload).casefold()
+    assert payload["default_pipeline"] == "best_rag"

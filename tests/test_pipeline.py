@@ -33,6 +33,11 @@ class FailingGateway:
         raise TimeoutError("synthetic unit-test timeout")
 
 
+def test_product_defaults_to_frozen_heldout_winner() -> None:
+    assert AnswerRequest(question="What is BRCA1?").pipeline_id == "best_rag"
+    assert load_pipeline_config("best_rag")["retriever"] == "rrf_rerank"
+
+
 def test_reranker_batch_size_is_frozen_to_measured_value() -> None:
     assert load_pipeline_config("rrf_rerank_rag")["rerank_batch_size"] == 64
     assert CROSS_ENCODER_REVISION == "71caf65d4927987813984f54c284405a13fcca49"

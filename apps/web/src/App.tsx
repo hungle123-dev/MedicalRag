@@ -3,12 +3,14 @@ import { ask, compare, type Answer } from "./api";
 import { AnswerCard } from "./components/AnswerCard";
 
 const PIPELINES = [
-  { id: "bm25_rag", name: "BM25 · baseline" },
-  { id: "bm25_mesh_rag", name: "BM25 · MeSH expansion" },
-  { id: "medcpt_rag", name: "MedCPT · dense" },
-  { id: "rrf_rag", name: "BM25 + MedCPT · RRF" },
-  { id: "rrf_rerank_rag", name: "RRF + cross-encoder" },
+  { id: "best_rag", name: "Best RAG · held-out winner" },
+  { id: "bm25_rag", name: "Vanilla BM25 RAG · baseline" },
+  { id: "preselected_drop_one", name: "Best RAG − document reranker" },
 ];
+
+function comparisonPipeline(pipeline: string): string {
+  return pipeline === "best_rag" ? "bm25_rag" : "best_rag";
+}
 
 export default function App() {
   const [question, setQuestion] = useState("What is the role of BRCA1 mutations in breast cancer risk?");
@@ -29,7 +31,7 @@ export default function App() {
         comparison
           ? await compare(
               question.trim(),
-              [pipeline, pipeline === "bm25_rag" ? "rrf_rag" : "bm25_rag"],
+              [pipeline, comparisonPipeline(pipeline)],
             )
           : [await ask(question.trim(), pipeline)],
       );
@@ -52,7 +54,7 @@ export default function App() {
 
       <section className="hero" id="top">
         <div className="hero-copy">
-          <span className="eyebrow">BIOMEDICAL EVIDENCE, MADE INSPECTABLE</span>
+          <span className="eyebrow">FROZEN BIOASQ HELD-OUT WINNER</span>
           <h1>Ask the literature.<br /><em>Verify the evidence.</em></h1>
           <p>Controlled retrieval experiments and an evidence-grounded QA product share the same frozen pipeline.</p>
         </div>
@@ -70,13 +72,13 @@ export default function App() {
           <div className="controls">
             <label className="select-wrap">
               <span>Pipeline</span>
-              <select value={pipeline} onChange={(event) => setPipeline(event.target.value)} disabled={comparison}>
+              <select value={pipeline} onChange={(event) => setPipeline(event.target.value)}>
                 {PIPELINES.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}
               </select>
             </label>
             <label className="toggle">
               <input type="checkbox" checked={comparison} onChange={(event) => setComparison(event.target.checked)} />
-              <span /> Compare with {pipeline === "bm25_rag" ? "RRF" : "BM25"}
+              <span /> Compare with {comparisonPipeline(pipeline).replaceAll("_", " ")}
             </label>
             <button type="submit" disabled={loading || question.trim().length < 3}>
               {loading ? "Searching…" : "Run pipeline →"}

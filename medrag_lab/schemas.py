@@ -11,7 +11,7 @@ class AnswerRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     question: str = Field(min_length=3, max_length=2_000)
-    pipeline_id: str = Field(default="bm25_rag", pattern=r"^[a-z0-9_-]{1,64}$")
+    pipeline_id: str = Field(default="best_rag", pattern=r"^[a-z0-9_-]{1,64}$")
 
     @field_validator("question")
     @classmethod
