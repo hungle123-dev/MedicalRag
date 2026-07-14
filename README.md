@@ -97,9 +97,10 @@ is what E11 confirms. Automated LLM judges failed their reliability gate and rem
 whether a held-out rerun is allowed. Submission-hardening changes intentionally make
 `heldout_rerun_allowed=false`; the sealed E11 artifacts remain unchanged and must not be retuned.
 
-Raw data stays in `data/raw/bioasq` and is ignored by Git. Tracked manifests contain hashes,
-frozen IDs and aggregate audit results only. Generated indexes, provider responses, MLflow
-state and large predictions are ignored.
+The pinned raw bundle is stored in `data/raw/bioasq` through Git LFS; run `git lfs pull` after
+cloning if the JSONL files were not downloaded automatically. Its source, revision, adaptation
+notice and CC BY-NC-SA 4.0 terms are documented beside the data and in `docs/ATTRIBUTION.md`.
+Generated indexes, provider responses, MLflow state and large predictions remain ignored.
 
 Official exact-answer labels are not included in the local RAG bundle. Exact-answer metrics
 remain disabled until an authorized official BioASQ file is joined by `question_id`; labels

@@ -23,6 +23,10 @@ apps/web/vite.config.d.ts
 data/*
 !data/manifests/
 !data/manifests/**
+!data/raw/
+data/raw/*
+!data/raw/bioasq/
+!data/raw/bioasq/**
 indexes/
 models/
 artifacts/
