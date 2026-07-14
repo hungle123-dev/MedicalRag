@@ -1,0 +1,26 @@
+{
+  "created_at": "2026-07-13T23:38:50.666155+00:00",
+  "status": "observed_real_data_explicit_oracle",
+  "config": {
+    "family": "E10",
+    "arm": "L3_gold_snippets",
+    "stage": "sealed_oracle_context_preparation",
+    "population": "heldout340",
+    "rows": 340,
+    "context_token_budget": 600,
+    "pre_inference_gold_access": "gold_snippets",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "af118122c7e48ac217818be666667af490e346f6",
+    "purpose": "diagnostic_oracle",
+    "config_hash": "991b3344ba9dc6c3f70633a8325104690abda75987ea2780700f40479f6462e4"
+  },
+  "metrics": {
+    "questions": 340,
+    "failures": 0,
+    "packed_snippets_mean": 6.652941176470589,
+    "gold_snippet_pmids_missing_from_corpus": 53
+  },
+  "artifacts": {
+    "contexts": "artifacts\\runs\\E10-gold_snippets-contexts-heldout340-991b3344ba\\contexts.jsonl"
+  }
+}

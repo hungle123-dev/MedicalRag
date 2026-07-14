@@ -1,0 +1,33 @@
+{
+  "created_at": "2026-07-13T23:55:51.220050+00:00",
+  "status": "observed_real_data_gold_free",
+  "config": {
+    "family": "E11",
+    "arm": "best_rag",
+    "stage": "gold_free_context_preparation",
+    "pipeline": "best_rag",
+    "population": "heldout340",
+    "rows": 340,
+    "overrides": {
+      "context_token_budget": 600,
+      "context_order": "relevance_descending",
+      "diversity": "none",
+      "evidence_strategy": "sentence3_cross_encoder"
+    },
+    "retrieval_source_sha256": "live_pipeline",
+    "evidence_source_sha256": "805600a8ce4a1f519e0864157bdd8c4ed0cee9ec4e50c96e1245c9446bbd9b5a",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "af118122c7e48ac217818be666667af490e346f6",
+    "purpose": "candidate_evaluation",
+    "config_hash": "b1519a388ac32b3a4e58f5d45dc51786ae7fb32277fc7116a2a4e8132b33a50c"
+  },
+  "metrics": {
+    "questions": 340,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "packed_snippets_mean": 5.7
+  },
+  "artifacts": {
+    "contexts": "artifacts\\runs\\E11-best_rag-contexts-heldout340-b1519a388a\\contexts.jsonl"
+  }
+}

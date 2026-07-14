@@ -1,0 +1,152 @@
+{
+  "events": [
+    {
+      "recorded_at": "2026-07-13T23:38:45.401369+00:00",
+      "stage": "E10.closed_book.contexts",
+      "artifact": "artifacts\\runs\\E10-closed_book-contexts-heldout340-0ef7df5c73\\contexts.jsonl",
+      "artifact_sha256": "12c3182be86b697707486002fbb2f14c386d9c33b2970bb13e0daacbd720691d",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-13T23:38:50.645630+00:00",
+      "stage": "E10.gold_snippets.contexts",
+      "artifact": "artifacts\\runs\\E10-gold_snippets-contexts-heldout340-991b3344ba\\contexts.jsonl",
+      "artifact_sha256": "4a5973e0d4445f50f2c424f247d7326d465da1ff053a59ccad6eb0e053a0ddd2",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-13T23:40:16.458699+00:00",
+      "stage": "E11.vanilla_bm25.contexts",
+      "artifact": "artifacts\\runs\\E11-vanilla_bm25-contexts-heldout340-430def3baf\\contexts.jsonl",
+      "artifact_sha256": "0b405247f717d091f1fadad0c9b45c789bc0165fa695913fc8d1c0f75c4e72d9",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-13T23:47:40.784988+00:00",
+      "stage": "E11.retrieval.inference",
+      "artifact": "artifacts\\runs\\E03-original-heldout340-412cfb3bb4\\inference_predictions.jsonl",
+      "artifact_sha256": "c0b5798dac1b14831552db8e10c1071564044e64b6289a32ad877048b39fdbe0",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-13T23:47:40.867828+00:00",
+      "stage": "E11.retrieval.scoring",
+      "artifact": "artifacts\\runs\\E03-original-heldout340-412cfb3bb4\\predictions.jsonl",
+      "artifact_sha256": "cdda6be9a4b00f3d95f75105a5f48db663ae88fec30bd1579019b7ba0c7f4926",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-13T23:49:24.521445+00:00",
+      "stage": "E11.retrieval.inference",
+      "artifact": "artifacts\\runs\\E03-original-heldout340-0ce9fdb277\\inference_predictions.jsonl",
+      "artifact_sha256": "486c8cf293026129ac24140b3137bd543093f4cb2053f004c8127c3f7295b083",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-13T23:49:24.622287+00:00",
+      "stage": "E11.retrieval.scoring",
+      "artifact": "artifacts\\runs\\E03-original-heldout340-0ce9fdb277\\predictions.jsonl",
+      "artifact_sha256": "1fb39c7b7d1403f295e455f3b5c5a095f6a44709dd456ab7248055cb78ffb8ab",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-13T23:52:18.763365+00:00",
+      "stage": "E11.evidence.inference",
+      "artifact": "artifacts\\runs\\E04-sentence3_cross_encoder-heldout340-24c2fb9771\\inference_predictions.jsonl",
+      "artifact_sha256": "0bf7895c34494793547b762c9e51ddf682b91c164c51252f11c8223fcea3377c",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-13T23:52:19.728888+00:00",
+      "stage": "E11.evidence.scoring",
+      "artifact": "artifacts\\runs\\E04-sentence3_cross_encoder-heldout340-24c2fb9771\\predictions.jsonl",
+      "artifact_sha256": "805600a8ce4a1f519e0864157bdd8c4ed0cee9ec4e50c96e1245c9446bbd9b5a",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-13T23:55:10.959583+00:00",
+      "stage": "E11.evidence.inference",
+      "artifact": "artifacts\\runs\\E04-sentence3_cross_encoder-heldout340-d64d9920b9\\inference_predictions.jsonl",
+      "artifact_sha256": "5e056dc754882b80fef714aa311163a936089508944ea7311e9d075ed51ea6b9",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-13T23:55:11.940579+00:00",
+      "stage": "E11.evidence.scoring",
+      "artifact": "artifacts\\runs\\E04-sentence3_cross_encoder-heldout340-d64d9920b9\\predictions.jsonl",
+      "artifact_sha256": "5cc9cf966878d66094ce2271ae5bce738278f58777505577ce767660a51718eb",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-13T23:55:51.201309+00:00",
+      "stage": "E11.best_rag.contexts",
+      "artifact": "artifacts\\runs\\E11-best_rag-contexts-heldout340-b1519a388a\\contexts.jsonl",
+      "artifact_sha256": "fa739750f002a6db2af68581a95e6bf2c2b11fd1598fba6a22711acd154ee1b7",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-13T23:56:13.186765+00:00",
+      "stage": "E11.preselected_drop_one.contexts",
+      "artifact": "artifacts\\runs\\E11-preselected_drop_one-contexts-heldout340-e88842b462\\contexts.jsonl",
+      "artifact_sha256": "e7960a2d8c1c7daf5efac7541556678dfa1fa196ef6361eccb2c2cecbddc15bc",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-14T00:00:22.428875+00:00",
+      "stage": "E11.closed_book.scoring",
+      "artifact": "artifacts\\runs\\E11-closed_book-heldout340-1f727e9672\\scored.jsonl",
+      "artifact_sha256": "35424dcc0bf7b48dba6001db3340e7024484bec6886850a49a415e9eba3501db",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-14T00:04:09.848751+00:00",
+      "stage": "E11.vanilla_bm25.scoring",
+      "artifact": "artifacts\\runs\\E11-vanilla_bm25-heldout340-d42ef54d0d\\scored.jsonl",
+      "artifact_sha256": "1811d36e7462a55774f3927a2635a6ac041c6525ef290331eadd37924fd12754",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-14T00:07:38.066163+00:00",
+      "stage": "E11.best_rag.scoring",
+      "artifact": "artifacts\\runs\\E11-best_rag-heldout340-ec9d6bfcf4\\scored.jsonl",
+      "artifact_sha256": "45011984a2d78a20d5282b7ddc5bab61e0dd43334e314b591926e628bd4e99eb",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-14T00:09:27.910898+00:00",
+      "stage": "E11.preselected_drop_one.scoring",
+      "artifact": "artifacts\\runs\\E11-preselected_drop_one-heldout340-bd13c5829b\\scored.jsonl",
+      "artifact_sha256": "636e3a2fdeee01babe4937e5c83fa7af9f70d5f2c3e5a5e6038ca67a9aa2782f",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-14T00:12:31.846807+00:00",
+      "stage": "E11.gold_evidence_oracle.scoring",
+      "artifact": "artifacts\\runs\\E11-gold_evidence_oracle-heldout340-9989c99dfb\\scored.jsonl",
+      "artifact_sha256": "53e0445489b9ea32f09494a8cb859a6ea5ad2dba65fe969c784fdd3057ac5bc0",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-14T00:42:50.750696+00:00",
+      "stage": "panel.direct.judge160",
+      "artifact": "artifacts\\panel\\9c7c0372a08f\\direct.jsonl",
+      "artifact_sha256": "233ab42956879d860d7e095bbf5d0a881d19a9b8774d2bfd8d9faf7080c07e04",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-14T00:57:00.197324+00:00",
+      "stage": "panel.pairwise.judge160",
+      "artifact": "artifacts\\panel\\910ecd36efef\\pairwise.jsonl",
+      "artifact_sha256": "2f63174c9fb4a265a0fc3ba8fc825b3752efa5ecaa557ff0348cbf004c5d172b",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    },
+    {
+      "recorded_at": "2026-07-14T01:10:58.173558+00:00",
+      "stage": "panel.direct.judge160",
+      "artifact": "artifacts\\panel\\e601396f8eb7\\direct.jsonl",
+      "artifact_sha256": "595c9dbc6cbb23a71f80073220fdce811f498aec1041e815281fdc61eb412dc1",
+      "freeze_hash": "4026779a2e2a4b9906a1cb056a089167f6e7ff1241c148ebda3d6c87f4854ebc"
+    }
+  ],
+  "ledger_hash": "7c5c4b506932f2d396454d295eeb52d1c6c3779f1a2c319021801def8ea92dac"
+}

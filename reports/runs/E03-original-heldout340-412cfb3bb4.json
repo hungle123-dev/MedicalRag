@@ -1,0 +1,43 @@
+{
+  "created_at": "2026-07-13T23:47:40.892736+00:00",
+  "status": "observed_real_data",
+  "scope": "closed-world positive-only gold-conditioned candidate pool",
+  "config": {
+    "family": "E03",
+    "arm": "original",
+    "population": "heldout340",
+    "rows": 340,
+    "offset": 0,
+    "retriever_control": "rrf_rerank",
+    "workers": 4,
+    "rerank_batch_size": 64,
+    "bm25_recipe": "boosted_title_abstract_mesh",
+    "split_freeze_hash": "ce2865f88ec727daa066b7dbdc1e201811fe5179de87cd199a9172f462d32566",
+    "git_sha": "af118122c7e48ac217818be666667af490e346f6",
+    "purpose": "candidate_evaluation",
+    "cross_encoder_revision": "71caf65d4927987813984f54c284405a13fcca49",
+    "config_hash": "412cfb3bb4f3aa59909944417c743dc3cb174ad9b9ee47315ec3f1fdf47d1482"
+  },
+  "metrics": {
+    "ap": 0.8259610047722793,
+    "recall": 0.5655663210932282,
+    "mrr": 0.9356967787114846,
+    "ndcg": 0.8773111934480151,
+    "hit": 0.9882352941176471,
+    "recall_at_100": 0.9598960397167468,
+    "map_at_10": 0.8259610047722793,
+    "questions": 340,
+    "failures": 0,
+    "failure_rate": 0.0,
+    "retrieval_latency_ms_p50": 1204.9700703107646,
+    "retrieval_latency_ms_p95": 1371.7381609271797,
+    "query_transform_ms_p50": 0.0,
+    "query_transform_cache_rate": 0.0,
+    "query_transform_input_tokens": 0,
+    "query_transform_output_tokens": 0
+  },
+  "artifacts": {
+    "inference_predictions": "artifacts\\runs\\E03-original-heldout340-412cfb3bb4\\inference_predictions.jsonl",
+    "predictions": "artifacts\\runs\\E03-original-heldout340-412cfb3bb4\\predictions.jsonl"
+  }
+}

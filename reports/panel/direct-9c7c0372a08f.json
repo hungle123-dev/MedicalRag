@@ -1,0 +1,19 @@
+{
+  "created_at": "2026-07-14T00:42:50.727866+00:00",
+  "status": "observed_real_gateway_automated_proxy",
+  "population": "judge160",
+  "questions": 160,
+  "failures": 62,
+  "median_correctness_0_3": 3.0,
+  "median_completeness_0_3": 3.0,
+  "median_evidence_faithfulness_0_3": 3.0,
+  "mean_unsupported_atomic_claim_rate": 0.17517006802721088,
+  "disagreement_rate": 0.7755102040816326,
+  "exact_three_judge_agreement_rate": 0.22448979591836735,
+  "krippendorff_alpha_ordinal_correctness": 0.1953359100312636,
+  "krippendorff_alpha_ordinal_completeness": 0.40721240210532095,
+  "krippendorff_alpha_ordinal_evidence_faithfulness": 0.3911972042564349,
+  "limitation": "Automated multi-LLM proxy; not human or physician review",
+  "analysis_hash": "9c7c0372a08f999378401f67aa689f204ac9e7dbdf13db163c3fa953cc73d6cc",
+  "predictions": "artifacts\\panel\\9c7c0372a08f\\direct.jsonl"
+}

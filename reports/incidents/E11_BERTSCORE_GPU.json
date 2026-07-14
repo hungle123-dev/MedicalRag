@@ -1,0 +1,9 @@
+{
+  "incident_id": "E11_BERTSCORE_GPU",
+  "stage": "secondary_semantic_metric",
+  "population": "heldout340",
+  "rows": 340,
+  "failures": 340,
+  "first_failure_index_zero_based": 0,
+  "interpretation": "The microsoft/deberta-xlarge-mnli BERTScore run did not emit a sealed artifact on the 4 GB GPU. This secondary metric is reported as unavailable; no value was imputed and primary ROUGE-SU4 inference is unaffected."
+}

@@ -1,0 +1,34 @@
+{
+  "experiment": "E11",
+  "status": "observed_real_data_real_gateway",
+  "population": "heldout340",
+  "primary_metric": "rouge_su4_f1",
+  "decision": "best_rag",
+  "arms": {
+    "closed_book": {"rouge_su4_f1": 0.10476906409084791, "failures": 6, "input_tokens": 82165, "output_tokens": 127420, "latency_ms_p95": 1084.6721999987494},
+    "vanilla_bm25": {"rouge_su4_f1": 0.10746088094817945, "failures": 13, "input_tokens": 494813, "output_tokens": 134395, "latency_ms_p95": 2508.658699996886},
+    "best_rag": {"rouge_su4_f1": 0.12650943665510553, "failures": 11, "input_tokens": 304277, "output_tokens": 120210, "latency_ms_p95": 2344.2763999919407},
+    "preselected_drop_one": {"rouge_su4_f1": 0.1227907817353205, "failures": 8, "input_tokens": 307009, "output_tokens": 121546, "latency_ms_p95": 1650.4551999969408},
+    "gold_evidence_oracle": {"rouge_su4_f1": 0.1537520662326449, "failures": 12, "input_tokens": 273902, "output_tokens": 128505, "latency_ms_p95": 1687.756300001638}
+  },
+  "preregistered_contrasts": {
+    "best_vs_vanilla_bm25": {"delta": 0.019048555706926075, "ci95": [0.007797232739899836, 0.030763407796740836], "permutation_p": 0.000999900009999, "holm_adjusted_p": 0.001999800019998, "significant": true},
+    "best_vs_closed_book": {"delta": 0.021740372564257628, "ci95": [0.011872630647176984, 0.032312556526818706], "permutation_p": 0.00009999000099990002, "holm_adjusted_p": 0.00029997000299970003, "significant": true},
+    "best_vs_preselected_drop_one": {"delta": 0.003718654919785033, "ci95": [-0.0024359701446048238, 0.01062832192030492], "permutation_p": 0.28647135286471354, "holm_adjusted_p": 0.28647135286471354, "significant": false}
+  },
+  "diagnostics": {
+    "gold_evidence_oracle_gap": {"delta": 0.027242629577539354, "ci95": [0.015555451414248009, 0.038947935598235436], "permutation_p": 0.00009999000099990002},
+    "retrieval_best_map_at_10": 0.825961,
+    "retrieval_best_recall_at_100": 0.959896,
+    "evidence_best_snippet_span_f1": 0.232781,
+    "evidence_best_gold_pmid_recall": 0.440073
+  },
+  "automated_panel": {
+    "role": "secondary sensitivity analysis; not human or physician review",
+    "direct_resume": {"questions": 160, "failures": 14, "disagreement_rate": 0.821917808219178, "krippendorff_alpha_correctness": 0.18399287635126194, "krippendorff_alpha_completeness": 0.3778399541176879, "krippendorff_alpha_faithfulness": 0.30499616553662223, "reliability_gate": "failed"},
+    "pairwise_initial": {"questions": 160, "failures": 123, "best_wins_among_successes": 24, "vanilla_wins_among_successes": 5, "ties": 8, "reliability_gate": "failed"}
+  },
+  "secondary_metric_incident": "BERTScore DeBERTa-xlarge did not produce a sealed report on the 4 GB GPU run; no semantic score is claimed.",
+  "error_audit_incident": "The best-RAG context artifact omits full retrieved_pmids, so deterministic R1/R2 attribution for that arm is invalid. Primary metrics and preregistered contrasts are unaffected.",
+  "conclusion": "The selected modular RAG is better than vanilla BM25 RAG and closed-book on the locked held-out set. The document-reranker contribution is positive but not statistically resolved at answer level. The significant gold-evidence oracle gap identifies evidence retrieval/selection as the main remaining bottleneck."
+}

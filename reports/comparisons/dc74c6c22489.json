@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E11-best_rag-heldout340-ec9d6bfcf4\\scored.jsonl",
+  "right": "artifacts\\runs\\E11-gold_evidence_oracle-heldout340-9989c99dfb\\scored.jsonl",
+  "metric": "rouge_su4.f1",
+  "require_equal_evidence": false,
+  "rows": 340,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.027242629577539354,
+    "ci95_low": 0.015555451414248009,
+    "ci95_high": 0.038947935598235436
+  },
+  "paired_effect_size": 0.24568296611115703,
+  "paired_permutation_p": 9.999000099990002e-05,
+  "normal_approx_mde_80": 0.016847612201738197,
+  "comparison_hash": "dc74c6c224893592c1e0f597d508e254e3ee3ff08318e925158f599ef9aa20cd"
+}

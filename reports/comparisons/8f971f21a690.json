@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E11-vanilla_bm25-heldout340-d42ef54d0d\\scored.jsonl",
+  "right": "artifacts\\runs\\E11-best_rag-heldout340-ec9d6bfcf4\\scored.jsonl",
+  "metric": "rouge_su4.f1",
+  "require_equal_evidence": false,
+  "rows": 340,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.019048555706926075,
+    "ci95_low": 0.007797232739899836,
+    "ci95_high": 0.030763407796740836
+  },
+  "paired_effect_size": 0.18062821254641367,
+  "paired_permutation_p": 0.000999900009999,
+  "normal_approx_mde_80": 0.016022889839256843,
+  "comparison_hash": "8f971f21a6906ff7ef147f2022c893952f80bb6f094156a5830ec1b470b0d2c8"
+}

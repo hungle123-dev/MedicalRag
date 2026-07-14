@@ -1,0 +1,9 @@
+{
+  "incident_id": "E11_ERROR_AUDIT_PROVENANCE",
+  "stage": "exploratory_error_taxonomy",
+  "population": "heldout340",
+  "rows": 340,
+  "failures": 340,
+  "first_failure_index_zero_based": 0,
+  "interpretation": "Best-RAG sealed contexts do not contain the complete retrieved_pmids list, so R1/R2/CTX1 attribution is not identifiable for this arm. The audit is excluded from model selection; retrieval, evidence, generation and paired primary metrics remain valid."
+}

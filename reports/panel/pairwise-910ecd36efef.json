@@ -1,0 +1,15 @@
+{
+  "created_at": "2026-07-14T00:57:00.089249+00:00",
+  "status": "observed_real_gateway_position_swapped_proxy",
+  "population": "judge160",
+  "questions": 160,
+  "failures": 123,
+  "panel_winners": {
+    "left": 5,
+    "right": 24,
+    "tie": 8
+  },
+  "limitation": "Automated multi-LLM proxy; not human or physician review",
+  "analysis_hash": "910ecd36efef4633824c4d03c07eec508189089bc7b958c350ce86cabcc2fa60",
+  "predictions": "artifacts\\panel\\910ecd36efef\\pairwise.jsonl"
+}

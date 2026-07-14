@@ -1,0 +1,57 @@
+{
+  "family_size": 3,
+  "contrasts": [
+    {
+      "left": "artifacts\\runs\\E11-vanilla_bm25-heldout340-d42ef54d0d\\scored.jsonl",
+      "right": "artifacts\\runs\\E11-best_rag-heldout340-ec9d6bfcf4\\scored.jsonl",
+      "metric": "rouge_su4.f1",
+      "require_equal_evidence": false,
+      "rows": 340,
+      "bootstrap": {
+        "mean_delta_right_minus_left": 0.019048555706926075,
+        "ci95_low": 0.007797232739899836,
+        "ci95_high": 0.030763407796740836
+      },
+      "paired_effect_size": 0.18062821254641367,
+      "paired_permutation_p": 0.000999900009999,
+      "normal_approx_mde_80": 0.016022889839256843,
+      "comparison_hash": "8f971f21a6906ff7ef147f2022c893952f80bb6f094156a5830ec1b470b0d2c8",
+      "holm_adjusted_p": 0.001999800019998
+    },
+    {
+      "left": "artifacts\\runs\\E11-closed_book-heldout340-1f727e9672\\scored.jsonl",
+      "right": "artifacts\\runs\\E11-best_rag-heldout340-ec9d6bfcf4\\scored.jsonl",
+      "metric": "rouge_su4.f1",
+      "require_equal_evidence": false,
+      "rows": 340,
+      "bootstrap": {
+        "mean_delta_right_minus_left": 0.021740372564257628,
+        "ci95_low": 0.011872630647176984,
+        "ci95_high": 0.032312556526818706
+      },
+      "paired_effect_size": 0.22653809917680598,
+      "paired_permutation_p": 9.999000099990002e-05,
+      "normal_approx_mde_80": 0.01458109397340195,
+      "comparison_hash": "19e8193eb9588a7ead7552f3a83298e0a95798a1b7e4d92df5cf0ab219329012",
+      "holm_adjusted_p": 0.00029997000299970003
+    },
+    {
+      "left": "artifacts\\runs\\E11-preselected_drop_one-heldout340-bd13c5829b\\scored.jsonl",
+      "right": "artifacts\\runs\\E11-best_rag-heldout340-ec9d6bfcf4\\scored.jsonl",
+      "metric": "rouge_su4.f1",
+      "require_equal_evidence": false,
+      "rows": 340,
+      "bootstrap": {
+        "mean_delta_right_minus_left": 0.003718654919785033,
+        "ci95_low": -0.0024359701446048238,
+        "ci95_high": 0.01062832192030492
+      },
+      "paired_effect_size": 0.05983023557240641,
+      "paired_permutation_p": 0.28647135286471354,
+      "normal_approx_mde_80": 0.00944342520558191,
+      "comparison_hash": "260e8d8ceff2299f644fbb500b14976be656ec33dc1013079a0af7b69b8e25c3",
+      "holm_adjusted_p": 0.28647135286471354
+    }
+  ],
+  "analysis_hash": "25fc42471c949c100ae53cde2d77b8349517a2daa48623ef2f01fc8bdbf45620"
+}

@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E11-closed_book-heldout340-1f727e9672\\scored.jsonl",
+  "right": "artifacts\\runs\\E11-best_rag-heldout340-ec9d6bfcf4\\scored.jsonl",
+  "metric": "rouge_su4.f1",
+  "require_equal_evidence": false,
+  "rows": 340,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.021740372564257628,
+    "ci95_low": 0.011872630647176984,
+    "ci95_high": 0.032312556526818706
+  },
+  "paired_effect_size": 0.22653809917680598,
+  "paired_permutation_p": 9.999000099990002e-05,
+  "normal_approx_mde_80": 0.01458109397340195,
+  "comparison_hash": "19e8193eb9588a7ead7552f3a83298e0a95798a1b7e4d92df5cf0ab219329012"
+}

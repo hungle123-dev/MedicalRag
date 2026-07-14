@@ -1,0 +1,16 @@
+{
+  "left": "artifacts\\runs\\E11-preselected_drop_one-heldout340-bd13c5829b\\scored.jsonl",
+  "right": "artifacts\\runs\\E11-best_rag-heldout340-ec9d6bfcf4\\scored.jsonl",
+  "metric": "rouge_su4.f1",
+  "require_equal_evidence": false,
+  "rows": 340,
+  "bootstrap": {
+    "mean_delta_right_minus_left": 0.003718654919785033,
+    "ci95_low": -0.0024359701446048238,
+    "ci95_high": 0.01062832192030492
+  },
+  "paired_effect_size": 0.05983023557240641,
+  "paired_permutation_p": 0.28647135286471354,
+  "normal_approx_mde_80": 0.00944342520558191,
+  "comparison_hash": "260e8d8ceff2299f644fbb500b14976be656ec33dc1013079a0af7b69b8e25c3"
+}
