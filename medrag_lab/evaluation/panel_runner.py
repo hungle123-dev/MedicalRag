@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from medrag_lab.data.loaders import iter_jsonl
-from medrag_lab.data.manifests import stable_hash
+from medrag_lab.data.manifests import sha256, stable_hash
 from medrag_lab.evaluation.llm_panel import LLMPanel
 from medrag_lab.evaluation.statistics import krippendorff_alpha_ordinal
 from medrag_lab.experiments.runner import _write_jsonl
@@ -148,6 +148,12 @@ def run_panel_direct(
         else 0.0,
         "exact_three_judge_agreement_rate": exact_agreement,
         **alphas,
+        "judge_models": [entry["id"] for entry in panel.config["models"]],
+        "judge_config_sha256": sha256(panel.path),
+        "source_artifacts": {
+            "generation": {"path": str(generation_path), "sha256": sha256(generation_path)},
+            "contexts": {"path": str(contexts_path), "sha256": sha256(contexts_path)},
+        },
         "limitation": "Automated multi-LLM proxy; not human or physician review",
     }
     analysis_hash = stable_hash(result)
@@ -244,6 +250,13 @@ def run_panel_pairwise(
         "questions": len(rows),
         "failures": len(rows) - len(successful),
         "panel_winners": winners,
+        "judge_models": [entry["id"] for entry in panel.config["models"]],
+        "judge_config_sha256": sha256(panel.path),
+        "source_artifacts": {
+            "left": {"path": str(left_path), "sha256": sha256(left_path)},
+            "right": {"path": str(right_path), "sha256": sha256(right_path)},
+            "contexts": {"path": str(contexts_path), "sha256": sha256(contexts_path)},
+        },
         "limitation": "Automated multi-LLM proxy; not human or physician review",
     }
     analysis_hash = stable_hash(result)

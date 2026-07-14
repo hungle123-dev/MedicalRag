@@ -59,7 +59,9 @@ def freeze_finalists(
     return payload
 
 
-def verify_final_freeze(path: Path | None = None) -> dict:
+def verify_final_freeze(
+    path: Path | None = None, *, require_source_unchanged: bool = True
+) -> dict:
     source = path or ROOT / "data" / "manifests" / "final_freeze.json"
     payload = json.loads(source.read_text(encoding="utf-8"))
     freeze_hash = payload.pop("freeze_hash")
@@ -68,7 +70,19 @@ def verify_final_freeze(path: Path | None = None) -> dict:
     for pipeline_id, expected in payload["pipeline_config_hashes"].items():
         if stable_hash(load_pipeline_config(pipeline_id)) != expected:
             raise ValueError(f"Frozen pipeline changed: {pipeline_id}")
-    return {"status": "verified", "freeze_hash": freeze_hash}
+    source_unchanged = subprocess.run(
+        ["git", "diff", "--quiet", payload["git_sha"], "--", "medrag_lab", "apps", "configs"],
+        cwd=ROOT,
+        check=False,
+    ).returncode == 0
+    if require_source_unchanged and not source_unchanged:
+        raise ValueError("Source changed since final freeze; held-out rerun is blocked")
+    return {
+        "status": "verified_historical_manifest",
+        "freeze_hash": freeze_hash,
+        "source_unchanged": source_unchanged,
+        "heldout_rerun_allowed": source_unchanged,
+    }
 
 
 def apply_final_holm(comparison_paths: list[Path]) -> dict:

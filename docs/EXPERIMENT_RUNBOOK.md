@@ -3,6 +3,11 @@
 Tài liệu này là runbook vận hành. Thiết kế nghiên cứu đầy đủ nằm trong
 `KE_HOACH_THUC_NGHIEM_MEDICAL_RAG.html`.
 
+Implementation status: E11 is the only confirmatory answer-level stage. E05/E08/E09 stopped at
+`generation160`; their planned `validation200` confirmation was not completed. ROUGE-SU4 and
+snippet F1 are internal BioASQ-compatible implementations, not official leaderboard scorers.
+The LLM panel failed its reliability gate and is diagnostic only.
+
 ## 1. Boundary dữ liệu
 
 - Một bundle duy nhất: BioASQ-12B-RAG gồm `corpus.jsonl` (49.513 abstract), `dev.jsonl`
@@ -72,7 +77,8 @@ uv run medrag experiment evidence --arm sentence3_cross_encoder `
   --retrieval-predictions $retrieval --population selection4849
 ```
 
-Snippet F1 dùng character offsets chính thức. Gold snippet chỉ được mở sau khi arm đã chọn evidence.
+Snippet F1 nội bộ dùng character offsets theo định nghĩa BioASQ nhưng chưa cross-check official
+scorer. Gold snippet chỉ được mở sau khi arm đã chọn evidence.
 
 ## 5. Context, generation, prompt và oracle
 
@@ -120,7 +126,8 @@ uv run medrag experiment generate-contexts --family E09 --arm gold_type_oracle `
 uv run medrag experiment oracle --population validation200 --pipeline best_rag
 ```
 
-Sau smoke, các generator qua gate mới chạy `generation160`, rồi finalists chạy `validation200`.
+Protocol dự kiến finalists chạy `validation200`, nhưng E05/E08/E09 thực tế chưa hoàn thành bước đó;
+không được gọi winner từng module là independently confirmed.
 Khi so generator, serialized evidence, prompt, parser, output budget và IDs phải giống hệt. Oracle:
 
 - L0: closed-book;
@@ -151,9 +158,13 @@ uv run medrag experiment final-holm --comparison C1.json --comparison C2.json --
 So sánh dùng paired normalized-group bootstrap CI, paired effect size và permutation p-value.
 Final chỉ có đúng ba contrast preregistered và Holm family size 3. Chỉ chạy `heldout340` sau khi
 five arms, pipeline configs, model inventory, judges và contrasts đã được freeze. Sau khi xem final
-result không được sửa pipeline.
+result không được tái chấm hoặc đổi winner. Submission hardening có thể sửa runtime/report, nhưng
+source guard sẽ khóa mọi held-out rerun; `freeze-final --verify` phải báo
+`heldout_rerun_allowed=false` sau các thay đổi đó.
 
 Panel ba model là proxy tự động, phải ghi đúng tên; không được gọi là human/physician review.
+Observed disagreement/failure khiến reliability gate fail, nên không dùng panel để claim medical
+correctness hoặc faithfulness.
 
 ## 7. Product và observability
 
@@ -166,6 +177,8 @@ cd ../..
 docker compose up --build
 ```
 
-Mỗi answer có trace ID, ranked PMIDs, packed evidence, prompt hash, model, token, latency, retry và
+Best-RAG runtime rerank 100 documents nhưng chỉ đưa top 10 vào cross-encoder evidence selection,
+khớp E04/E11 sealed recipe. Mỗi answer có trace ID, ranked PMIDs, packed evidence, prompt hash,
+model, token, latency, retry và
 validated citations. Provider failure không bị drop khỏi experiment denominator. Model response
 được cache bằng request hash; secret không nằm trong trace, report hay Git.

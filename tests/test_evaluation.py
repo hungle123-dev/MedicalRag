@@ -3,6 +3,8 @@ import json
 import pytest
 
 from medrag_lab.evaluation.bioasq import exact_answer_score, rouge_su4, snippet_span_f1
+from medrag_lab.evaluation.error_audit import retrieval_error_codes
+from medrag_lab.evaluation.llm_panel import aggregate_panel_winner
 from medrag_lab.evaluation.retrieval import retrieval_metrics
 from medrag_lab.evaluation.statistics import (
     holm_adjust,
@@ -94,6 +96,43 @@ def test_superiority_gate_rejects_batched_latency(tmp_path, monkeypatch):
         summaries.append(path)
     with pytest.raises(ValueError, match="dedicated serial"):
         runner.evaluate_superiority_gate(comparison, *summaries, "test")
+
+
+def test_superiority_gate_rejects_missing_latency_mode(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    (tmp_path / "reports" / "gates").mkdir(parents=True)
+    comparison = tmp_path / "comparison.json"
+    comparison.write_text(
+        json.dumps(
+            {
+                "comparison_hash": "x",
+                "bootstrap": {"mean_delta_right_minus_left": 0.02, "ci95_low": 0.01},
+            }
+        )
+    )
+    summaries = []
+    for name in ("left", "right"):
+        path = tmp_path / f"{name}.json"
+        path.write_text(
+            json.dumps({"config": {}, "metrics": {"failure_rate": 0.0, "latency_ms_p95": 1.0}})
+        )
+        summaries.append(path)
+    with pytest.raises(ValueError, match="dedicated serial"):
+        runner.evaluate_superiority_gate(comparison, *summaries, "test")
+
+
+def test_panel_vote_ties_remain_ties():
+    assert aggregate_panel_winner({"left": 1, "right": 1, "tie": 1}) == "tie"
+    assert aggregate_panel_winner({"left": 1, "right": 2, "tie": 0}) == "right"
+
+
+def test_retrieval_error_attribution_requires_provenance():
+    assert retrieval_error_codes(
+        {"gold"}, set(), set(), 0.0, provenance_available=False
+    ) == []
+    assert retrieval_error_codes(
+        {"gold"}, set(), set(), 0.0, provenance_available=True
+    ) == ["R1"]
 
 
 def test_evidence_gate_checks_effect_failures_and_population(tmp_path, monkeypatch):

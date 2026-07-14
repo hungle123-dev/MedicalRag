@@ -1,0 +1,14 @@
+{
+  "status": "corrected_offline_aggregation_from_existing_raw_judgments",
+  "source_summary": "reports/panel/pairwise-910ecd36efef.json",
+  "source_predictions": "artifacts/panel/910ecd36efef/pairwise.jsonl",
+  "successful_questions": 37,
+  "changed_rows": 1,
+  "corrected_panel_winners": {
+    "left": 4,
+    "right": 24,
+    "tie": 9
+  },
+  "correction": "A 1-1-1 panel vote is a tie. The previous max(dict) aggregation selected left by insertion order.",
+  "scientific_impact": "None on primary E11 claims; the automated panel already failed its reliability gate and remains diagnostic only."
+}

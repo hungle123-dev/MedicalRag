@@ -6,7 +6,7 @@ ERROR_TAXONOMY = {
     "CTX1": "Evidence removed by the context budget",
     "CTX2": "Noisy or contradictory context",
     "G1": "Unsupported generated claim",
-    "G2": "Incomplete answer",
+    "G2": "Low ideal-answer lexical overlap under the registered ROUGE-SU4 threshold",
     "G3": "Wrong question-type output format",
     "CIT1": "Citation does not support its claim",
     "CIT2": "Invalid PMID citation",

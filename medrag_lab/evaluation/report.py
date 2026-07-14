@@ -47,6 +47,30 @@ def build_report(destination: Path | None = None) -> Path:
         target = pilot_cards if config.get("purpose") == "feasibility_only" else candidate_cards
         target.append(card)
     decision_cards = []
+    final_path = ROOT / "reports" / "gates" / "E11_FINAL_HELDOUT.json"
+    if final_path.is_file():
+        final = json.loads(final_path.read_text(encoding="utf-8"))
+        contrasts = final["preregistered_contrasts"]
+        decision_cards.append(
+            "<article class='pass'><div class='eyebrow'>E11 · CONFIRMATORY HELD-OUT</div>"
+            "<h3>Best RAG improves lexical answer overlap</h3>"
+            f"<p><b>ROUGE-SU4 F1 {final['arms']['best_rag']['rouge_su4_f1']:.4f}</b></p>"
+            f"<p>vs vanilla: Δ {contrasts['best_vs_vanilla_bm25']['delta']:.4f}, "
+            f"Holm p={contrasts['best_vs_vanilla_bm25']['holm_adjusted_p']:.4g}</p>"
+            f"<p>vs closed-book: Δ {contrasts['best_vs_closed_book']['delta']:.4f}, "
+            f"Holm p={contrasts['best_vs_closed_book']['holm_adjusted_p']:.4g}</p>"
+            "<p>Internal reference-based scorer; not proof of clinical correctness.</p></article>"
+        )
+        panel = final.get("automated_panel", {})
+        disagreement = panel.get("direct_resume", {}).get("disagreement_rate", 0)
+        pairwise_failures = panel.get("pairwise_initial", {}).get("failures", 0)
+        decision_cards.append(
+            "<article class='fail'><div class='eyebrow'>AUTOMATED PANEL · SECONDARY</div>"
+            "<h3>Reliability gate failed</h3>"
+            f"<p>Direct disagreement: {disagreement:.1%}</p>"
+            f"<p>Pairwise failures: {pairwise_failures}/160</p>"
+            "<p>Không dùng panel để xác nhận medical correctness hoặc faithfulness.</p></article>"
+        )
     for path in sorted((ROOT / "reports" / "comparisons").glob("*.json")):
         value = json.loads(path.read_text(encoding="utf-8"))
         bootstrap = value["bootstrap"]
@@ -71,15 +95,33 @@ def build_report(destination: Path | None = None) -> Path:
         )
     for path in sorted((ROOT / "reports" / "gates").glob("*.json")):
         gate = json.loads(path.read_text(encoding="utf-8"))
-        checks = "".join(
+        if "passed" not in gate:
+            continue
+        checks = dict(gate.get("checks", {}))
+        latency_note = ""
+        if "latency_guard" in checks:
+            modes = set()
+            for source in gate.get("efficiency_runs", []):
+                run_path = ROOT / source
+                if run_path.is_file():
+                    run = json.loads(run_path.read_text(encoding="utf-8"))
+                    modes.add(run.get("config", {}).get("latency_mode"))
+            if modes != {"dedicated_serial"}:
+                checks["latency_guard"] = False
+                latency_note = (
+                    "<p>Historical latency guard invalid under the corrected serial-only rule; "
+                    "quality evidence remains development-only.</p>"
+                )
+        passed = bool(gate["passed"] and all(checks.values()))
+        check_rows = "".join(
             f"<tr><td>{html.escape(key)}</td><td>{'PASS' if value else 'FAIL'}</td></tr>"
-            for key, value in gate.get("checks", {}).items()
+            for key, value in checks.items()
         )
         decision_cards.append(
-            f"<article class='gate {'pass' if gate['passed'] else 'fail'}'>"
+            f"<article class='gate {'pass' if passed else 'fail'}'>"
             f"<div class='eyebrow'>DECISION GATE</div><h3>{html.escape(gate['gate_id'])}</h3>"
-            f"<p><b>{'PASS' if gate['passed'] else 'FAIL'}</b></p>"
-            f"<table><tbody>{checks}</tbody></table></article>"
+            f"<p><b>{'PASS' if passed else 'FAIL'}</b></p>"
+            f"<table><tbody>{check_rows}</tbody></table>{latency_note}</article>"
         )
     judge_path = ROOT / "reports" / "judge_sanity.json"
     if judge_path.is_file():
@@ -103,12 +145,22 @@ def build_report(destination: Path | None = None) -> Path:
         )
     for path in sorted((ROOT / "reports" / "incidents").glob("*.json")):
         incident = json.loads(path.read_text(encoding="utf-8"))
+        count = (
+            f"<p>{incident['failures']}/{incident['rows']} failures; "
+            f"first index {incident.get('first_failure_index_zero_based', 'n/a')}.</p>"
+            if "failures" in incident and "rows" in incident
+            else "<p>Operational/protocol deviation retained for audit.</p>"
+        )
+        description = str(
+            incident.get("interpretation")
+            or incident.get("reason")
+            or incident.get("bias_control")
+            or "See JSON artifact."
+        )
         decision_cards.append(
             "<article class='fail'><div class='eyebrow'>RECORDED INCIDENT</div>"
             f"<h3>{html.escape(incident['incident_id'])}</h3>"
-            f"<p>{incident['failures']}/{incident['rows']} failures; "
-            f"first index {incident['first_failure_index_zero_based']}.</p>"
-            f"<p>{html.escape(incident['interpretation'])}</p></article>"
+            f"{count}<p>{html.escape(description)}</p></article>"
         )
     output = destination or ROOT / "reports" / "FINAL_REPORT.html"
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -133,10 +185,11 @@ details{{margin-top:18px}} summary{{cursor:pointer;font-weight:700}}
 <p class="notice"><b>Phạm vi kết luận:</b> chỉ hiển thị artifact đã đo bằng máy. Corpus BioASQ
 49.513 abstracts là positive-only, gold-conditioned closed corpus; kết quả không chứng minh
 PubMed-wide retrieval, độ an toàn lâm sàng hay khả năng tổng quát y khoa. Exact-answer metrics bị
-tắt vì bundle hiện tại không có official exact labels.</p>
+tắt vì bundle hiện tại không có official exact labels. ROUGE-SU4 trong project là implementation
+nội bộ đối chiếu ideal answer, chưa được cross-check với official BioASQ scorer.</p>
 <h2>Quyết định có kiểm định</h2><div class="grid">
 {"".join(decision_cards) or "<article>Chưa có paired decision.</article>"}</div>
-<h2>Candidate/diagnostic runs</h2><div class="grid">
+<h2>Development/diagnostic runs — không phải confirmatory claims</h2><div class="grid">
 {"".join(candidate_cards) or "<article>Chưa có candidate run.</article>"}</div>
 <details><summary>Pilot/feasibility runs — không dùng để chọn winner</summary>
 <div class="grid">{"".join(pilot_cards) or "<article>Không có pilot.</article>"}</div></details>

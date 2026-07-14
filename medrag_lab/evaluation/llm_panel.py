@@ -30,6 +30,12 @@ class PairwiseJudgment(BaseModel):
     winner: Literal["A", "B", "tie"]
 
 
+def aggregate_panel_winner(counts: dict[str, int]) -> str:
+    highest = max(counts.values())
+    winners = [name for name, count in counts.items() if count == highest]
+    return winners[0] if len(winners) == 1 else "tie"
+
+
 class LLMPanel:
     def __init__(self, config_path: Path | None = None):
         config = settings()
@@ -165,5 +171,5 @@ justification, winner."""
         return {
             "judges": judgments,
             "votes": counts,
-            "panel_winner": max(counts, key=lambda name: counts[name]),
+            "panel_winner": aggregate_panel_winner(counts),
         }

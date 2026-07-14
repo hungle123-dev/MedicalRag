@@ -331,7 +331,11 @@ def main() -> None:
     elif args.command == "experiment" and args.action == "generation":
         print(json.dumps(run_generation(args.pipeline, args.population, args.limit), indent=2))
     elif args.command == "experiment" and args.action == "freeze-final":
-        result = verify_final_freeze() if args.verify else freeze_finalists()
+        result = (
+            verify_final_freeze(require_source_unchanged=False)
+            if args.verify
+            else freeze_finalists()
+        )
         print(json.dumps(result, indent=2))
     elif args.command == "experiment" and args.action == "oracle":
         print(json.dumps(run_oracle(args.population, args.limit, args.pipeline), indent=2))

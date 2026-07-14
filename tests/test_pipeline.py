@@ -4,9 +4,9 @@ import pytest
 
 from medrag_lab.generation.schemas import GatewayResult, GeneratedAnswer
 from medrag_lab.indexing.bm25 import BM25Index
-from medrag_lab.pipeline import MedicalRAGPipeline, load_pipeline_config
+from medrag_lab.pipeline import EVIDENCE_DOCUMENT_LIMIT, MedicalRAGPipeline, load_pipeline_config
 from medrag_lab.retrieval.reranker import CROSS_ENCODER_REVISION
-from medrag_lab.schemas import AnswerRequest
+from medrag_lab.schemas import AnswerRequest, RetrievedDocument
 from medrag_lab.tracking.traces import TraceStore
 
 
@@ -41,6 +41,33 @@ def test_product_defaults_to_frozen_heldout_winner() -> None:
 def test_reranker_batch_size_is_frozen_to_measured_value() -> None:
     assert load_pipeline_config("rrf_rerank_rag")["rerank_batch_size"] == 64
     assert CROSS_ENCODER_REVISION == "71caf65d4927987813984f54c284405a13fcca49"
+
+
+def test_cross_encoder_evidence_uses_same_top_ten_document_cap_as_e11(monkeypatch) -> None:
+    pipeline = object.__new__(MedicalRAGPipeline)
+    pipeline.config = {"evidence_strategy": "sentence3_cross_encoder", "snippet_limit": 20}
+    pipeline.reranker = object()
+    seen: list[str] = []
+
+    def fake_rank(_question, candidates, _reranker, limit):
+        seen.extend(item.pmid for item in candidates)
+        return candidates[:limit], 0.0
+
+    monkeypatch.setattr("medrag_lab.pipeline.rank_snippets_cross_encoder", fake_rank)
+    documents = [
+        RetrievedDocument(
+            pmid=str(index),
+            title="t",
+            text="sentence one. sentence two. sentence three.",
+            url=f"https://example.test/{index}",
+            score=1.0,
+            rank=index + 1,
+            retriever="test",
+        )
+        for index in range(25)
+    ]
+    pipeline._evidence("question", documents)
+    assert set(seen) == {str(index) for index in range(EVIDENCE_DOCUMENT_LIMIT)}
 
 
 def test_shared_pipeline_filters_hallucinated_citations(tmp_path: Path) -> None:

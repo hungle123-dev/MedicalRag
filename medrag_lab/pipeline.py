@@ -28,6 +28,8 @@ from medrag_lab.schemas import AnswerRequest, AnswerResponse, Citation, Retrieve
 from medrag_lab.settings import ROOT, settings
 from medrag_lab.tracking.traces import TraceStore
 
+EVIDENCE_DOCUMENT_LIMIT = 10
+
 
 @dataclass(frozen=True)
 class PreparedContext:
@@ -228,7 +230,10 @@ class MedicalRAGPipeline:
             return rank_snippets(question, documents, limit)
         if strategy == "sentence3_cross_encoder" and self.reranker:
             return rank_snippets_cross_encoder(
-                question, document_snippet_candidates(documents), self.reranker, limit
+                question,
+                document_snippet_candidates(documents[:EVIDENCE_DOCUMENT_LIMIT]),
+                self.reranker,
+                limit,
             )[0]
         if strategy == "fixed256":
             chunks = fixed_token_chunks(documents)

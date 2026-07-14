@@ -721,7 +721,9 @@ def run_context_generation(
             "question_type_accuracy": statistics.fmean(
                 float(row["type_correct"]) for row in scored
             ),
-            "citation_validity": valid_citations / total_citations if total_citations else 1.0,
+            "citation_validity": valid_citations / total_citations if total_citations else 0.0,
+            "citation_count": total_citations,
+            "valid_citation_count": valid_citations,
             "citation_coverage": statistics.fmean(
                 float(int(row["citation_count"]) > 0) for row in successful
             )
@@ -746,6 +748,12 @@ def run_context_generation(
         summary = {
             "created_at": datetime.now(UTC).isoformat(),
             "status": "observed_real_data_real_gateway",
+            "metric_provenance": {
+                "rouge_su4_f1": (
+                    "internal_reference_based_implementation_not_official_bioasq_scorer"
+                ),
+                "citation_validity": "PMID_whitelist_precision_not_claim_entailment",
+            },
             "config": run_config,
             "metrics": metrics,
             "resolved_models": sorted({str(row["resolved_model"]) for row in successful}),

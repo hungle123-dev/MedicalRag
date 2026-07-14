@@ -415,6 +415,15 @@
       </aside>
     </header>
 
+    <div class="callout red" style="margin:0 0 18px">
+      <p><strong>Trạng thái sau implementation audit:</strong> E11 xác nhận full pipeline trên heldout340,
+      nhưng E05/E08/E09 chưa hoàn thành planned confirmation200 nên chỉ là development findings.
+      ROUGE-SU4 hiện là implementation nội bộ, không phải official leaderboard scorer. Multi-LLM panel
+      thất bại reliability gate và không được dùng để kết luận medical correctness/faithfulness. Runtime
+      sản phẩm đã được đồng bộ với E04/E11: retrieve/rerank 100 documents nhưng chỉ top 10 documents
+      được đưa vào cross-encoder evidence selection.</p>
+    </div>
+
     <nav class="toc" aria-label="Mục lục">
       <a href="#chot">Chốt ý tưởng</a>
       <a href="#research">Deep research</a>
@@ -437,11 +446,11 @@
         <div class="card accent"><div class="kicker">Bài toán</div><h3>Biomedical question → exact + ideal answer</h3><p class="small">Chatbot hiển thị câu trả lời text và PMID citations; backend giữ JSON chuẩn BioASQ.</p></div>
         <div class="card blue"><div class="kicker">Dữ liệu</div><h3>Một bundle, ba file</h3><p class="small"><code>corpus49,513</code> để retrieve; <code>dev5,049</code> để phát triển; <code>eval340</code> để báo điểm cuối.</p></div>
         <div class="card green"><div class="kicker">Pipeline</div><h3>6 module thay độc lập</h3><p class="small">Query → document → snippet/rerank → context → generator → citations.</p></div>
-        <div class="card"><div class="kicker">Evaluation</div><h3>Đúng metric cho đúng tầng</h3><p class="small">Official BioASQ metrics, semantic metrics, Multi-LLM Expert Panel, paired CI và cost/latency.</p></div>
+        <div class="card"><div class="kicker">Evaluation</div><h3>Đúng metric cho đúng tầng</h3><p class="small">BioASQ-compatible internal metrics, paired CI/Holm; LLM panel chỉ là diagnostic đã fail reliability, latency chỉ so khi dedicated serial.</p></div>
       </div>
       <div class="callout" style="margin-top:14px"><p><strong>Planning:</strong> 41 core arm definitions + 13 stretch/interaction checks có gate; baseline được tái sử dụng nên đây không phải 54 API runs độc lập. Tuần 1 khóa dữ liệu/power, tuần 2 retrieval, tuần 3 context, tuần 4 generation/product beta, tuần 5 held-out evaluation và report.</p></div>
       <div class="banner" style="margin-top:14px">
-        <div><strong>Kết quả final đã niêm phong:</strong> best RAG đạt ROUGE-SU4 F1 0,1265 trên heldout340; hơn vanilla BM25 +0,0190, CI95% [0,0078; 0,0308], Holm p=0,0020. Drop-one chỉ thấp hơn 0,0037 và chưa significant. Gold-evidence oracle cao hơn 0,0272, nên evidence retrieval/selection là bottleneck còn lại.</div>
+        <div><strong>Kết quả final đã niêm phong:</strong> best RAG đạt internal ROUGE-SU4 F1 0,1265 trên heldout340; hơn vanilla BM25 +0,0190, CI95% [0,0078; 0,0308], Holm p=0,0020. Drop-one chỉ thấp hơn 0,0037 và chưa significant. Kết quả chứng minh lexical overlap trong closed corpus, không phải clinical correctness.</div>
         <a class="pill good" href="../reports/BAO_CAO_KET_QUA_CUOI.html">XEM FINAL REPORT</a>
       </div>
     </section>
@@ -546,7 +555,7 @@
             <tr><td><strong>Dữ liệu / EDA</strong></td><td>Một BioASQ-12B-RAG bundle gồm corpus, dev và eval; không thêm dataset/corpus ngoài.</td><td>EDA HTML/JSON, manifest, checksums, split IDs.</td><td>Count, type, length, duplicates, provenance, overlap và reachable-evidence ceiling đều được audit.</td></tr>
             <tr><td><strong>Quy trình data</strong></td><td>Download/pin → verify → normalize → enrich exact labels → freeze.</td><td>CLI reproducible + data card.</td><td>Không crawl; rebuild được từ manifest.</td></tr>
             <tr><td><strong>Pipeline</strong></td><td>Query transform → retrieve → rerank/snippet → pack → generate exact + ideal → cite.</td><td>Pipeline registry + diagram + traces.</td><td>Mỗi module thay được độc lập bằng config.</td></tr>
-            <tr><td><strong>Evaluation</strong></td><td>Retrieval, snippet, answer, faithfulness, cost, latency, statistics.</td><td>Official scorer + semantic metrics + Multi-LLM panel + MLflow.</td><td>Paired CI, held-out test, judge agreement và error taxonomy.</td></tr>
+            <tr><td><strong>Evaluation</strong></td><td>Retrieval, snippet, answer overlap, citation-format compliance, latency và statistics.</td><td>Internal BioASQ-compatible scorer + failed-reliability LLM diagnostic + MLflow.</td><td>Paired CI/Holm trên held-out; không gọi proxy là medical ground truth.</td></tr>
             <tr><td><strong>Planning 5 tuần</strong></td><td>Successive elimination qua 4 gates.</td><td>Roadmap tuần + run budget + stop rules.</td><td>Không tune trên eval; final report có ablation và negative results.</td></tr>
           </tbody>
         </table>
@@ -718,11 +727,11 @@
             <tr><td><strong>E1 · BM25 index recipe</strong></td><td class="num">4</td><td>Title only; abstract only; title+abstract; field-boosted title+abstract+MeSH.</td><td>Cùng <code>corpus.jsonl</code>, original query, retrieve100→PMID top10.</td><td>MAP@10; Recall@10 tie-break.</td><td>Promote theo rule thống kê đã đăng ký.</td></tr>
             <tr><td><strong>E2 · Retriever</strong></td><td class="num">5</td><td>Winning BM25; MedCPT native title+abstract; BM25+MedCPT RRF; RRF+MedCPT cross-encoder; ★ SPECTER literature control.</td><td>Cùng <code>corpus.jsonl</code>, original query, candidate depth 100.</td><td>MAP@10 + p95 latency.</td><td>Superiority hoặc cost non-inferiority rule.</td></tr>
             <tr><td><strong>E3 · Query strategy</strong></td><td class="num">4</td><td>Original; MeSH expansion; một HyDE pseudo-abstract; ★ iterative follow-up tối đa 2 vòng.</td><td>Winning retriever; không dùng gold evidence để tạo query.</td><td>ΔMAP; rescue và severe-harm rate.</td><td>Severe harm = hit@10 1→0 hoặc AP giảm ≥0.20; rate &lt;5%.</td></tr>
-            <tr><td><strong>E4 · Chunk/snippet</strong></td><td class="num">4</td><td>Full-abstract baseline; fixed 256/64 + BM25; 3-sentence + BM25; 3-sentence + MedCPT cross-encoder.</td><td>Exactly same top documents and final snippet count.</td><td>Official snippet mean F1.</td><td>Staged: chọn construction rồi mới đo cross-encoder gain.</td></tr>
-            <tr><td><strong>E5 · Context budget</strong></td><td class="num">3</td><td>Khoảng 600 / 1,200 / 2,400 tokens (chốt theo tokenizer model).</td><td>Winning evidence rank.</td><td>Answer quality primary; tokens/cost tạo Pareto frontier.</td><td>Promote superiority hoặc quality non-inferior với cost ≤70%.</td></tr>
+            <tr><td><strong>E4 · Chunk/snippet</strong></td><td class="num">4</td><td>Full-abstract baseline; fixed 256/64 + BM25; 3-sentence + BM25; 3-sentence + MedCPT cross-encoder.</td><td>Exactly same top 10 documents and final snippet count.</td><td>Internal character-overlap snippet F1 compatible with BioASQ definition.</td><td>Staged: chọn construction rồi mới đo cross-encoder gain.</td></tr>
+            <tr><td><strong>E5 · Context budget</strong></td><td class="num">3</td><td>600 / 1,200 / 2,400 tokens; đã chạy generation160, chưa confirmation200.</td><td>Winning evidence rank.</td><td>Internal ROUGE-SU4 + tokens/failure.</td><td>Development selection: 600 tokens; không claim independently confirmed.</td></tr>
             <tr><td><strong>E6 · Ordering</strong></td><td class="num">2</td><td>Descending relevance; cùng snippets được permute để top evidence nằm giữa.</td><td>Same exact snippets và text budget; không duplicate.</td><td>Correctness + faithfulness.</td><td>Kiểm tra lost-in-the-middle.</td></tr>
             <tr><td><strong>E7 · Diversity ★</strong></td><td class="num">2</td><td>Top-score baseline; MMR/source-diverse.</td><td>Same exact budget.</td><td>Gold PMID recall + redundancy.</td><td>Chỉ chạy nếu E4–E6 hoàn tất; promote nếu recall tăng không làm faithfulness giảm.</td></tr>
-            <tr><td><strong>E8 · Generator</strong></td><td class="num">4</td><td>gpt-4.1-nano; gemini-2.5-flash-lite; deepseek-v3.2; qwen3.5-122b-a10b.</td><td>Same exact evidence text/prompt, fit theo context window nhỏ nhất.</td><td>Medical correctness + unsupported claims + cost.</td><td>Chọn Pareto quality/cost; rerun near-ties.</td></tr>
+            <tr><td><strong>E8 · Generator</strong></td><td class="num">4</td><td>Registered candidates gặp route failures; GPT-OSS-120B được thêm bằng incident record và chạy generation160.</td><td>Same exact evidence text/prompt.</td><td>Internal ROUGE-SU4, reliability, tokens và latency mô tả.</td><td>Operational/development selection; không có USD cost Pareto hay confirmation200.</td></tr>
             <tr><td><strong>E9 · Prompt/router</strong></td><td class="num">5</td><td>Generic structured; + citation constraint; + predicted-type schema; gold-type diagnostic; ★ + evidence-sufficiency/abstention.</td><td>Winning generator/evidence; mỗi adjacent contrast thêm đúng một factor.</td><td>Parse, faithfulness, router macro-F1; abstention chỉ robustness.</td><td>Gold type/abstention diagnostic không được gọi là deployable gain chính.</td></tr>
             <tr><td><strong>E10 · Oracle ladder</strong></td><td class="num">4</td><td>L0/L1/L2/L3 với resource budget đã khóa.</td><td>Winning generator/prompt.</td><td>Gap decomposition.</td><td>Chỉ dùng để chẩn đoán; L3 là evidence oracle, không claim absolute ceiling.</td></tr>
             <tr><td><strong>E11 · Final arms</strong></td><td class="num">5</td><td>Closed-book; vanilla BM25 RAG; best RAG; strongest preselected drop-one ablation; gold-snippet evidence oracle.</td><td>Procedurally held-out 340.</td><td>Paired end-to-end metrics.</td><td>Ba primary contrasts khóa trước khi inference.</td></tr>
@@ -757,11 +766,11 @@
           <thead><tr><th scope="col">Tầng</th><th scope="col">Primary</th><th scope="col">Secondary / diagnostic</th><th scope="col">Ý nghĩa</th></tr></thead>
           <tbody>
             <tr><td><strong>Document retrieval</strong></td><td>BioASQ MAP cutoff 10</td><td>Recall@10, MRR@10, nDCG@10, candidate Recall@100, hit@10.</td><td>AP denominator dùng <code>min(|gold|,10)</code>; unit test riêng câu &lt;10 và &gt;10 gold docs. Chỉ diễn giải trong closed corpus.</td></tr>
-            <tr><td><strong>Snippet retrieval</strong></td><td>BioASQ official mean F-measure</td><td>Token F1, PMID hit, compression ratio, reconstructability.</td><td>Official scorer dùng article/section/character offsets; token F1 chỉ diagnostic.</td></tr>
+            <tr><td><strong>Snippet retrieval</strong></td><td>Internal character-overlap mean F-measure</td><td>PMID hit, compression ratio, reconstructability.</td><td>Implementation bám article/section/character offsets nhưng chưa cross-check official scorer.</td></tr>
             <tr><td><strong>Exact answer</strong></td><td>Yes/no accuracy + macro-F1; factoid strict/lenient accuracy + MRR; list mean precision/recall/F1.</td><td>Per-type parse/provider failure.</td><td>Chỉ báo sau khi join official exact labels; không suy gold từ ideal prose.</td></tr>
-            <tr><td><strong>Ideal answer · all 340</strong></td><td>Official ROUGE-2/ROUGE-SU4 + BERTScore + median rubric score của 3 LLM judges.</td><td>ROUGE-1/L, per-judge scores và disagreement.</td><td>Official/reference metrics là nền; LLM panel chỉ là semantic evaluation proxy, không phải expert ground truth.</td></tr>
-            <tr><td><strong>Faithfulness</strong></td><td>Unsupported atomic-claim rate</td><td>Claim-support precision, contradiction rate.</td><td>Judge chỉ thấy answer + cited evidence ở criterion này, không được thấy gold answer.</td></tr>
-            <tr><td><strong>Citations</strong></td><td>Citation entailment/precision</td><td>Gold PMID recall, invalid PMID rate.</td><td>Closed-book arm không được yêu cầu bịa citation và nhận <strong>N/A</strong>, không phải 0.</td></tr>
+            <tr><td><strong>Ideal answer · all 340</strong></td><td>Internal ROUGE-2/ROUGE-SU4 reference overlap.</td><td>Failure rate, type accuracy và subgroup analysis.</td><td>BERTScore không tạo được sealed artifact; LLM panel fail reliability nên không dùng cho primary claim.</td></tr>
+            <tr><td><strong>Faithfulness</strong></td><td>Chưa có metric đủ tin cậy để claim.</td><td>Citation coverage và PMID whitelist validity chỉ là format diagnostics.</td><td>LLM unsupported-claim proxy fail reliability; không diễn giải thành medical ground truth.</td></tr>
+            <tr><td><strong>Citations</strong></td><td>Coverage + PMID whitelist precision</td><td>Gold PMID recall, invalid PMID rate.</td><td>Không đo claim–citation entailment; zero-citation không còn được validity=1 trong code mới.</td></tr>
             <tr><td><strong>Safety · exploratory</strong></td><td>Potentially harmful unsupported-claim rate trên targeted slice</td><td>Unsafe answer under no-evidence controls.</td><td>BioASQ không phải clinical-safety benchmark; không claim chatbot an toàn cho bệnh nhân.</td></tr>
             <tr><td><strong>Efficiency</strong></td><td>Quality dưới fixed budget/non-inferiority constraint</td><td>Tokens, estimated cost, p50/p95 latency, API/failure/cache.</td><td>Chọn Pareto quality–cost–latency; không xếp hạng bằng ratio quality/1k tokens dễ méo.</td></tr>
           </tbody>
@@ -819,9 +828,9 @@
           <thead><tr><th scope="col">LLM role</th><th scope="col">Vai trò trong test</th><th scope="col">Population</th><th scope="col">Giữ công bằng bằng cách</th></tr></thead>
           <tbody>
             <tr><td><code>gpt-4.1-nano</code></td><td>Lower-bound rất rẻ.</td><td>smoke40 feasibility → generator-select160 nếu parse/system gate pass.</td><td rowspan="4">Freeze cùng một serialized context string/order/prompt vừa context window nhỏ nhất; parser giống nhau. Temperature 0 chỉ giảm variance, không bảo đảm deterministic. Ghi actual tokens theo từng tokenizer, seed nếu provider hỗ trợ, resolved provider/model/snapshot/date; rerun 3 lần cho near-ties.</td></tr>
-            <tr><td><code>gemini-2.5-flash-lite</code></td><td>Speed/cost candidate.</td><td>smoke40 → generator-select160 → top-2 confirm200.</td></tr>
-            <tr><td><code>deepseek-v3.2</code></td><td>Main reasoning/generation candidate.</td><td>smoke40 → generator-select160 → top-2 confirm200.</td></tr>
-            <tr><td><code>qwen3.5-122b-a10b</code></td><td>Large-model alternative.</td><td>smoke40 → generator-select160 → top-2 confirm200.</td></tr>
+            <tr><td><code>gemini-2.5-flash-lite</code></td><td>Speed/cost candidate.</td><td>Đã screen; reliability gate không đạt, không confirmation200.</td></tr>
+            <tr><td><code>deepseek-v3.2</code></td><td>Main reasoning/generation candidate.</td><td>Đã screen; schema failures, không confirmation200.</td></tr>
+            <tr><td><code>qwen3.5-122b-a10b</code></td><td>Large-model alternative.</td><td>Screen timeout; không có sealed full-population artifact.</td></tr>
             <tr><td><code>judge_gemini</code> + <code>judge_openai</code> + <code>judge_qwen_or_deepseek</code></td><td>Ba fixed family slots của Multi-LLM Expert Panel; exact aliases chọn từ W1 gateway inventory.</td><td>sanity40; direct all340; pairwise judge160.</td><td>Rubric/prompt frozen, pipeline IDs masked, cùng panel cho mọi arm; pairwise A/B position swap. Báo từng judge + median + disagreement, không gọi là human score.</td></tr>
           </tbody>
         </table>
@@ -858,7 +867,7 @@
       <div class="timeline">
         <article class="week">
           <div class="week-head"><span class="week-no">WEEK 1</span><h3>Data contract, EDA, harness và BM25 baseline</h3></div>
-          <p>Pin/checksum một BioASQ bundle; công bố gold-conditioned closed-corpus scope; giải quyết 5,049 vs 5,046; join exact labels; group-aware freeze selection4849/confirm200/heldout340; dựng indexes, official scorers và MLflow local tracking. Chạy baseline để ước lượng paired variance/MDE rồi khóa MEI/margins trước candidates.</p>
+          <p>Pin/checksum một BioASQ bundle; công bố gold-conditioned closed-corpus scope; group-aware freeze selection4849/confirm200/heldout340; dựng indexes, internal scorers và MLflow local tracking. Official exact labels không lấy được nên exact metrics được khóa tắt thay vì tự tạo gold.</p>
           <div class="deliverables"><span class="pill">data card + provenance</span><span class="pill">EDA.html</span><span class="pill">bundle manifest</span><span class="pill">BM25 baseline</span><span class="pill">MLflow runs</span><span class="pill">metric unit tests</span></div>
           <p><strong>Exit gate:</strong> rebuild từ manifest; duplicate groups không cross split; reachable-evidence ceilings được báo; exact labels hợp lệ; gateway TLS/model inventory preflight pass; MLflow lưu đủ params/metrics/artifacts; baseline smoke40 trace được.</p>
         </article>
@@ -876,8 +885,8 @@
         </article>
         <article class="week">
           <div class="week-head"><span class="week-no">WEEK 4</span><h3>Generator, prompt, oracle ladder và frontend/backend beta</h3></div>
-          <p>E8 generator-select160 → top-2 confirm200; E9 citation/type prompt; E10 L0–L3; drop-one promoted modules rồi chọn strongest ablation. Khóa ba judge-family aliases và chạy sanity40 deterministic controls. Backend expose pipeline/MLflow trace; frontend cho chat, citations và A/B.</p>
-          <div class="deliverables"><span class="pill">generator Pareto</span><span class="pill">oracle gaps</span><span class="pill">panel sanity40</span><span class="pill">FastAPI beta</span><span class="pill">React comparison UI</span></div>
+          <p><strong>Thực tế:</strong> E8/E9 dừng ở generation160; planned confirmation200 và USD cost Pareto không hoàn thành. E10 L0–L3, panel sanity40, FastAPI và React UI đã chạy; full pipeline sau đó được xác nhận bằng E11.</p>
+          <div class="deliverables"><span class="pill">development generator choice</span><span class="pill">oracle gaps</span><span class="pill">panel sanity40 + reliability fail</span><span class="pill">FastAPI beta</span><span class="pill">React comparison UI</span></div>
           <p><strong>Exit gate:</strong> 5 final arms, 3 contrasts, prompts/models/panel rubric/config hashes đều frozen; cả ba judge slots pass sanity; không secret leakage.</p>
         </article>
         <article class="week">
@@ -902,13 +911,13 @@
           <div class="stage"><span class="n">05</span><b>LangChain minimal</b><span>Gateway call, prompt và Pydantic structured output.</span></div>
           <div class="stage"><span class="n">06</span><b>Answer + trace</b><span>Citations, SQLite metadata, raw artifacts.</span></div>
         </div>
-        <p class="flow-note"><strong>Offline path:</strong> CLI experiment runner → cùng shared core → official BioASQ scorer + semantic metrics + Multi-LLM panel → MLflow params/metrics/artifacts. MLflow là tracking system duy nhất.</p>
+        <p class="flow-note"><strong>Offline path:</strong> CLI experiment runner → cùng shared core → internal BioASQ-compatible metrics + paired statistics → MLflow params/metrics/artifacts. Multi-LLM panel được lưu riêng như failed-reliability diagnostic.</p>
       </div>
 
       <div class="grid-4" style="margin-bottom:18px">
         <div class="card accent"><h3>LangChain: dùng tối giản</h3><p class="small"><code>langchain-core</code> + <code>langchain-openai</code> chỉ cho prompt, async gateway calls và structured output. Retrieval/statistics/official metrics thuộc project.</p></div>
         <div class="card blue"><h3>MLflow: tracking chính</h3><p class="small">Một run lưu config, git SHA, dataset manifest, metrics, latency/cost, predictions và reports; local UI phục vụ so arm và tái lập.</p></div>
-        <div class="card green"><h3>Evaluation tự kiểm soát</h3><p class="small">Official BioASQ scorer + BERTScore + custom 3-LLM panel. Không Ragas để tránh trùng metric, hidden prompts và call cost.</p></div>
+        <div class="card green"><h3>Evaluation tự kiểm soát</h3><p class="small">Internal BioASQ-compatible scorer + paired statistics. BERTScore không sealed; custom 3-LLM panel fail reliability và chỉ được lưu như diagnostic. Không Ragas.</p></div>
         <div class="card"><h3>Local-first storage</h3><p class="small">JSONL raw/processed, BM25/FAISS indexes, SQLite trace metadata, MLflow artifacts. Secrets chỉ ở backend <code>.env</code>.</p></div>
       </div>
 
@@ -966,7 +975,7 @@
         <div class="card red"><h3>Không thêm PubMed corpus</h3><p class="small">Chỉ dùng 49,513 abstracts có sẵn trong BioASQ bundle. Không crawl, không 200k distractors; giới hạn claim thành closed-corpus retrieval/reranking.</p></div>
         <div class="card red"><h3>Không “LLM panel = truth”</h3><p class="small">Ba judges chỉ là automated expert-style proxy; phải blind, swap position, báo disagreement và luôn đi cùng official metrics.</p></div>
         <div class="card red"><h3>Không tune trên heldout340</h3><p class="small">Chỉ aggregate integrity đã được audit. Gold không lộ lúc inference; nếu nhìn score rồi đổi pipeline thì kết luận không còn đáng tin.</p></div>
-        <div class="card red"><h3>Không Ragas/LangSmith</h3><p class="small">Official scorer + custom panel đã đủ; MLflow đảm nhiệm experiments/traces. Không thêm dashboard/metric framework trùng vai trò.</p></div>
+        <div class="card red"><h3>Không Ragas/LangSmith</h3><p class="small">Internal scorer + paired statistics đủ cho claim hẹp; MLflow đảm nhiệm experiments/traces. Không thêm framework metric để che đi việc panel reliability thấp.</p></div>
         <div class="card red"><h3>Không LangGraph/Qdrant</h3><p class="small">Iterative retrieval chỉ tối đa hai vòng nên dùng loop; 49.5k vectors dùng FAISS local, không cần state graph/vector server.</p></div>
       </div>
     </section>

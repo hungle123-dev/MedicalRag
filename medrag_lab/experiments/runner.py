@@ -721,7 +721,7 @@ def evaluate_superiority_gate(
     latency_modes = {
         value.get("config", {}).get("latency_mode") for value in (left_summary, right_summary)
     }
-    if None not in latency_modes and latency_modes != {"dedicated_serial"}:
+    if latency_modes != {"dedicated_serial"}:
         raise ValueError("Latency gate requires dedicated serial efficiency runs")
     left, right = left_summary["metrics"], right_summary["metrics"]
     bootstrap = comparison["bootstrap"]

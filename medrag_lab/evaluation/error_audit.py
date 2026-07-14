@@ -12,6 +12,25 @@ from medrag_lab.evaluation.errors import ERROR_TAXONOMY
 from medrag_lab.settings import ROOT, settings
 
 
+def retrieval_error_codes(
+    expected_pmids: set[str],
+    retrieved_pmids: set[str],
+    packed_pmids: set[str],
+    span_f1: float,
+    *,
+    provenance_available: bool,
+) -> list[str]:
+    if not provenance_available:
+        return []
+    if not retrieved_pmids & expected_pmids:
+        return ["R1"]
+    if not packed_pmids & expected_pmids:
+        return ["CTX1"]
+    if span_f1 == 0:
+        return ["R2"]
+    return []
+
+
 def build_error_audit(
     contexts_path: Path,
     generation_path: Path,
@@ -56,14 +75,18 @@ def build_error_audit(
             for item in packed
         ]
         span_f1 = snippet_span_f1(predicted_snippets, reference["snippets"])["f1"]
+        retrieval_provenance_available = bool(retrieved_pmids)
         if context.get("failed") or answer.get("failed"):
             codes.append("SYS1")
-        if not retrieved_pmids & expected_pmids:
-            codes.append("R1")
-        elif not packed_pmids & expected_pmids:
-            codes.append("CTX1")
-        elif span_f1 == 0:
-            codes.append("R2")
+        codes.extend(
+            retrieval_error_codes(
+                expected_pmids,
+                retrieved_pmids,
+                packed_pmids,
+                span_f1,
+                provenance_available=retrieval_provenance_available,
+            )
+        )
         answer_value = answer.get("answer") or {}
         if answer_value and answer_value.get("predicted_type") != reference["type"]:
             codes.append("G3")
@@ -77,6 +100,7 @@ def build_error_audit(
             {
                 "question_id": question_id,
                 "codes": codes,
+                "retrieval_attribution_available": retrieval_provenance_available,
                 "snippet_span_f1": span_f1,
                 "rouge_su4_f1": rouge_f1,
             }
@@ -86,6 +110,12 @@ def build_error_audit(
         "population": population,
         "questions": len(audited),
         "thresholds": {"G2_rouge_su4_f1_below": 0.10},
+        "retrieval_attribution_available_questions": sum(
+            int(bool(row["retrieval_attribution_available"])) for row in audited
+        ),
+        "retrieval_attribution_limitation": (
+            "R1/R2/CTX1 omitted when sealed contexts do not contain full retrieved_pmids"
+        ),
         "counts": dict(sorted(counts.items())),
         "taxonomy": ERROR_TAXONOMY,
         "unassigned_without_llm_panel": ["G1", "CIT1", "S1", "CTX2"],

@@ -14,12 +14,17 @@ The plain-language final result report is
 
 ## Final result
 
-On the locked 340-question held-out set, `best_rag` reached ROUGE-SU4 F1 **0.1265**.
+On the locked 340-question held-out set, `best_rag` reached internal reference-based
+ROUGE-SU4 F1 **0.1265**.
 It exceeded vanilla BM25 RAG by **+0.0190** (95% CI 0.0078–0.0308, Holm-adjusted
 `p=0.0020`) and closed-book by **+0.0217** (95% CI 0.0119–0.0323,
 Holm-adjusted `p=0.0003`). Its +0.0037 advantage over the preregistered drop-one
 arm was not significant. The gold-evidence oracle gap was +0.0272, identifying
 evidence retrieval/selection as the main remaining bottleneck.
+
+This is evidence of improved lexical overlap with BioASQ ideal answers inside the frozen
+closed-corpus study. It is not an official BioASQ leaderboard score, physician validation,
+clinical correctness, or PubMed-wide retrieval evidence.
 
 ## Architecture
 
@@ -28,7 +33,7 @@ runners use the modules below it; the React application only calls HTTP endpoint
 are loaded by evaluation code, never by the inference pipeline.
 
 ```text
-BioASQ corpus → BM25 / MedCPT → query strategy → evidence chunks + packing
+BioASQ corpus → BM25 / MedCPT → rerank 100 → evidence from top 10 documents → packing
              → frozen prompt → real OpenAI-compatible gateway → validated PMID citations
              → FastAPI / experiment runner → traces + evaluation + MLflow
 ```
@@ -78,11 +83,19 @@ uv run medrag experiment bm25 --recipe title_abstract --population selection4849
 mlflow ui --backend-store-uri sqlite:///artifacts/mlflow.db
 ```
 
-Every observed run stores immutable data/split hashes, Git SHA, config hash, predictions,
+Observed runs store data/split hashes, Git SHA, config hash, predictions,
 latency/failures and metrics. Provider failures remain in the denominator. Smoke runs establish
 feasibility only and never select a model on quality. The held-out 340 questions were opened
 only after finalists, prompts, judges and exactly three final contrasts were frozen; the sealed
 result is `reports/gates/E11_FINAL_HELDOUT.json`.
+
+E05, E08 and E09 selections are development findings because their planned independent
+confirmation stage was not completed. The aggregate pipeline, not every individual module claim,
+is what E11 confirms. Automated LLM judges failed their reliability gate and remain diagnostic only.
+
+`uv run medrag experiment freeze-final --verify` verifies the historical manifest and reports
+whether a held-out rerun is allowed. Submission-hardening changes intentionally make
+`heldout_rerun_allowed=false`; the sealed E11 artifacts remain unchanged and must not be retuned.
 
 Raw data stays in `data/raw/bioasq` and is ignored by Git. Tracked manifests contain hashes,
 frozen IDs and aggregate audit results only. Generated indexes, provider responses, MLflow
