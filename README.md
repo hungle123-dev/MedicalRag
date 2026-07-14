@@ -9,6 +9,17 @@ The binding protocol is
 [`docs/KE_HOACH_THUC_NGHIEM_MEDICAL_RAG.html`](docs/KE_HOACH_THUC_NGHIEM_MEDICAL_RAG.html).
 The end-to-end system map is
 [`docs/KIEN_TRUC_HE_THONG_PIPELINE_WORKFLOW.html`](docs/KIEN_TRUC_HE_THONG_PIPELINE_WORKFLOW.html).
+The plain-language final result report is
+[`reports/BAO_CAO_KET_QUA_CUOI.html`](reports/BAO_CAO_KET_QUA_CUOI.html).
+
+## Final result
+
+On the locked 340-question held-out set, `best_rag` reached ROUGE-SU4 F1 **0.1265**.
+It exceeded vanilla BM25 RAG by **+0.0190** (95% CI 0.0078–0.0308, Holm-adjusted
+`p=0.0020`) and closed-book by **+0.0217** (95% CI 0.0119–0.0323,
+Holm-adjusted `p=0.0003`). Its +0.0037 advantage over the preregistered drop-one
+arm was not significant. The gold-evidence oracle gap was +0.0272, identifying
+evidence retrieval/selection as the main remaining bottleneck.
 
 ## Architecture
 
@@ -69,8 +80,9 @@ mlflow ui --backend-store-uri sqlite:///artifacts/mlflow.db
 
 Every observed run stores immutable data/split hashes, Git SHA, config hash, predictions,
 latency/failures and metrics. Provider failures remain in the denominator. Smoke runs establish
-feasibility only and never select a model on quality. The held-out 340 questions stay unopened
-until finalists, prompts, judges and exactly three final contrasts are frozen.
+feasibility only and never select a model on quality. The held-out 340 questions were opened
+only after finalists, prompts, judges and exactly three final contrasts were frozen; the sealed
+result is `reports/gates/E11_FINAL_HELDOUT.json`.
 
 Raw data stays in `data/raw/bioasq` and is ignored by Git. Tracked manifests contain hashes,
 frozen IDs and aggregate audit results only. Generated indexes, provider responses, MLflow

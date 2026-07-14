@@ -389,7 +389,7 @@
     <div class="topbar">
       <div class="brand">MedRAG-Lab / Research Plan</div>
       <div class="spacer"></div>
-      <div class="status">Methodology audit v2 · 13/07/2026</div>
+      <div class="status">Methodology + final result · 14/07/2026</div>
       <button class="theme" id="themeToggle" type="button" aria-label="Đổi giao diện sáng tối">Sáng / tối</button>
     </div>
 
@@ -440,6 +440,10 @@
         <div class="card"><div class="kicker">Evaluation</div><h3>Đúng metric cho đúng tầng</h3><p class="small">Official BioASQ metrics, semantic metrics, Multi-LLM Expert Panel, paired CI và cost/latency.</p></div>
       </div>
       <div class="callout" style="margin-top:14px"><p><strong>Planning:</strong> 41 core arm definitions + 13 stretch/interaction checks có gate; baseline được tái sử dụng nên đây không phải 54 API runs độc lập. Tuần 1 khóa dữ liệu/power, tuần 2 retrieval, tuần 3 context, tuần 4 generation/product beta, tuần 5 held-out evaluation và report.</p></div>
+      <div class="banner" style="margin-top:14px">
+        <div><strong>Kết quả final đã niêm phong:</strong> best RAG đạt ROUGE-SU4 F1 0,1265 trên heldout340; hơn vanilla BM25 +0,0190, CI95% [0,0078; 0,0308], Holm p=0,0020. Drop-one chỉ thấp hơn 0,0037 và chưa significant. Gold-evidence oracle cao hơn 0,0272, nên evidence retrieval/selection là bottleneck còn lại.</div>
+        <a class="pill good" href="../reports/BAO_CAO_KET_QUA_CUOI.html">XEM FINAL REPORT</a>
+      </div>
     </section>
 
     <section id="chot">

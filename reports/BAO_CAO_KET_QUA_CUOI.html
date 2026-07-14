@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MedicalRAG — Báo cáo kết quả cuối</title>
+  <script>
+    (() => {
+      const saved = localStorage.getItem("medrag-report-theme");
+      const dark = saved ? saved === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.classList.toggle("dark", dark);
+    })();
+  </script>
+  <style>
+    :root {
+      --bg:#f7f5ef; --paper:#fffdfa; --ink:#20221f; --muted:#666a62; --line:#d8d6ce;
+      --soft:#efede5; --accent:#c95f42; --blue:#315f78; --green:#597a55; --amber:#9a6b22;
+      --shadow:0 18px 50px rgba(35,31,25,.08); --sans:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+      --serif:Georgia,"Times New Roman",serif; --mono:"SFMono-Regular",Consolas,monospace;
+    }
+    html.dark {
+      --bg:#171916; --paper:#20231f; --ink:#f2f0e9; --muted:#b0b3aa; --line:#3b3f38;
+      --soft:#2a2e28; --accent:#ee8062; --blue:#80b6ce; --green:#91ba88; --amber:#e1b365;
+      --shadow:0 18px 50px rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.62}
+    a{color:var(--blue);text-underline-offset:3px} code{font:12px var(--mono);background:var(--soft);padding:2px 6px;border-radius:5px}
+    .topbar{position:sticky;top:0;z-index:10;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px)}
+    .topbar-inner{max-width:1180px;margin:auto;padding:11px 24px;display:flex;align-items:center;gap:18px}
+    .brand{margin-right:auto;font:700 12px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+    nav{display:flex;gap:15px;overflow:auto;white-space:nowrap} nav a{text-decoration:none;color:var(--muted);font-size:12px}
+    .theme{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:7px 11px;cursor:pointer}
+    main{max-width:1180px;margin:auto;padding:64px 24px 100px}
+    .hero{display:grid;grid-template-columns:1.45fr .75fr;gap:38px;align-items:end;margin-bottom:56px}
+    .eyebrow{font:700 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+    h1,h2,h3{margin:0;color:var(--ink)} h1{font:500 clamp(42px,7vw,78px)/.98 var(--serif);letter-spacing:-.045em;margin:13px 0 22px}
+    h2{font:500 clamp(28px,4vw,42px)/1.08 var(--serif);letter-spacing:-.025em} h3{font-size:16px}
+    .lead{max-width:760px;font-size:18px;color:var(--muted)} .verdict{border-left:5px solid var(--green);padding:22px 24px;background:var(--paper);box-shadow:var(--shadow);border-radius:0 14px 14px 0}
+    .verdict b{display:block;font:500 27px var(--serif);margin:4px 0 8px}.verdict p{margin:0;color:var(--muted);font-size:14px}
+    section{padding:48px 0;border-top:1px solid var(--line)} .section-head{display:grid;grid-template-columns:250px 1fr;gap:28px;margin-bottom:28px}.section-head p{margin:4px 0 0;color:var(--muted);max-width:740px}
+    .grid{display:grid;gap:16px}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+    .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+    .card .num{font:500 32px var(--serif);margin:8px 0 4px}.card p{margin:0;color:var(--muted);font-size:14px}.card strong{color:var(--ink)}
+    .flow{display:flex;align-items:stretch;gap:8px;overflow:auto;padding:4px 0 12px}.step{min-width:145px;flex:1;border:1px solid var(--line);border-radius:12px;background:var(--paper);padding:16px}.step b{display:block;font-size:13px}.step small{color:var(--muted)}.arrow{align-self:center;color:var(--accent);font-size:20px}
+    .callout{border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));background:color-mix(in srgb,var(--accent) 8%,var(--paper));border-radius:14px;padding:20px}.callout p{margin:4px 0;color:var(--muted)}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px;background:var(--paper)}table{width:100%;border-collapse:collapse;min-width:760px;font-size:13px}caption{text-align:left;padding:16px 18px;font-weight:700}th,td{text-align:left;padding:12px 15px;border-top:1px solid var(--line);vertical-align:top}th{font:700 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--soft)}td.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}.winner{background:color-mix(in srgb,var(--green) 12%,var(--paper))}
+    .pill{display:inline-block;padding:3px 8px;border-radius:999px;font:700 10px var(--mono);white-space:nowrap}.ok{color:var(--green);background:color-mix(in srgb,var(--green) 15%,transparent)}.warn{color:var(--amber);background:color-mix(in srgb,var(--amber) 15%,transparent)}.bad{color:var(--accent);background:color-mix(in srgb,var(--accent) 15%,transparent)}
+    .bars{display:grid;gap:12px}.bar-row{display:grid;grid-template-columns:165px 1fr 64px;gap:12px;align-items:center;font-size:13px}.track{height:18px;background:var(--soft);border-radius:999px;overflow:hidden}.fill{height:100%;background:var(--blue);border-radius:inherit}.fill.best{background:var(--green)}.bar-value{text-align:right;font-family:var(--mono)}
+    .experiments{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.experiment{border-top:3px solid var(--blue)}.experiment .id{font:700 11px var(--mono);color:var(--blue)}.experiment h3{margin:6px 0}.experiment p{font-size:13px}
+    .contrast{display:grid;grid-template-columns:1fr 90px 160px 100px;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line);font-size:13px}.contrast:last-child{border:0}.contrast .delta{font:700 14px var(--mono);color:var(--green)}
+    .timeline{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.week{padding:16px;border-left:3px solid var(--blue);background:var(--paper);border-radius:0 12px 12px 0}.week b{display:block}.week small{color:var(--muted)}
+    .limits{margin:0;padding-left:18px}.limits li{margin:9px 0}.footer{padding-top:28px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:20px}
+    @media(max-width:850px){.hero,.section-head{grid-template-columns:1fr}.g3,.g4,.experiments,.timeline{grid-template-columns:1fr}.contrast{grid-template-columns:1fr 1fr}.topbar nav{display:none}.bar-row{grid-template-columns:120px 1fr 55px}main{padding-top:38px}}
+    @media print{.topbar{display:none}body{background:white;color:#111}.card,.verdict{box-shadow:none}main{padding:20px}section{break-inside:avoid}}
+  </style>
+</head>
+<body>
+  <header class="topbar"><div class="topbar-inner"><span class="brand">MedicalRAG · Final</span><nav><a href="#problem">Bài toán</a><a href="#data">Dữ liệu</a><a href="#pipeline">Pipeline</a><a href="#experiments">Thực nghiệm</a><a href="#results">Kết quả</a><a href="#limits">Giới hạn</a></nav><button class="theme" id="theme" aria-label="Đổi giao diện sáng tối">◐</button></div></header>
+  <main>
+    <header class="hero">
+      <div><span class="eyebrow">Báo cáo kết quả cuối · 14/07/2026</span><h1>Một RAG y sinh<br>được kiểm chứng,<br>không được tô hồng.</h1><p class="lead">Project dùng một bundle BioASQ thống nhất để xây chatbot hỏi–đáp có citation, thay từng module theo thí nghiệm có kiểm soát, khóa cấu hình rồi mới mở 340 câu held-out.</p></div>
+      <aside class="verdict"><span class="eyebrow">Kết luận chính</span><b>Best RAG thắng baseline.</b><p>ROUGE-SU4 F1 0,1265; cao hơn vanilla BM25 +0,0190 với CI95% [0,0078; 0,0308] và Holm p=0,0020.</p></aside>
+    </header>
+
+    <section id="problem"><div class="section-head"><div><span class="eyebrow">01 · Bài toán</span><h2>Input text → output text có bằng chứng</h2></div><p>Chatbot chỉ là giao diện. Đơn vị nghiên cứu là một câu hỏi y sinh đi qua cùng một pipeline có thể trace và trả về câu trả lời, loại câu hỏi, citation PMID và trạng thái abstain.</p></div>
+      <div class="grid g3"><article class="card"><h3>Input</h3><div class="num">Question</div><p>Chuỗi tiếng Anh 3–2.000 ký tự và tùy chọn <code>pipeline_id</code>.</p></article><article class="card"><h3>Output</h3><div class="num">Answer</div><p><code>ideal_answer</code>, exact answer nếu có, predicted type, citations, trace ID.</p></article><article class="card"><h3>Ranh giới</h3><div class="num">Research only</div><p>Không chẩn đoán, không thay bác sĩ và chưa clinical validation.</p></article></div>
+    </section>
+
+    <section id="data"><div class="section-head"><div><span class="eyebrow">02 · Dữ liệu</span><h2>Một benchmark bundle, ba vai trò</h2></div><p>Không “lụm” PubMed và BioASQ rời nhau. Corpus, dev và eval thuộc cùng bundle BioASQ-12B-RAG; câu hỏi nối với tài liệu bằng PMID. Corpus là kho tra, còn dev/eval là đề thi kèm gold labels.</p></div>
+      <div class="table-wrap"><table><thead><tr><th>Phần dữ liệu</th><th>Số lượng</th><th>Dùng để làm gì</th><th>Có phải đáp án chấm?</th></tr></thead><tbody><tr><td><code>corpus.jsonl</code></td><td class="num">49.513 abstracts</td><td>Build BM25 + MedCPT index để retrieval</td><td>Không</td></tr><tr><td><code>dev.jsonl</code></td><td class="num">5.049 câu</td><td>Selection 4.849 + confirmation 200</td><td>Có</td></tr><tr><td><code>eval.jsonl</code></td><td class="num">340 câu</td><td>Held-out cuối, chỉ mở sau freeze</td><td>Có</td></tr></tbody></table></div>
+      <div class="grid g4" style="margin-top:16px"><article class="card"><h3>Question types</h3><div class="num">4</div><p>yes/no, factoid, list, summary</p></article><article class="card"><h3>Median question</h3><div class="num">8 từ</div><p>p95 = 15 từ trên dev</p></article><article class="card"><h3>Gold coverage</h3><div class="num">99,921%</div><p>45.701/45.737 dev PMID refs reachable</p></article><article class="card"><h3>Dev/eval ID overlap</h3><div class="num">0</div><p>Group-aware split và frozen ID manifests</p></article></div>
+      <div class="callout" style="margin-top:16px"><strong>Giới hạn provenance quan trọng.</strong><p>49.513/49.513 corpus PMID nằm trong union gold documents. Đây là positive-only, gold-conditioned closed corpus: phù hợp để nghiên cứu reranking có kiểm soát, nhưng không đại diện cho search trên toàn PubMed có hàng triệu distractor.</p></div>
+    </section>
+
+    <section id="pipeline"><div class="section-head"><div><span class="eyebrow">03 · Pipeline final</span><h2>Mỗi module có thể thay riêng</h2></div><p>Frontend, FastAPI và experiment runner đều gọi chung <code>MedicalRAGPipeline</code>. Gold labels chỉ tồn tại ở evaluator, không đi vào inference.</p></div>
+      <div class="flow"><div class="step"><b>1 · Question</b><small>normalize + predict type</small></div><div class="arrow">→</div><div class="step"><b>2 · Original query</b><small>không MeSH/HyDE</small></div><div class="arrow">→</div><div class="step"><b>3 · Hybrid retrieve</b><small>BM25 + MedCPT RRF</small></div><div class="arrow">→</div><div class="step"><b>4 · Rerank</b><small>cross-encoder, top 100</small></div><div class="arrow">→</div><div class="step"><b>5 · Evidence</b><small>3 câu/document</small></div><div class="arrow">→</div><div class="step"><b>6 · Pack</b><small>600 tokens, relevance order</small></div><div class="arrow">→</div><div class="step"><b>7 · Generate</b><small>GPT-OSS-120B + typed JSON</small></div><div class="arrow">→</div><div class="step"><b>8 · Validate</b><small>schema + PMID whitelist</small></div></div>
+      <div class="grid g3"><article class="card"><h3>Winner deploy</h3><p><strong><code>best_rag</code></strong>: hybrid RRF + document reranker + sentence evidence.</p></article><article class="card"><h3>Baseline giữ lại</h3><p><strong><code>bm25_rag</code></strong>: cho người dùng so sánh trực tiếp với vanilla RAG.</p></article><article class="card"><h3>Ablation giữ lại</h3><p><strong><code>preselected_drop_one</code></strong>: giống winner nhưng bỏ document reranker.</p></article></div>
+    </section>
+
+    <section id="experiments"><div class="section-head"><div><span class="eyebrow">04 · Ablation plan</span><h2>Test nhiều, nhưng theo funnel</h2></div><p>Không brute-force mọi tổ hợp. Mỗi E chỉ đổi một factor, giữ các factor còn lại cố định; winner vượt gate mới đi tiếp. E12 kiểm tra interaction trước khi E11 mở held-out.</p></div>
+      <div class="experiments">
+        <article class="card experiment"><span class="id">E01</span><h3>Indexed fields</h3><p>title / abstract / combined / boosted + MeSH → chọn lexical recipe.</p></article>
+        <article class="card experiment"><span class="id">E02</span><h3>Retriever</h3><p>BM25 / MedCPT / RRF / RRF + reranker → chọn hybrid reranked.</p></article>
+        <article class="card experiment"><span class="id">E03</span><h3>Query strategy</h3><p>Original / MeSH / HyDE → giữ original; expansion không qua gate.</p></article>
+        <article class="card experiment"><span class="id">E04</span><h3>Evidence extraction</h3><p>Full / chunk / sentence BM25 / sentence cross-encoder → chọn 3 câu cross-encoder.</p></article>
+        <article class="card experiment"><span class="id">E05–E07</span><h3>Context</h3><p>Budget, order, diversity → 600 tokens, relevance descending, không diversity thêm.</p></article>
+        <article class="card experiment"><span class="id">E08–E09</span><h3>Generator + prompt</h3><p>Cùng context/prompt khi so model → GPT-OSS-120B + predicted-type schema.</p></article>
+        <article class="card experiment"><span class="id">E10</span><h3>Oracle</h3><p>Closed-book / predicted / gold evidence → định vị retrieval/evidence bottleneck.</p></article>
+        <article class="card experiment"><span class="id">E12</span><h3>Interaction</h3><p>2×2 retriever × query → MeSH có hại dưới cả hai retriever.</p></article>
+        <article class="card experiment"><span class="id">E11</span><h3>Held-out final</h3><p>5 arms, 3 contrasts preregistered, paired bootstrap + permutation + Holm.</p></article>
+      </div>
+    </section>
+
+    <section id="results"><div class="section-head"><div><span class="eyebrow">05 · Held-out 340</span><h2>Kết quả thực nghiệm cuối</h2></div><p>Mọi failure vẫn ở denominator và nhận điểm 0. Primary metric là ROUGE-SU4 F1; so sánh paired trên đúng cùng 340 question IDs.</p></div>
+      <div class="bars" aria-label="Biểu đồ ROUGE-SU4 F1"><div class="bar-row"><span>Closed-book</span><div class="track"><div class="fill" style="width:65.5%"></div></div><span class="bar-value">0,1048</span></div><div class="bar-row"><span>Vanilla BM25</span><div class="track"><div class="fill" style="width:67.2%"></div></div><span class="bar-value">0,1075</span></div><div class="bar-row"><span>Best RAG</span><div class="track"><div class="fill best" style="width:79.1%"></div></div><span class="bar-value">0,1265</span></div><div class="bar-row"><span>Drop-one</span><div class="track"><div class="fill" style="width:76.7%"></div></div><span class="bar-value">0,1228</span></div><div class="bar-row"><span>Gold oracle</span><div class="track"><div class="fill" style="width:96.1%"></div></div><span class="bar-value">0,1538</span></div></div>
+      <div class="table-wrap" style="margin-top:24px"><table><caption>Chất lượng, failure và latency</caption><thead><tr><th>Arm</th><th>ROUGE-SU4 F1</th><th>Failures / 340</th><th>p95 latency</th><th>Input + output tokens</th></tr></thead><tbody><tr><td>Closed-book</td><td class="num">0,104769</td><td class="num">6</td><td class="num">1.085 ms</td><td class="num">209.585</td></tr><tr><td>Vanilla BM25</td><td class="num">0,107461</td><td class="num">13</td><td class="num">2.509 ms</td><td class="num">629.208</td></tr><tr class="winner"><td><strong>Best RAG</strong> <span class="pill ok">winner</span></td><td class="num"><strong>0,126509</strong></td><td class="num">11</td><td class="num">2.344 ms</td><td class="num">424.487</td></tr><tr><td>Drop-one reranker</td><td class="num">0,122791</td><td class="num">8</td><td class="num">1.650 ms</td><td class="num">428.555</td></tr><tr><td>Gold evidence oracle</td><td class="num">0,153752</td><td class="num">12</td><td class="num">1.688 ms</td><td class="num">402.407</td></tr></tbody></table></div>
+      <div class="card" style="margin-top:16px"><h3>Ba contrast đã đăng ký trước</h3><div class="contrast"><span>Best − vanilla BM25</span><span class="delta">+0,0190</span><span>CI [0,0078; 0,0308]</span><span class="pill ok">pHolm 0,0020</span></div><div class="contrast"><span>Best − closed-book</span><span class="delta">+0,0217</span><span>CI [0,0119; 0,0323]</span><span class="pill ok">pHolm 0,0003</span></div><div class="contrast"><span>Best − drop-one</span><span class="delta">+0,0037</span><span>CI [−0,0024; 0,0106]</span><span class="pill warn">pHolm 0,2865</span></div></div>
+      <div class="grid g3" style="margin-top:16px"><article class="card"><h3>Retrieval</h3><div class="num">MAP@10 0,826</div><p>Recall@100 = 0,960 trên held-out.</p></article><article class="card"><h3>Evidence</h3><div class="num">Snippet F1 0,233</div><p>Gold PMID recall = 0,440.</p></article><article class="card"><h3>Oracle gap</h3><div class="num">+0,0272</div><p>CI [0,0156; 0,0389]: evidence vẫn là nút thắt chính.</p></article></div>
+    </section>
+
+    <section id="interpretation"><div class="section-head"><div><span class="eyebrow">06 · Cách đọc đúng</span><h2>Điều đã chứng minh và chưa chứng minh</h2></div><p>Mean cao không tự động là bằng chứng. CI và multiple-comparison correction quyết định claim nào được giữ.</p></div>
+      <div class="grid g3"><article class="card"><span class="pill ok">Đủ bằng chứng</span><h3 style="margin-top:10px">Modular RAG hơn baseline</h3><p>Best RAG hơn vanilla BM25 và closed-book trên locked held-out.</p></article><article class="card"><span class="pill warn">Chưa đủ bằng chứng</span><h3 style="margin-top:10px">Reranker riêng lẻ</h3><p>Delta dương nhưng CI đi qua 0; không được nói reranker chắc chắn tạo cải thiện answer-level.</p></article><article class="card"><span class="pill bad">Không được claim</span><h3 style="margin-top:10px">Search toàn PubMed / clinical</h3><p>Corpus gold-conditioned và không có bác sĩ thẩm định; không suy rộng thành hệ thống y tế thực tế.</p></article></div>
+      <div class="callout" style="margin-top:16px"><strong>Automated judge không phải human review.</strong><p>Panel 3 LLM có disagreement 82,2% và Krippendorff α thấp; pairwise panel lỗi 123/160. Reliability gate thất bại, nên chỉ là sensitivity analysis và không thay đổi kết luận primary. BERTScore DeBERTa-xlarge cũng không tạo được sealed report trên GPU 4 GB, vì vậy báo cáo không bịa semantic score.</p></div>
+    </section>
+
+    <section id="product"><div class="section-head"><div><span class="eyebrow">07 · Sản phẩm</span><h2>Research core và chatbot dùng chung</h2></div><p>Không có “pipeline demo” khác với pipeline được chấm. UI mặc định gọi <code>best_rag</code>; người dùng có thể so với baseline hoặc drop-one.</p></div>
+      <div class="grid g4"><article class="card"><h3>Backend</h3><div class="num">FastAPI</div><p>answer, compare, trace, readiness, experiments.</p></article><article class="card"><h3>Frontend</h3><div class="num">React/Vite</div><p>Answer, citations, latency và pipeline comparison.</p></article><article class="card"><h3>Quality gates</h3><div class="num">31 pass</div><p>pytest + Ruff + mypy + production web build.</p></article><article class="card"><h3>Real smoke</h3><div class="num">200 OK</div><p>MedCPT/reranker thật + gateway thật + 5 citations.</p></article></div>
+    </section>
+
+    <section id="roadmap"><div class="section-head"><div><span class="eyebrow">08 · Planning</span><h2>Roadmap 5 tuần đã dùng</h2></div><p>Mỗi tuần tạo một decision gate; không để mọi thí nghiệm dồn đến tuần cuối.</p></div><div class="timeline"><div class="week"><b>Tuần 1</b><small>EDA, provenance, split, metric, leakage firewall.</small></div><div class="week"><b>Tuần 2</b><small>E01–E03: index, retriever, query.</small></div><div class="week"><b>Tuần 3</b><small>E04–E07: evidence và context.</small></div><div class="week"><b>Tuần 4</b><small>E08–E10/E12: model, prompt, oracle, interaction.</small></div><div class="week"><b>Tuần 5</b><small>Freeze, E11 held-out, statistics, product, report.</small></div></div>
+    </section>
+
+    <section id="limits"><div class="section-head"><div><span class="eyebrow">09 · Giới hạn khoa học</span><h2>Những gì người chấm cần biết</h2></div><p>Giới hạn được công bố là một phần của kết quả, không phải chi tiết giấu ở phụ lục.</p></div>
+      <ul class="limits"><li>Corpus positive-only và được điều kiện hóa bởi gold documents; retrieval score lạc quan hơn bối cảnh PubMed-wide.</li><li>Official exact-answer labels không có trong local bundle, nên không suy diễn factoid/list exact metrics từ ideal prose.</li><li>Không có physician/human medical validation; panel LLM không được đổi tên thành “human review”.</li><li>Provider failures được tính 0; khác biệt failure rate và latency đã được báo thay vì lọc mẫu thuận lợi.</li><li>Error attribution R1/R2 cho best arm không hợp lệ vì context artifact thiếu full <code>retrieved_pmids</code>; primary metrics và contrasts không bị ảnh hưởng.</li><li>Kết quả thuộc BioASQ bundle và provider/model snapshot này; cần external validation trước khi suy rộng domain.</li></ul>
+    </section>
+
+    <section id="artifacts"><div class="section-head"><div><span class="eyebrow">10 · Audit trail</span><h2>Con số có thể kiểm chứng</h2></div><p>HTML này là lớp diễn giải. JSON niêm phong mới là source of truth cho kết quả máy đọc.</p></div>
+      <div class="grid g3"><article class="card"><h3>Held-out gate</h3><p><a href="gates/E11_FINAL_HELDOUT.json">E11_FINAL_HELDOUT.json</a></p></article><article class="card"><h3>Paired statistics</h3><p><a href="final_statistics.json">final_statistics.json</a></p></article><article class="card"><h3>Protocol + architecture</h3><p><a href="../docs/KE_HOACH_THUC_NGHIEM_MEDICAL_RAG.html">Kế hoạch</a> · <a href="../docs/KIEN_TRUC_HE_THONG_PIPELINE_WORKFLOW.html">Kiến trúc</a></p></article></div>
+    </section>
+    <footer class="footer"><span>MedicalRAG · controlled biomedical RAG study</span><span>Final snapshot · 14/07/2026</span></footer>
+  </main>
+  <script>
+    document.getElementById("theme").addEventListener("click", () => {
+      const dark = !document.documentElement.classList.contains("dark");
+      document.documentElement.classList.toggle("dark", dark);
+      localStorage.setItem("medrag-report-theme", dark ? "dark" : "light");
+    });
+  </script>
+</body>
+</html>
